@@ -1,0 +1,197 @@
+# Claude.md
+
+## 1. Project Overview
+- **Brief description:** A comprehensive Windows Event Log analysis platform built with Next.js 15, designed for cybersecurity education and training. This application provides a modern, interactive interface for exploring and analyzing Windows Event Logs, featuring a dashboard-style layout with multiple components for log exploration, visualization, reporting, and security monitoring.
+- **Tech stack:**
+    - Framework: Next.js 15 (with App Router)
+    - Language: TypeScript
+    - Styling: Tailwind CSS
+    - Icons: Heroicons
+    - Charts: Recharts
+    - Build (development): Turbopack
+
+## 2. Directory and File Structure
+- **High-level directory map:**
+  ```
+  eventlog-analyzer/
+  ├── src/
+  │   ├── app/                    # Next.js App Router pages
+  │   │   ├── page.tsx           # Dashboard (home page)
+  │   │   ├── explorer/          # Event log browser
+  │   │   ├── visualizations/    # Charts and graphs
+  │   │   ├── reporting/         # Report generation
+  │   │   ├── settings/          # Configuration
+  │   │   └── alerts/            # Alert management
+  │   ├── components/            # Reusable React components
+  │   │   ├── dashboard/         # Dashboard widgets
+  │   │   ├── explorer/          # Event table components
+  │   │   ├── layout/            # Navigation and layout
+  │   │   ├── reporting/         # Report components
+  │   │   ├── settings/          # Settings forms
+  │   │   └── visualization/     # Chart components
+  │   └── lib/
+  │       └── data/              # Mock data and configurations
+  ├── public/                    # Static assets
+  ├── scripts/                   # Utility scripts (e.g., log collection, parsers)
+  ├── docs/                      # Documentation files
+  ├── .github/                   # GitHub specific files (e.g., workflows)
+  ├── package.json               # Dependencies and scripts
+  ├── next.config.ts             # Next.js configuration
+  ├── tsconfig.json              # TypeScript configuration
+  └── README.md                  # Project README
+  ```
+- **Entry points:**
+    - `src/app/layout.tsx`: The root layout component for the entire application.
+    - `src/app/page.tsx`: The main dashboard page, serving as the primary landing page.
+    - Other top-level `page.tsx` files under `src/app/*` (e.g., `src/app/explorer/page.tsx`) serve as entry points for their respective sections.
+
+## 3. Key Concepts & Domain Knowledge
+- **Core concepts:**
+    - **Windows Event Log Analysis:** The project focuses on providing tools to explore, filter, and understand Windows Event Logs. This includes understanding common Event IDs, log sources, and their security implications.
+    - **SIEM Concepts:** The application incorporates basic SIEM (Security Information and Event Management) ideas such as log aggregation (simulated with mock data), dashboard overviews, alert displays, and searching through log data.
+    - **Incident Response:** The tools can be used to simulate how one might use event logs during security incident investigations (e.g., tracking user activity, identifying suspicious processes).
+    - **Threat Hunting:** The platform can aid in learning proactive security monitoring techniques by exploring log data for anomalies or patterns that might indicate threats.
+- **Domain-specific logic:**
+    - The application heavily relies on understanding the structure and meaning of Windows Event IDs (e.g., `4624` for successful logon, `4625` for failed logon). Some of this data is present in `src/lib/data/windows_event_ids.json` and `docs/windows-event-id.csv`.
+- **Data Source:**
+    - Currently, the application uses **mock data** for all event log entries and related information (e.g., `lib/data/mock_log_entries.json`, `src/lib/data/mock_log_entries.json`). This is for demonstration and educational purposes.
+- **Glossary:**
+    - **Event ID:** A numerical code that identifies a specific type of event in Windows logs.
+    - **Log Source:** The origin of the log data (e.g., specific server, application).
+    - **SIEM:** Security Information and Event Management.
+
+## 4. How to Run, Build, and Test
+- **Prerequisites:**
+    - Node.js (version 18.x or later recommended, as per Vercel deployment settings in `README.md`)
+    - npm (comes with Node.js)
+    - Git
+- **Setup instructions:**
+    1. **Clone the repository:**
+       ```bash
+       git clone https://github.com/itrimble/EventLogTutorialThriveDX.git
+       ```
+    2. **Navigate to the project directory:**
+       ```bash
+       cd EventLogTutorialThriveDX/eventlog-analyzer
+       ```
+       *(Note: The `README.md` mentions `EventLogTutorialThriveDX/eventlog-analyzer`, ensure you are in the `eventlog-analyzer` subdirectory where `package.json` is located).*
+    3. **Install dependencies:**
+       ```bash
+       npm install
+       ```
+- **Build/run commands:**
+    - **Development:** To run the application in development mode (with hot reloading, using Turbopack):
+      ```bash
+      npm run dev
+      ```
+      The application will be available at [http://localhost:3000](http://localhost:3000).
+    - **Production Build:** To build the application for production:
+      ```bash
+      npm run build
+      ```
+    - **Start Production Server:** To start the application after a production build:
+      ```bash
+      npm start
+      ```
+- **Testing:**
+    - **Linting:** To check for code style and potential errors using ESLint:
+      ```bash
+      npm run lint
+      ```
+    - **Unit/Integration Tests:** The project contains `.test.ts` files (e.g., `src/hooks/useDebounce.test.ts`, `src/lib/utils/exportUtils.test.ts`), indicating the presence of unit tests. While `package.json` does not explicitly list a separate test script (e.g., `npm test`), these tests are likely intended to be run with a test runner like Jest or Vitest. If a dedicated test runner is configured, the command would typically be `npm test`. Otherwise, one might need to be set up.
+
+## 5. Tool and MCP Integration
+- **List of enabled tools/MCPs:**
+    - **Bash/Shell:** Used for running `npm` scripts (dev, build, start, lint) and general file system operations.
+    - **Node.js runtime:** Required for executing the Next.js application and scripts.
+    - **ESLint:** Integrated for code linting (`npm run lint`).
+    - *(No other specific external tools or MCPs are explicitly configured for direct Claude interaction in the repository at this time.)*
+- **Permissions and safety:**
+    - **Bash/Shell:**
+        - Be cautious with commands that modify or delete files (e.g., `rm`, `mv`).
+        - Avoid running arbitrary scripts from untrusted sources.
+        - When in doubt, ask for confirmation before executing potentially destructive commands.
+    - **General:**
+        - Do not commit sensitive information or credentials to the repository.
+        - The project currently uses mock data, so there's minimal risk of exposing real user data from within the development environment itself.
+- **Example tool commands:**
+    - **Running the development server:**
+      ```bash
+      npm run dev
+      ```
+    - **Building the project:**
+      ```bash
+      npm run build
+      ```
+    - **Running linters:**
+      ```bash
+      npm run lint
+      ```
+    - **Installing a new dependency (example):**
+      ```bash
+      npm install some-new-package
+      ```
+    - **Listing files in the current directory:**
+      ```bash
+      ls -la
+      ```
+
+## 6. Code Style and Contribution Guidelines
+- **Formatting conventions:**
+    - **ESLint:** The project is configured with ESLint (`npm run lint`) to enforce code style and catch errors. Refer to the ESLint configuration (`eslint.config.mjs` and potentially parts of `package.json`) for specific rules.
+    - **TypeScript:** Follow standard TypeScript best practices for type safety and code organization.
+    - **Tailwind CSS:** Adhere to utility-first principles when styling components.
+    - **Naming Conventions:** Observe existing patterns in the codebase (e.g., component naming `PascalCase.tsx`, variable naming `camelCase`).
+    - *(If a more specific formatter like Prettier is adopted, this section should be updated.)*
+- **Branching and PR rules:**
+    - Refer to the "Contributing" section in the main `README.md` file for guidelines on forking, branching (`feature/new-feature`), committing, pushing, and creating Pull Requests.
+- **General Guidelines:**
+    - Write clear and concise commit messages.
+    - Ensure new code is adequately commented, especially for complex logic.
+    - If adding new features, consider if corresponding tests are needed.
+
+## 7. Security and Privacy Rules
+- **Sensitive files and data:**
+    - While real Windows Event Logs can contain sensitive information, this project currently uses **mock data** located in `lib/data/` and `src/lib/data/` (e.g., `mock_log_entries.json`). There should be no real sensitive user or system data in the repository.
+    - Avoid committing any actual log files or sensitive production data to the repository.
+    - Be mindful of the types of information that would be sensitive if this project were to connect to live systems (e.g., usernames, IP addresses, machine names, specific activities).
+- **Secrets:**
+    - As per the `README.md`, no environment variables or secrets are required for the basic functionality of this project, as it relies on mock data.
+    - If the project is extended to connect to real services or APIs that require authentication, ensure that secrets (API keys, passwords, etc.) are managed securely (e.g., via environment variables, a secrets management system) and are **never** hardcoded or committed to the repository.
+    - Do not add any `.env` files containing real secrets to version control. Ensure `.env` is listed in `.gitignore` if used for local development with sensitive values.
+- **Tool Usage Safety:**
+    - When using tools like Bash, be extremely careful with commands that could lead to data leakage or unauthorized access if the project were handling real data (e.g., `curl`, `scp`, network utilities). Since it's mock data, the risk is low, but good practices should be maintained.
+
+## 8. Sample Prompts and Tasks
+These are examples of requests that might be made for this project.
+
+- **Code Generation & Refactoring:**
+    - "Create a new React component named `EventSummaryCard` in `src/components/dashboard/` that takes `title` and `count` as props and displays them in a styled card."
+    - "Refactor the `DashboardPage` component (`src/app/page.tsx`) to fetch its data from a new (hypothetical) API endpoint `/api/dashboard-summary` instead of using hardcoded content."
+    - "Add a new page at `/app/threat-intel/page.tsx` that displays information from `src/lib/threat_intel/otx_feed.ts`. Include a basic table layout."
+    - "Update the `TotalEventsWidget.tsx` to include a percentage change from the previous day (mock data for previous day is fine)."
+    - "Convert the `LogSourceSelector.tsx` component to use `useReducer` for state management instead of multiple `useState` hooks."
+
+- **Analysis & Understanding:**
+    - "Explain the purpose of the `src/lib/data/windows_event_ids.json` file and how it's used in the application."
+    - "What are the key responsibilities of the `Sidebar.tsx` and `Header.tsx` components in `src/components/layout/`?"
+    - "Describe the data flow for displaying critical alerts on the dashboard."
+    - "How is mock data loaded and utilized in the `RecentLogSourcesWidget.tsx`?"
+
+- **Testing:**
+    - "Write unit tests for the `src/lib/utils/exportUtils.ts` module. Ensure all functions are covered."
+    - "Add a basic test case for the `CriticalAlertsWidget` component to ensure it renders correctly with mock data."
+
+- **New Features (Conceptual):**
+    - "Outline the steps to add a feature that allows users to save their filter settings in the Event Explorer (`src/app/explorer/page.tsx`)."
+    - "Design a new component that visualizes event frequency over time using Recharts, similar to `EventsOverTimeChart.tsx` but for a different data aspect."
+
+- **Tool Usage:**
+    - "Run the linter and report any errors or warnings." (`npm run lint`)
+    - "If I add a new dependency `some-package`, how would I install it?" (`npm install some-package`)
+
+- **Expected outputs:**
+    - For code generation, provide complete, well-formatted TypeScript/TSX code that adheres to existing project conventions.
+    - For analysis, provide clear, concise explanations.
+    - For new features, provide a plan or high-level design.
+    - Ensure any new components or pages are integrated appropriately (e.g., added to routing if necessary, imported correctly).
