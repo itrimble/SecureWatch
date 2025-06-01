@@ -134,8 +134,6 @@
   color: var(--tp-text-secondary) !important;
   opacity: 0.7;
 }
-\
-}
 
 /* Apply Turbo Pascal theme to body by default for this example */
 body.theme-turbo-pascal {

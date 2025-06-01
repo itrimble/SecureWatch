@@ -18,14 +18,14 @@ cd /Users/ian/Scripts/SecureWatch
 
 This will:
 1. Install dependencies if needed
-2. Start backend on http://localhost:3000
+2. Start backend on http://localhost:3003
 3. Start frontend on http://localhost:4001
 
 ### Manual Start (Two Terminals):
 ```bash
 # Terminal 1: Backend
 cd /Users/ian/Scripts/SecureWatch
-npm run dev
+PORT=3003 npm run dev
 
 # Terminal 2: Frontend
 cd /Users/ian/Scripts/SecureWatch/frontend

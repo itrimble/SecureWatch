@@ -27,9 +27,9 @@ cleanup() {
 # Set trap to cleanup on script exit
 trap cleanup EXIT INT TERM
 
-# Start backend
-echo "🔧 Starting backend on http://localhost:3000..."
-npm run dev &
+# Start backend on port 3003 (since 3000 is often used by Docker)
+echo "🔧 Starting backend on http://localhost:3003..."
+PORT=3003 npm run dev &
 BACKEND_PID=$!
 
 # Wait a bit for backend to start
@@ -43,7 +43,7 @@ FRONTEND_PID=$!
 echo ""
 echo "✅ SecureWatch is running!"
 echo ""
-echo "📍 Backend:  http://localhost:3000"
+echo "📍 Backend:  http://localhost:3003"
 echo "📍 Frontend: http://localhost:4001"
 echo "🧪 Auth Test: http://localhost:4001/auth-test"
 echo ""
