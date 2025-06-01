@@ -1,0 +1,62 @@
+[DEFAULT]
+# URL of the Next.js ingestion API endpoint
+INGEST_API_URL = http://localhost:3000/api/ingest
+
+# Default log source identifier if not specified per source
+# This value is used by the agent when constructing the payload for the API.
+# The API's normalizer will then use this to pick the correct parsing logic.
+LOG_SOURCE_IDENTIFIER = generic_text_log
+
+# Number of events to accumulate before attempting to send a batch
+BATCH_SIZE = 10
+
+# Maximum time in seconds to wait before sending an incomplete batch
+FLUSH_INTERVAL_SECONDS = 5
+
+# Logging level for the agent itself. Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+AGENT_LOG_LEVEL = INFO
+
+# Maximum number of retries for sending a batch if the API is unavailable or returns a server error
+MAX_SEND_RETRIES = 3
+
+# Initial delay in seconds for retrying a failed batch send (will be doubled on subsequent retries)
+INITIAL_RETRY_DELAY_SECONDS = 5
+
+
+[WindowsEventLog]
+# Enable or disable collection from Windows Event Log
+ENABLED = true
+
+# Specific identifier for these logs, used by the API's normalizer
+LOG_SOURCE_IDENTIFIER = windows_event_json
+
+# PowerShell command to fetch events.
+# For PoC, -MaxEvents is used. A production agent would use bookmarks or query by TimeCreated.
+# Ensure the output is compressed JSON for efficiency if possible. Depth 5 is usually good.
+# Example: Get-WinEvent -LogName Security -MaxEvents 10 | ConvertTo-Json -Depth 5 -Compress
+# Example: Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4624,4625,4688} -MaxEvents 20 | ConvertTo-Json -Depth 5 -Compress
+POWERSHELL_COMMAND = Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4624,4625,4688} -MaxEvents 10 | ConvertTo-Json -Depth 5 -Compress
+
+# How often to run the PowerShell command to collect new events (in seconds)
+COLLECTION_INTERVAL_SECONDS = 30
+
+
+[FileLog:ApplicationX]
+# Example configuration for tailing a specific application log file
+ENABLED = false
+LOG_SOURCE_IDENTIFIER = appx_log_format # A custom identifier for this application's log format
+FILE_PATH = /var/log/application_x.log # Full path to the log file
+# For file logs, the agent typically sends each new line as a raw string or simple JSON.
+# The backend normalizer for "appx_log_format" would then parse these lines.
+COLLECTION_INTERVAL_SECONDS = 10 # How often to check the file for new lines
+
+
+[FileLog:SyslogLocal]
+ENABLED = false
+LOG_SOURCE_IDENTIFIER = syslog_rfc5424 # Or a more generic 'syslog_plain' if not strictly RFC5424
+FILE_PATH = /var/log/syslog # Common path for syslog on Linux
+COLLECTION_INTERVAL_SECONDS = 5
+
+# Add more [FileLog:UniqueName] sections for other files to monitor.
+# Each can have its own LOG_SOURCE_IDENTIFIER and FILE_PATH.
+# The agent will need to manage state (last read position) for each tailed file.

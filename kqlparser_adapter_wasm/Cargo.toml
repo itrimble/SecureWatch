@@ -1,0 +1,53 @@
+[package]
+name = "kqlparser_adapter_wasm"
+version = "0.1.0"
+edition = "2021"
+authors = ["EventLog Analyzer AI <ai@example.com>"]
+description = "A Wasm adapter for the KQL parser to be used in the EventLog Analyzer."
+license = "MIT" # Or your chosen license
+
+[lib]
+crate-type = ["cdylib", "rlib"] # cdylib for Wasm, rlib for Rust unit tests
+
+[dependencies]
+wasm-bindgen = "0.2.87" # Use a recent version
+
+serde = { version = "1.0", features = ["derive"] } # For potential internal structs if needed
+serde_json = "1.0" # For serializing the AST from kqlparser to JSON
+
+# KQL Parser Crate (irtimmer/rust-kql)
+# This assumes you have forked/cloned irtimmer/rust-kql, applied the serde changes,
+# and have it in a directory relative to this Wasm crate (e.g., sibling directory).
+# Adjust the path accordingly.
+# Ensure the "serialization" feature (defined in the modified kqlparser/Cargo.toml) is enabled.
+kqlparser = { path = "../rust-kql/kqlparser", features = ["serialization"] }
+
+# Or, if using a git repository that has the serialization feature on a specific branch/commit:
+# kqlparser = { git = "https://github.com/your-fork/rust-kql.git", branch = "feature/serialization", features = ["serialization"] }
+
+
+# For logging from Wasm to browser console (optional but useful for debugging)
+# log = "0.4"
+# wasm-bindgen-console_logger = { version = "0.1", optional = true }
+
+
+# For optimizing Wasm size (optional)
+# wee_alloc = { version = "0.4.5", optional = true }
+
+# Provides panic messages in the console, rather than just "unreachable"
+console_error_panic_hook = { version = "0.1.7", optional = true }
+
+
+[features]
+default = ["console_error_panic_hook"] # Enable panic hook by default
+# logging = ["dep:wasm-bindgen-console_logger", "dep:log"] # Optional feature for wasm logging
+# optimize_size = ["dep:wee_alloc"] # Optional feature for using wee_alloc
+
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s" # "z" is also an option for even smaller size, potentially at performance cost
+lto = true
+codegen-units = 1
+# panic = "abort" # Alternative to console_error_panic_hook for smallest size, but less debug info
+strip = "symbols" # Strip symbols for smaller binary

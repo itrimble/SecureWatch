@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg14 # Using latest pg14 version
+    container_name: eventlog_db_timescale_local
+    ports:
+      - "5432:5432" # Expose PostgreSQL port to the host
+    volumes:
+      - pgdata_eventlog:/var/lib/postgresql/data # Named volume for data persistence
+      # To automatically run init scripts, you can mount them to /docker-entrypoint-initdb.d/
+      # For example, if create_tables.sql is in the root:
+      # - ./create_tables.sql:/docker-entrypoint-initdb.d/01_init_schema.sql
+      # Note: Scripts in docker-entrypoint-initdb.d are only run when the database is first initialized (empty pgdata).
+    environment:
+      POSTGRES_USER: eventlogger        # Default user for the database
+      POSTGRES_PASSWORD: localdevpassword # Password for the default user
+      POSTGRES_DB: eventlog_dev         # Name of the default database to create
+      # Optional TimescaleDB specific settings if needed at init:
+      # TS_TUNE_MEMORY: "4GB" # Example: Adjust based on your system
+      # TS_TUNE_NUM_CPUS: "2" # Example: Adjust based on your system
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventlogger -d eventlog_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata_eventlog: # Defines the named volume for data persistence
+    driver: local
