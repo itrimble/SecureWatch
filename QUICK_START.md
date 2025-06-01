@@ -19,7 +19,7 @@ cd /Users/ian/Scripts/SecureWatch
 This will:
 1. Install dependencies if needed
 2. Start backend on http://localhost:3000
-3. Start frontend on http://localhost:3001
+3. Start frontend on http://localhost:4001
 
 ### Manual Start (Two Terminals):
 ```bash
@@ -29,15 +29,15 @@ npm run dev
 
 # Terminal 2: Frontend
 cd /Users/ian/Scripts/SecureWatch/frontend
-PORT=3001 npm run dev
+PORT=4001 npm run dev
 ```
 
 ## 🧪 Test Authentication
 
-1. **Open Frontend**: http://localhost:3001
+1. **Open Frontend**: http://localhost:4001
 2. **Click "Sign in with GitHub"** in the header
 3. **Authorize the app** on GitHub
-4. **Test Backend Connection**: Go to http://localhost:3001/auth-test
+4. **Test Backend Connection**: Go to http://localhost:4001/auth-test
 5. **Click "Test Backend Authentication"** to verify JWT flow
 
 ## 📁 Key Files
@@ -71,7 +71,7 @@ SecureWatch/
 
 ### CORS Issues
 - Frontend must run on different port than backend
-- Use the start-dev.sh script which sets PORT=3001
+- Use the start-dev.sh script which sets PORT=4001
 
 ## 🎉 Success!
 

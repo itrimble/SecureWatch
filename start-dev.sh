@@ -36,16 +36,16 @@ BACKEND_PID=$!
 sleep 3
 
 # Start frontend
-echo "🎨 Starting frontend on http://localhost:3001..."
-cd frontend && PORT=3001 npm run dev &
+echo "🎨 Starting frontend on http://localhost:4001..."
+cd frontend && PORT=4001 npm run dev &
 FRONTEND_PID=$!
 
 echo ""
 echo "✅ SecureWatch is running!"
 echo ""
 echo "📍 Backend:  http://localhost:3000"
-echo "📍 Frontend: http://localhost:3001"
-echo "🧪 Auth Test: http://localhost:3001/auth-test"
+echo "📍 Frontend: http://localhost:4001"
+echo "🧪 Auth Test: http://localhost:4001/auth-test"
 echo ""
 echo "Press Ctrl+C to stop all services"
 
