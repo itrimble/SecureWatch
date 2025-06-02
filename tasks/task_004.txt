@@ -1,0 +1,77 @@
+# Task ID: 4
+# Title: Implement KQL-Powered Search Engine
+# Status: completed
+# Dependencies: 3
+# Priority: high
+# Description: Develop a full Kusto Query Language implementation with IntelliSense, query builder, and search templates for efficient security event analysis.
+# Details:
+1. Implement KQL parser and lexer
+2. Create query execution engine with optimization
+3. Develop IntelliSense with syntax highlighting and auto-completion
+4. Create visual query builder for beginners
+5. Implement search templates for common security scenarios
+6. Develop query performance monitoring and optimization
+7. Create saved search functionality with sharing capabilities
+8. Implement query result caching for improved performance
+9. Create export functionality for query results
+
+Example KQL parser implementation:
+```typescript
+class KQLParser {
+  private tokens: Token[];
+  private current = 0;
+
+  constructor(tokens: Token[]) {
+    this.tokens = tokens;
+  }
+
+  parse(): Query {
+    try {
+      return this.parseQuery();
+    } catch (error) {
+      throw new SyntaxError(`KQL parsing error: ${error.message}`);
+    }
+  }
+
+  private parseQuery(): Query {
+    const baseTable = this.parseTableExpression();
+    let operations: Operation[] = [];
+    
+    while (this.current < this.tokens.length) {
+      const token = this.peek();
+      if (token.type === 'PIPE') {
+        this.advance(); // consume pipe
+        operations.push(this.parseOperation());
+      } else {
+        break;
+      }
+    }
+    
+    return { baseTable, operations };
+  }
+  
+  private parseTableExpression(): TableExpression {
+    // Implementation details
+  }
+  
+  private parseOperation(): Operation {
+    // Implementation details for where, project, summarize, etc.
+  }
+  
+  // Helper methods
+  private advance(): Token { /* ... */ }
+  private peek(): Token { /* ... */ }
+  private match(type: TokenType): boolean { /* ... */ }
+  private consume(type: TokenType, message: string): Token { /* ... */ }
+}
+```
+
+# Test Strategy:
+1. Unit tests for KQL parser and execution engine
+2. Performance testing for query response times
+3. Validation testing with complex query scenarios
+4. User testing for IntelliSense and query builder
+5. Benchmark against industry standard query engines
+6. Test query execution on large datasets (10M+ events)
+7. Verify correct results for all KQL operators and functions
+8. Test edge cases and error handling

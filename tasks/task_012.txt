@@ -1,0 +1,113 @@
+# Task ID: 12
+# Title: Develop Agent Architecture
+# Status: pending
+# Dependencies: 3, 11
+# Priority: medium
+# Description: Create a secure, efficient agent architecture for log collection from diverse endpoints with support for buffering, compression, and secure communication.
+# Details:
+1. Implement agent core in Python 3.11+ with asyncio
+2. Create secure HTTPS communication with WebSocket support
+3. Implement Zstandard compression for efficient data transmission
+4. Develop SQLite-based local event buffering and retry logic
+5. Implement mTLS authentication with certificate rotation
+6. Create agent configuration management and updates
+7. Develop health monitoring and diagnostics
+8. Implement resource usage controls and throttling
+9. Create platform-specific installers and deployment packages
+10. Develop agent management console
+
+Example agent architecture:
+```python
+class SecureWatchAgent:
+    def __init__(self, config_path: str):
+        self.config = self._load_config(config_path)
+        self.collectors = []
+        self.buffer = EventBuffer(self.config['buffer'])
+        self.transport = SecureTransport(self.config['transport'])
+        self.health_monitor = HealthMonitor()
+        self.running = False
+    
+    def _load_config(self, config_path: str) -> dict:
+        # Load and validate configuration
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        # Validate config schema
+        return config
+    
+    def initialize(self):
+        # Initialize collectors based on configuration
+        for collector_config in self.config['collectors']:
+            collector = self._create_collector(collector_config)
+            self.collectors.append(collector)
+        
+        # Initialize buffer
+        self.buffer.initialize()
+        
+        # Setup secure transport
+        self.transport.initialize()
+        
+        # Start health monitoring
+        self.health_monitor.start(self)
+    
+    def _create_collector(self, config: dict) -> Collector:
+        collector_type = config['type']
+        if collector_type == 'windows_event':
+            return WindowsEventCollector(config)
+        elif collector_type == 'syslog':
+            return SyslogCollector(config)
+        # Other collector types
+        else:
+            raise ValueError(f"Unknown collector type: {collector_type}")
+    
+    async def start(self):
+        self.running = True
+        # Start all collectors
+        collector_tasks = [asyncio.create_task(collector.collect(self.buffer)) 
+                          for collector in self.collectors]
+        
+        # Start transport task to send buffered events
+        transport_task = asyncio.create_task(self._transport_loop())
+        
+        # Wait for all tasks or until stopped
+        await asyncio.gather(*collector_tasks, transport_task)
+    
+    async def _transport_loop(self):
+        while self.running:
+            try:
+                # Get events from buffer
+                events = await self.buffer.get_batch(self.config['transport']['batch_size'])
+                if events:
+                    # Compress and send events
+                    compressed_data = self.transport.compress(events)
+                    success = await self.transport.send(compressed_data)
+                    if success:
+                        await self.buffer.mark_sent(events)
+                    else:
+                        # Will be retried in next iteration
+                        pass
+                else:
+                    # No events to send, wait a bit
+                    await asyncio.sleep(1)
+            except Exception as e:
+                self.health_monitor.record_error('transport', str(e))
+                await asyncio.sleep(5)  # Back off on error
+    
+    def stop(self):
+        self.running = False
+        # Cleanup resources
+        for collector in self.collectors:
+            collector.stop()
+        self.buffer.close()
+        self.transport.close()
+        self.health_monitor.stop()
+```
+
+# Test Strategy:
+1. Unit testing of agent components
+2. Integration testing with different endpoint types
+3. Performance testing under various load conditions
+4. Security testing of communication channels
+5. Test buffering and retry mechanisms
+6. Validate certificate rotation and mTLS
+7. Test resource usage and throttling
+8. Verify agent update mechanisms

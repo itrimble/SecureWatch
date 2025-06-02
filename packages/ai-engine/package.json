@@ -1,0 +1,62 @@
+{
+  "name": "@securewatch/ai-engine",
+  "version": "1.0.0",
+  "description": "AI-enhanced analytics system for SecureWatch SIEM",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@types/node": "^20.14.8",
+    "langchain": "^0.3.5",
+    "@langchain/community": "^0.3.12",
+    "@langchain/anthropic": "^0.3.6",
+    "@langchain/openai": "^0.3.11",
+    "@langchain/pinecone": "^0.1.2",
+    "@pinecone-database/pinecone": "^3.0.3",
+    "ollama": "^0.5.8",
+    "openai": "^4.67.3",
+    "axios": "^1.7.7",
+    "uuid": "^10.0.0",
+    "@types/uuid": "^10.0.0",
+    "zod": "^3.23.8",
+    "dotenv": "^16.4.5",
+    "winston": "^3.14.2",
+    "redis": "^4.7.0",
+    "node-cron": "^3.0.3",
+    "ml-matrix": "^6.10.9",
+    "simple-statistics": "^7.8.3",
+    "natural": "^8.0.1",
+    "compromise": "^14.14.0",
+    "node-nlp": "^4.27.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.2",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.12",
+    "ts-jest": "^29.2.2",
+    "eslint": "^9.6.0",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0"
+  },
+  "keywords": [
+    "siem",
+    "ai",
+    "analytics",
+    "security",
+    "mcp",
+    "llm",
+    "langchain"
+  ],
+  "author": "SecureWatch Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

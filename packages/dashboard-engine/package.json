@@ -1,0 +1,47 @@
+{
+  "name": "@securewatch/dashboard-engine",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "type-check": "tsc --noEmit",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@securewatch/shared-utils": "workspace:*",
+    "@securewatch/data-models": "workspace:*",
+    "@securewatch/kql-engine": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^2.14.2",
+    "react-grid-layout": "^1.5.0",
+    "react-beautiful-dnd": "^13.1.1",
+    "react-use": "^17.5.1",
+    "date-fns": "^4.2.0",
+    "lodash": "^4.17.21",
+    "zustand": "^5.0.2",
+    "framer-motion": "^11.15.0",
+    "react-hook-form": "^7.54.2",
+    "zod": "^3.24.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/lodash": "^4.17.13",
+    "@types/react-beautiful-dnd": "^13.1.8",
+    "tsup": "^8.3.5",
+    "typescript": "^5",
+    "vitest": "^2.2.1"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19",
+    "react-dom": "^18 || ^19"
+  }
+}
