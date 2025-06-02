@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with TimescaleDB
+  db:
+    image: timescale/timescaledb:latest-pg16
+    container_name: securewatch_postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./create_tables.sql:/docker-entrypoint-initdb.d/01_init_schema.sql
+    environment:
+      POSTGRES_USER: securewatch
+      POSTGRES_PASSWORD: securewatch_dev
+      POSTGRES_DB: securewatch
+      TS_TUNE_MEMORY: "2GB"
+      TS_TUNE_NUM_CPUS: "2"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U securewatch -d securewatch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - securewatch_network
+
+  # Redis Cluster
+  redis-master:
+    image: redis:7-alpine
+    container_name: securewatch_redis_master
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass securewatch_dev
+    volumes:
+      - redis_data:/data
+    networks:
+      - securewatch_network
+
+  redis-replica:
+    image: redis:7-alpine
+    container_name: securewatch_redis_replica
+    ports:
+      - "6380:6379"
+    command: redis-server --replicaof redis-master 6379 --masterauth securewatch_dev --requirepass securewatch_dev
+    depends_on:
+      - redis-master
+    networks:
+      - securewatch_network
+
+  # Kafka for log ingestion
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: securewatch_zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - securewatch_network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: securewatch_kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - securewatch_network
+
+  # Elasticsearch for log search
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: securewatch_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - securewatch_network
+
+  # Kibana for visualization (optional)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: securewatch_kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - securewatch_network
+
+networks:
+  securewatch_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  elasticsearch_data:

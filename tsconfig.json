@@ -1,27 +1,26 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@securewatch/ui-components": ["./packages/ui-components/src"],
+      "@securewatch/shared-utils": ["./packages/shared-utils/src"],
+      "@securewatch/data-models": ["./packages/data-models/src"],
+      "@securewatch/kql-engine": ["./packages/kql-engine/src"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "references": [
+    { "path": "./apps/web-frontend" },
+    { "path": "./apps/api-gateway" },
+    { "path": "./apps/auth-service" },
+    { "path": "./apps/log-ingestion" },
+    { "path": "./apps/analytics-engine" },
+    { "path": "./packages/ui-components" },
+    { "path": "./packages/shared-utils" },
+    { "path": "./packages/data-models" },
+    { "path": "./packages/kql-engine" }
+  ],
+  "include": [],
+  "exclude": ["node_modules", "**/node_modules", "dist", "**/dist"]
 }

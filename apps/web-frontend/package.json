@@ -1,26 +1,13 @@
 {
-  "name": "securewatch",
+  "name": "@securewatch/web-frontend",
   "version": "0.1.0",
-  "description": "Enterprise SIEM platform with advanced log analysis and threat detection",
   "private": true,
-  "author": "Ian Trimble <itrimble@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/itrimble/SecureWatch"
-  },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "start": "turbo start",
-    "lint": "turbo lint",
-    "test": "turbo test",
-    "clean": "turbo clean && rm -rf node_modules",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "typecheck": "turbo type-check"
+    "dev": "next dev --port 3000 --turbopack",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -32,16 +19,17 @@
     "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-toast": "^1.2.14",
+    "@securewatch/ui-components": "workspace:*",
+    "@securewatch/shared-utils": "workspace:*",
+    "@securewatch/data-models": "workspace:*",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",
-    "jose": "^6.0.11",
     "lucide-react": "^0.511.0",
     "next": "15.3.2",
-    "pg": "^8.16.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.3",
@@ -50,18 +38,12 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/pg": "^8.15.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/recharts": "^2.0.1",
-    "eslint": "^9",
-    "eslint-config-next": "15.3.2",
-    "prettier": "^3.3.3",
-    "tailwindcss": "^4",
-    "turbo": "^2.3.3",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5"
   }
 }

@@ -1,0 +1,31 @@
+{
+  "name": "@securewatch/api-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@apollo/server": "^4.11.2",
+    "@securewatch/data-models": "workspace:*",
+    "@securewatch/shared-utils": "workspace:*",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "graphql": "^16.9.0",
+    "helmet": "^8.0.0",
+    "http-proxy-middleware": "^3.1.0",
+    "winston": "^3.18.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/node": "^20",
+    "tsx": "^4.23.0",
+    "typescript": "^5"
+  }
+}
