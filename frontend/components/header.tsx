@@ -13,6 +13,11 @@ export function Header() {
   const supabase = createClient()
 
   useEffect(() => {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setLoading(false)
@@ -26,6 +31,7 @@ export function Header() {
   }, [supabase])
 
   const handleSignIn = async () => {
+    if (!supabase) return
     await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
@@ -35,6 +41,7 @@ export function Header() {
   }
 
   const handleSignOut = async () => {
+    if (!supabase) return
     await supabase.auth.signOut()
   }
 
@@ -55,6 +62,10 @@ export function Header() {
         <div>
           {loading ? (
             <div className="h-10 w-32 animate-pulse bg-gray-200 rounded" />
+          ) : !supabase ? (
+            <div className="text-sm text-muted-foreground">
+              Auth disabled
+            </div>
           ) : user ? (
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground">{user.email}</span>

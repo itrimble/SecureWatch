@@ -1,33 +1,48 @@
-# Event Log Tutorial - ThriveDX
+# SecureWatch - Enterprise SIEM Platform
 
-A comprehensive Windows Event Log analysis platform built with Next.js 15, designed for cybersecurity education and training.
+A comprehensive Security Information and Event Management (SIEM) platform built with Next.js 15, designed for enterprise security monitoring, threat detection, and incident response.
 
 ## 🎯 Overview
 
-This application provides a modern, interactive interface for exploring and analyzing Windows Event Logs. It features a dashboard-style layout with multiple components for log exploration, visualization, reporting, and security monitoring.
+SecureWatch is an enterprise-grade SIEM platform that provides comprehensive security monitoring, threat detection, and incident response capabilities. Built as a monorepo with microservices architecture, it offers real-time log analysis, AI-powered threat detection, and advanced visualization capabilities.
 
 ## 🚀 Features
 
-- **📊 Dashboard**: Overview of system health, critical alerts, and event summaries
-- **🔍 Event Explorer**: Interactive table for browsing and searching event logs
-- **📈 Visualizations**: Charts and graphs for log data analysis
-- **📋 Reporting**: Generate and schedule reports
-- **⚙️ Settings**: Configure log sources and system preferences
-- **🚨 Alerts**: Monitor and manage critical security events
-- **🤖 Log Collection Agent**: Python-based agent for collecting logs from multiple sources
-- **🍎 macOS Support**: Comprehensive macOS log collection and normalization
-- **💾 TimescaleDB Integration**: Time-series database for scalable log storage
+- **📊 Unified Dashboard**: Real-time security metrics and threat intelligence
+- **🔍 KQL-Powered Search**: Advanced query language for log analysis
+- **🤖 AI/ML Integration**: Anomaly detection and pattern recognition
+- **📈 Advanced Visualizations**: Interactive charts and threat maps
+- **🔐 Multi-Factor Authentication**: OAuth 2.0 with MFA support
+- **📋 Automated Reporting**: Scheduled reports and compliance documentation
+- **🚨 Smart Alerting**: ML-based alert correlation and prioritization
+- **🔄 Real-time Processing**: Kafka-based log ingestion pipeline
+- **🌐 Multi-tenant Architecture**: Enterprise-ready with role-based access
+- **📱 Responsive UI**: Mobile-friendly interface with dark mode
 
 ## 🛠️ Tech Stack
 
+### Frontend
 - **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Icons**: Heroicons
-- **Charts**: Recharts
-- **Build**: Turbopack (development)
-- **Database**: TimescaleDB (PostgreSQL with time-series extensions)
-- **Log Collection**: Python agent with configurable sources
+- **Styling**: Tailwind CSS + Radix UI
+- **State Management**: Zustand
+- **Charts**: Recharts + Nivo
+- **Authentication**: Supabase Auth
+
+### Backend (Microservices)
+- **API Gateway**: Express + GraphQL
+- **Search API**: KQL Engine + Elasticsearch
+- **Auth Service**: JWT + OAuth 2.0
+- **Log Ingestion**: Kafka + Node.js
+- **Analytics Engine**: Python + TensorFlow
+
+### Infrastructure
+- **Database**: TimescaleDB + PostgreSQL
+- **Cache**: Redis Cluster
+- **Message Queue**: Apache Kafka
+- **Search**: Elasticsearch
+- **Container**: Docker + Kubernetes
+- **Monitoring**: Prometheus + Grafana
 
 ## 📦 Installation & Setup
 
@@ -35,34 +50,117 @@ This application provides a modern, interactive interface for exploring and anal
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/itrimble/EventLogTutorialThriveDX.git
-   cd EventLogTutorialThriveDX
+   git clone https://github.com/itrimble/SecureWatch.git
+   cd SecureWatch
    ```
 
 2. **Install dependencies**:
    ```bash
+   # Using pnpm (recommended)
+   pnpm install
+   
+   # Or using npm
    npm install
    ```
 
 3. **Run development server**:
    ```bash
-   npm run dev
+   # Start all services (recommended)
+   pnpm run dev
+   
+   # Or start frontend only
+   cd frontend && pnpm run dev
    ```
 
 4. **Open browser**:
-   Navigate to [http://localhost:3000](http://localhost:3000) (or [http://localhost:3002](http://localhost:3002) if using custom port)
+   Navigate to [http://localhost:4000](http://localhost:4000)
 
-### Database Setup
+## 🔌 Port Configuration
 
-1. **Start TimescaleDB**:
+All services use the 4000 port range to avoid conflicts:
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Frontend | 4000 | Next.js web application |
+| Auth Service | 4001 | Authentication & authorization |
+| Log Ingestion | 4002 | Log collection & processing |
+| API Gateway | 4003 | API routing & rate limiting |
+| Search API | 4004 | KQL search engine |
+| Analytics Engine | 4005 | ML/AI processing |
+
+## 🐳 Infrastructure Setup
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Node.js 18+ 
+- pnpm (recommended) or npm
+
+### Quick Start
+
+1. **Clone and setup**:
    ```bash
-   docker-compose up -d
+   git clone https://github.com/itrimble/SecureWatch.git
+   cd SecureWatch
+   pnpm install
    ```
 
-2. **Initialize database schema**:
+2. **Start infrastructure stack**:
    ```bash
-   docker exec -i eventlog_db_timescale_local psql -U eventlogger -d eventlog_dev < create_tables.sql
+   docker compose -f docker-compose.dev.yml up -d
    ```
+
+3. **Initialize database schema**:
+   ```bash
+   docker exec -i securewatch_postgres psql -U securewatch -d securewatch < infrastructure/database/auth_schema.sql
+   ```
+
+4. **Start development services**:
+   ```bash
+   pnpm run dev
+   ```
+
+### Infrastructure Services
+
+The development stack includes:
+
+| Service | Container | Port | Description |
+|---------|-----------|------|-------------|
+| **TimescaleDB** | `securewatch_postgres` | 5432 | PostgreSQL 16 + TimescaleDB 2.20.2 |
+| **Redis Master** | `securewatch_redis_master` | 6379 | Primary cache & session store |
+| **Redis Replica** | `securewatch_redis_replica` | 6380 | Cache replication |
+| **Elasticsearch** | `securewatch_elasticsearch` | 9200 | Log search & indexing |
+| **Kibana** | `securewatch_kibana` | 5601 | Data visualization |
+| **Kafka** | `securewatch_kafka` | 9092 | Message streaming |
+| **Zookeeper** | `securewatch_zookeeper` | 2181 | Kafka coordination |
+
+### Environment Configuration
+
+Environment files are provided for each service:
+
+- `frontend/.env.local` - Frontend configuration
+- `apps/auth-service/.env.local` - Authentication service
+- `apps/search-api/.env.local` - Search API service  
+- `apps/log-ingestion/.env.local` - Log ingestion service
+
+**Default credentials**:
+- Database: `securewatch:securewatch_dev@localhost:5432/securewatch`
+- Redis: `securewatch_dev` password on ports 6379/6380
+
+### Health Checks
+
+Verify services are running:
+
+```bash
+# Database connectivity
+docker exec securewatch_postgres pg_isready -U securewatch -d securewatch
+
+# Elasticsearch health
+curl http://localhost:9200/_cluster/health
+
+# Redis connectivity  
+docker exec securewatch_redis_master redis-cli -a securewatch_dev ping
+```
 
 ### Log Collection Agent
 
@@ -110,32 +208,32 @@ This project is configured for automatic deployment on Vercel:
 ## 📁 Project Structure
 
 ```
-EventLogTutorialThriveDX/
-├── src/
-│   ├── app/                    # Next.js App Router pages
-│   │   ├── page.tsx           # Dashboard (home page)
-│   │   ├── explorer/          # Event log browser
-│   │   ├── visualizations/    # Charts and graphs
-│   │   ├── reporting/         # Report generation
-│   │   ├── settings/          # Configuration
-│   │   └── alerts/            # Alert management
-│   ├── components/            # Reusable React components
-│   │   ├── dashboard/         # Dashboard widgets
-│   │   ├── explorer/          # Event table components
-│   │   ├── layout/            # Navigation and layout
-│   │   ├── reporting/         # Report components
-│   │   ├── settings/          # Settings forms
-│   │   └── visualization/     # Chart components
-│   └── lib/
-│       ├── data/              # Mock data and configurations
-│       └── log_normalizer.ts  # Log normalization engine
-├── agent/                     # Python log collection agent
-│   ├── event_log_agent.py    # Main agent script
-│   └── config.ini.example    # Agent configuration template
-├── docs/                      # Documentation
-├── docker-compose.yml         # TimescaleDB setup
-├── create_tables.sql          # Database schema
-└── package.json              # Dependencies and scripts
+SecureWatch/
+├── frontend/                  # Next.js frontend application
+│   ├── app/                  # App Router pages
+│   ├── components/           # React components
+│   └── lib/                  # Utilities and services
+├── apps/                     # Backend microservices
+│   ├── auth-service/         # Authentication & authorization
+│   ├── log-ingestion/        # Log collection & processing
+│   ├── search-api/           # KQL search engine
+│   ├── api-gateway/          # API routing & rate limiting
+│   └── analytics-engine/     # ML/AI processing
+├── packages/                 # Shared monorepo packages
+│   ├── data-models/          # TypeScript data models
+│   ├── shared-utils/         # Common utilities
+│   ├── ui-components/        # Shared UI components
+│   └── kql-engine/           # KQL parser & engine
+├── infrastructure/           # Deployment configurations
+│   ├── kubernetes/           # K8s manifests
+│   ├── terraform/            # Infrastructure as code
+│   └── docker/               # Container definitions
+├── agent/                    # Python log collection agent
+│   ├── core/                 # Core agent modules
+│   └── management/           # Agent management console
+├── scripts/                  # Utility scripts
+├── docs/                     # Documentation
+└── docker-compose.yml        # Local development setup
 ```
 
 ## 🤖 Log Collection Agent
@@ -176,7 +274,7 @@ The agent uses `agent/config.ini` for configuration:
 
 ```ini
 [DEFAULT]
-INGEST_API_URL = http://localhost:3002/api/ingest
+INGEST_API_URL = http://localhost:4002/api/ingest
 BATCH_SIZE = 10
 FLUSH_INTERVAL_SECONDS = 5
 
@@ -219,7 +317,7 @@ TimescaleDB is configured via `docker-compose.yml`:
 
 2. **Port already in use**:
    ```bash
-   npm run dev -- -p 3001
+   npm run dev -- -p 4001
    ```
 
 3. **Database connection issues**:
