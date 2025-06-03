@@ -20,5 +20,8 @@ export * from './intellisense/types';
 // Main KQL Engine class
 export { KQLEngine } from './kql-engine';
 
+// Security templates
+export * from './templates/security-templates';
+
 // Utility functions
 export { validateKQLSyntax, formatKQLQuery, parseKQLToSQL } from './utils/kql-utils';

@@ -62,50 +62,61 @@
 
 ## 4. How to Run, Build, and Test
 - **Prerequisites:**
-    - Node.js (version 18.x or later recommended, as per Vercel deployment settings in `README.md`)
-    - npm (comes with Node.js)
+    - Node.js (version 18.x or later)
+    - pnpm (recommended) or npm
+    - Docker and Docker Compose
     - Git
 - **Setup instructions:**
     1. **Clone the repository:**
        ```bash
-       git clone https://github.com/itrimble/EventLogTutorialThriveDX.git
+       git clone https://github.com/itrimble/SecureWatch.git
+       cd SecureWatch
        ```
-    2. **Navigate to the project directory:**
+    2. **Install dependencies:**
        ```bash
-       cd EventLogTutorialThriveDX/eventlog-analyzer
+       pnpm install
        ```
-       *(Note: The `README.md` mentions `EventLogTutorialThriveDX/eventlog-analyzer`, ensure you are in the `eventlog-analyzer` subdirectory where `package.json` is located).*
-    3. **Install dependencies:**
+    3. **Start infrastructure:**
        ```bash
-       npm install
+       docker compose -f docker-compose.dev.yml up -d
+       ```
+    4. **Initialize database:**
+       ```bash
+       docker exec -i securewatch_postgres psql -U securewatch -d securewatch < infrastructure/database/auth_schema.sql
        ```
 - **Build/run commands:**
-    - **Development:** To run the application in development mode (with hot reloading, using Turbopack):
+    - **Development:** To run all services in development mode:
       ```bash
-      npm run dev
+      pnpm run dev
       ```
-      The application will be available at [http://localhost:3000](http://localhost:3000).
-    - **Production Build:** To build the application for production:
+      The frontend will be available at [http://localhost:4000](http://localhost:4000).
+    - **Frontend only:**
       ```bash
-      npm run build
+      cd frontend && pnpm run dev
       ```
-    - **Start Production Server:** To start the application after a production build:
+    - **Production Build:**
       ```bash
-      npm start
+      pnpm run build
       ```
-- **Testing:**
-    - **Linting:** To check for code style and potential errors using ESLint:
+    - **Linting:**
       ```bash
-      npm run lint
+      pnpm run lint
       ```
-    - **Unit/Integration Tests:** The project contains `.test.ts` files (e.g., `src/hooks/useDebounce.test.ts`, `src/lib/utils/exportUtils.test.ts`), indicating the presence of unit tests. While `package.json` does not explicitly list a separate test script (e.g., `npm test`), these tests are likely intended to be run with a test runner like Jest or Vitest. If a dedicated test runner is configured, the command would typically be `npm test`. Otherwise, one might need to be set up.
+- **Infrastructure Health Checks:**
+    - **Database:** `docker exec securewatch_postgres pg_isready -U securewatch -d securewatch`
+    - **Elasticsearch:** `curl http://localhost:9200/_cluster/health`
+    - **Redis:** `docker exec securewatch_redis_master redis-cli -a securewatch_dev ping`
 
 ## 5. Tool and MCP Integration
 - **List of enabled tools/MCPs:**
-    - **Bash/Shell:** Used for running `npm` scripts (dev, build, start, lint) and general file system operations.
-    - **Node.js runtime:** Required for executing the Next.js application and scripts.
-    - **ESLint:** Integrated for code linting (`npm run lint`).
-    - *(No other specific external tools or MCPs are explicitly configured for direct Claude interaction in the repository at this time.)*
+    - **Docker/Docker Compose:** Used for infrastructure management (`docker compose up -d`, health checks)
+    - **Bash/Shell:** Used for running `pnpm` scripts, database operations, and container management
+    - **Node.js runtime:** Required for executing the Next.js application and microservices
+    - **ESLint:** Integrated for code linting (`pnpm run lint`)
+    - **Database tools:** Direct PostgreSQL/TimescaleDB access via `docker exec` commands
+    - **Redis CLI:** For cache operations and connectivity testing
+    - **Bug Tracking System:** Python-based bug tracking with JSON persistence (`scripts/bug-tracker.py`)
+    - **Test Management System:** Comprehensive testing framework with unit and E2E test tracking (`scripts/test-tracker.py`)
 - **Permissions and safety:**
     - **Bash/Shell:**
         - Be cautious with commands that modify or delete files (e.g., `rm`, `mv`).
@@ -115,25 +126,43 @@
         - Do not commit sensitive information or credentials to the repository.
         - The project currently uses mock data, so there's minimal risk of exposing real user data from within the development environment itself.
 - **Example tool commands:**
+    - **Starting infrastructure:**
+      ```bash
+      docker compose -f docker-compose.dev.yml up -d
+      ```
     - **Running the development server:**
       ```bash
-      npm run dev
+      pnpm run dev
       ```
     - **Building the project:**
       ```bash
-      npm run build
+      pnpm run build
       ```
     - **Running linters:**
       ```bash
-      npm run lint
+      pnpm run lint
       ```
-    - **Installing a new dependency (example):**
+    - **Database operations:**
       ```bash
-      npm install some-new-package
+      docker exec -i securewatch_postgres psql -U securewatch -d securewatch -c "\dt"
       ```
-    - **Listing files in the current directory:**
+    - **Installing a new dependency:**
       ```bash
-      ls -la
+      pnpm add some-new-package
+      ```
+    - **Bug tracking operations:**
+      ```bash
+      python3 scripts/bug-tracker.py
+      ```
+    - **Test tracking operations:**
+      ```bash
+      python3 scripts/test-tracker.py
+      ```
+    - **Running tests:**
+      ```bash
+      pnpm run test          # Unit tests
+      pnpm run test:e2e      # E2E tests
+      pnpm run test:all      # All tests
       ```
 
 ## 6. Code Style and Contribution Guidelines

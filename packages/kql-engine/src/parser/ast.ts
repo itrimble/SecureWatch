@@ -231,7 +231,7 @@ export type DataType =
   | 'string' | 'int' | 'long' | 'real' | 'bool' | 'datetime' | 'timespan' | 'guid' | 'dynamic' | 'decimal';
 
 // Metadata for query optimization
-export interface QueryMetadata {
+export interface ParsedQueryMetadata {
   tables: string[];
   columns: string[];
   functions: string[];

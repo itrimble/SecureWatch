@@ -1,0 +1,75 @@
+[
+  {
+    "id": "BUG-001",
+    "title": "TypeError Failed to fetch in log-search component",
+    "description": "Unhandled TypeError when search API is unavailable",
+    "steps_to_reproduce": [
+      "Start frontend without search API running",
+      "Navigate to log search page",
+      "Click search button"
+    ],
+    "expected_result": "Graceful error handling with user message",
+    "actual_result": "Unhandled TypeError: Failed to fetch",
+    "environment": "Next.js 15, macOS, Chrome",
+    "priority": "Critical",
+    "status": "Fixed",
+    "component": "frontend/components/log-search.tsx",
+    "assigned_to": "Claude Code",
+    "date_reported": "2025-06-03",
+    "date_resolved": "2025-06-03",
+    "fix_details": "Added environment variable for API URL, implemented graceful error handling",
+    "tags": [
+      "frontend",
+      "api",
+      "error-handling"
+    ]
+  },
+  {
+    "id": "BUG-002",
+    "title": "KQL Engine build failures due to TypeScript errors",
+    "description": "TypeScript compilation errors preventing package build",
+    "steps_to_reproduce": [
+      "Run `pnpm run build` in packages/kql-engine",
+      "Observe DTS generation failures"
+    ],
+    "expected_result": "Clean build with type definitions",
+    "actual_result": "Build fails with TypeScript errors",
+    "environment": "Node.js 24.1.0, TypeScript 5.x, tsup 8.5.0",
+    "priority": "High",
+    "status": "In Progress",
+    "component": "packages/kql-engine",
+    "assigned_to": "Development Team",
+    "date_reported": "2025-06-03",
+    "date_resolved": null,
+    "fix_details": "Disabled DTS generation temporarily",
+    "tags": [
+      "build",
+      "typescript",
+      "kql-engine"
+    ]
+  },
+  {
+    "id": "BUG-003",
+    "title": "Redis authentication failures in search API",
+    "description": "Search API cannot connect to Redis due to missing password",
+    "steps_to_reproduce": [
+      "Start search API service",
+      "Observe Redis NOAUTH errors in logs"
+    ],
+    "expected_result": "Successful Redis connection",
+    "actual_result": "Repeated 'NOAUTH Authentication required' errors",
+    "environment": "Redis 7.x in Docker, ioredis client",
+    "priority": "High",
+    "status": "Fixed",
+    "component": "apps/search-api",
+    "assigned_to": "DevOps Team",
+    "date_reported": "2025-06-03",
+    "date_resolved": "2025-06-03",
+    "fix_details": "Added Redis password to environment configuration",
+    "tags": [
+      "redis",
+      "authentication",
+      "infrastructure"
+    ]
+  }
+]

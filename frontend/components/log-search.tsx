@@ -36,7 +36,9 @@ export function LogSearch() {
     
     setIsSearching(true)
     try {
-      const response = await fetch('http://localhost:4004/api/v1/search', {
+      // Use environment variable for search API URL, fallback to localhost
+      const searchApiUrl = process.env.NEXT_PUBLIC_SEARCH_API_URL || 'http://localhost:4004'
+      const response = await fetch(`${searchApiUrl}/api/v1/search`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,7 +60,13 @@ export function LogSearch() {
       
     } catch (error) {
       console.error('Search error:', error)
-      // Handle error - could show toast notification
+      
+      // For now, show a user-friendly message when API is unavailable
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.warn('Search API is unavailable. Using mock data for demonstration.')
+        // Could show a toast notification here
+        alert('Search API is currently unavailable. Please ensure all services are running.')
+      }
     } finally {
       setIsSearching(false)
     }

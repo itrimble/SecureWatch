@@ -334,6 +334,49 @@ TimescaleDB is configured via `docker-compose.yml`:
 
 For detailed troubleshooting, see [docs/agent_setup_and_usage.md](docs/agent_setup_and_usage.md).
 
+## 🐛 Bug Tracking & Testing
+
+SecureWatch includes comprehensive bug tracking and testing systems to ensure code quality:
+
+### Bug Tracking System
+- **Location**: `docs/bug-tracker.md` and `scripts/bug-tracker.py`
+- **Features**: 
+  - Persistent JSON-based bug tracking
+  - Priority levels (Critical, High, Medium, Low)
+  - Status tracking (Open, In Progress, Fixed, Closed, Won't Fix)
+  - Integration with development workflow
+- **Usage**: 
+  ```bash
+  python3 scripts/bug-tracker.py
+  ```
+
+### Testing Framework  
+- **Location**: `docs/testing-framework.md` and `scripts/test-tracker.py`
+- **Features**:
+  - Unit test tracking with Jest + React Testing Library
+  - E2E test management with Playwright/Cypress
+  - Test-to-bug relationship mapping
+  - Coverage reporting and CI/CD integration
+- **Usage**:
+  ```bash
+  python3 scripts/test-tracker.py
+  ```
+
+### Test Execution
+```bash
+# Run unit tests
+pnpm run test
+
+# Run E2E tests  
+pnpm run test:e2e
+
+# Run all tests
+pnpm run test:all
+
+# Generate coverage report
+pnpm run test:coverage
+```
+
 ## 📚 Learning Resources
 
 This project is designed for educational purposes in cybersecurity training:
@@ -343,6 +386,7 @@ This project is designed for educational purposes in cybersecurity training:
 - **SIEM Concepts**: Log aggregation, correlation, and alerting
 - **Incident Response**: Using logs for security investigations
 - **Threat Hunting**: Proactive security monitoring techniques
+- **Quality Assurance**: Bug tracking and testing methodologies
 
 ## 🤝 Contributing
 
