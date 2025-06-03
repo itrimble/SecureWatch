@@ -1,0 +1,445 @@
+{% extends "base.html" %}
+
+{% block title %}Agents - SecureWatch Management Console{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Agent Management</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshAgents()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addAgentModal">
+                <i class="fas fa-plus"></i> Add Agent
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Filter and Search -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-3">
+                <label for="statusFilter" class="form-label">Filter by Status:</label>
+                <select class="form-select" id="statusFilter" onchange="filterAgents()">
+                    <option value="">All Statuses</option>
+                    <option value="online">Online</option>
+                    <option value="offline">Offline</option>
+                    <option value="error">Error</option>
+                    <option value="unknown">Unknown</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="collectorFilter" class="form-label">Filter by Collector:</label>
+                <select class="form-select" id="collectorFilter" onchange="filterAgents()">
+                    <option value="">All Collectors</option>
+                    <option value="windows_event">Windows Event</option>
+                    <option value="syslog">Syslog</option>
+                    <option value="file">File</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="searchInput" class="form-label">Search Agents:</label>
+                <input type="text" class="form-control" id="searchInput" placeholder="Search by hostname or agent ID..." onkeyup="filterAgents()">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Agents Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Registered Agents</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="agentsTable">
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                        </th>
+                        <th>Agent ID</th>
+                        <th>Hostname</th>
+                        <th>IP Address</th>
+                        <th>Status</th>
+                        <th>Version</th>
+                        <th>Collectors</th>
+                        <th>Health Score</th>
+                        <th>Events/min</th>
+                        <th>Uptime</th>
+                        <th>Last Seen</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for agent in agents %}
+                    <tr data-agent-id="{{ agent.agent_id }}" data-status="{{ agent.status }}" data-collectors="{{ ','.join(agent.collectors_enabled) }}">
+                        <td>
+                            <input type="checkbox" class="agent-checkbox" value="{{ agent.agent_id }}">
+                        </td>
+                        <td>
+                            <a href="{{ url_for('agent_detail', agent_id=agent.agent_id) }}" class="text-decoration-none">
+                                <strong>{{ agent.agent_id }}</strong>
+                            </a>
+                        </td>
+                        <td>{{ agent.hostname }}</td>
+                        <td>{{ agent.ip_address }}</td>
+                        <td>
+                            <span class="status-badge status-{{ agent.status }}" id="agent-status-{{ agent.agent_id }}"></span>
+                            <span class="badge bg-{{ 'success' if agent.status == 'online' else 'danger' if agent.status == 'error' else 'secondary' }} text-capitalize">
+                                {{ agent.status }}
+                            </span>
+                        </td>
+                        <td>{{ agent.version }}</td>
+                        <td>
+                            {% for collector in agent.collectors_enabled %}
+                                <span class="badge bg-info me-1">{{ collector }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress me-2" style="width: 60px; height: 20px;">
+                                    <div class="progress-bar bg-{{ 'success' if agent.health_score >= 80 else 'warning' if agent.health_score >= 60 else 'danger' }}" 
+                                         style="width: {{ agent.health_score }}%"></div>
+                                </div>
+                                <span class="health-score {{ 'excellent' if agent.health_score >= 80 else 'good' if agent.health_score >= 60 else 'poor' }}">
+                                    {{ agent.health_score }}%
+                                </span>
+                            </div>
+                        </td>
+                        <td>{{ agent.events_per_minute }}</td>
+                        <td>
+                            <span title="{{ agent.uptime }} seconds">
+                                {{ (agent.uptime // 86400) }}d {{ ((agent.uptime % 86400) // 3600) }}h
+                            </span>
+                        </td>
+                        <td>
+                            <span title="{{ agent.last_seen.strftime('%Y-%m-%d %H:%M:%S') }}">
+                                {{ agent.last_seen.strftime('%m/%d %H:%M') }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('agent_detail', agent_id=agent.agent_id) }}" 
+                                   class="btn btn-outline-primary btn-sm" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button class="btn btn-outline-success btn-sm" 
+                                        onclick="sendCommand('{{ agent.agent_id }}', 'start')" title="Start">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm" 
+                                        onclick="sendCommand('{{ agent.agent_id }}', 'restart')" title="Restart">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" 
+                                        onclick="sendCommand('{{ agent.agent_id }}', 'stop')" title="Stop">
+                                    <i class="fas fa-stop"></i>
+                                </button>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" 
+                                            data-bs-toggle="dropdown" title="More Actions">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" onclick="configureAgent('{{ agent.agent_id }}')">
+                                            <i class="fas fa-cog"></i> Configure
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="updateAgent('{{ agent.agent_id }}')">
+                                            <i class="fas fa-download"></i> Update
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="exportLogs('{{ agent.agent_id }}')">
+                                            <i class="fas fa-file-export"></i> Export Logs
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#" onclick="removeAgent('{{ agent.agent_id }}')">
+                                            <i class="fas fa-trash"></i> Remove
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Actions -->
+<div class="card mt-3">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <strong id="selectedCount">0</strong> agents selected
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="bulkCommand('start')" disabled id="bulkStartBtn">
+                        <i class="fas fa-play"></i> Start Selected
+                    </button>
+                    <button class="btn btn-warning" onclick="bulkCommand('restart')" disabled id="bulkRestartBtn">
+                        <i class="fas fa-redo"></i> Restart Selected
+                    </button>
+                    <button class="btn btn-danger" onclick="bulkCommand('stop')" disabled id="bulkStopBtn">
+                        <i class="fas fa-stop"></i> Stop Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Agent Modal -->
+<div class="modal fade" id="addAgentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Agent</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAgentForm">
+                    <div class="mb-3">
+                        <label for="agentHostname" class="form-label">Hostname</label>
+                        <input type="text" class="form-control" id="agentHostname" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="agentIP" class="form-label">IP Address</label>
+                        <input type="text" class="form-control" id="agentIP" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="agentPort" class="form-label">Port</label>
+                        <input type="number" class="form-control" id="agentPort" value="8443">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Collectors to Enable</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enableWindowsEvent" checked>
+                            <label class="form-check-label" for="enableWindowsEvent">Windows Event Log</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enableSyslog">
+                            <label class="form-check-label" for="enableSyslog">Syslog</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enableFile" checked>
+                            <label class="form-check-label" for="enableFile">File Collector</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addAgent()">Add Agent</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filter and search functionality
+function filterAgents() {
+    const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+    const collectorFilter = document.getElementById('collectorFilter').value.toLowerCase();
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    
+    const rows = document.querySelectorAll('#agentsTable tbody tr');
+    
+    rows.forEach(row => {
+        const status = row.dataset.status.toLowerCase();
+        const collectors = row.dataset.collectors.toLowerCase();
+        const agentId = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const hostname = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        
+        const statusMatch = !statusFilter || status === statusFilter;
+        const collectorMatch = !collectorFilter || collectors.includes(collectorFilter);
+        const searchMatch = !searchTerm || agentId.includes(searchTerm) || hostname.includes(searchTerm);
+        
+        if (statusMatch && collectorMatch && searchMatch) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function clearFilters() {
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('collectorFilter').value = '';
+    document.getElementById('searchInput').value = '';
+    filterAgents();
+}
+
+// Selection functionality
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.agent-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+    
+    updateBulkButtons();
+}
+
+function updateBulkButtons() {
+    const selectedCheckboxes = document.querySelectorAll('.agent-checkbox:checked');
+    const count = selectedCheckboxes.length;
+    
+    document.getElementById('selectedCount').textContent = count;
+    
+    const bulkButtons = ['bulkStartBtn', 'bulkRestartBtn', 'bulkStopBtn'];
+    bulkButtons.forEach(buttonId => {
+        document.getElementById(buttonId).disabled = count === 0;
+    });
+}
+
+// Add event listeners to checkboxes
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.agent-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateBulkButtons);
+    });
+});
+
+// Agent management functions
+function sendCommand(agentId, command) {
+    const confirmMessage = `Are you sure you want to ${command} agent ${agentId}?`;
+    
+    if (confirm(confirmMessage)) {
+        fetch(`/api/agent/${agentId}/command`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                command: command,
+                params: {}
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Command "${command}" sent successfully to ${agentId}`);
+                refreshAgents();
+            } else {
+                alert(`Failed to send command: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            alert(`Error sending command: ${error}`);
+        });
+    }
+}
+
+function bulkCommand(command) {
+    const selectedCheckboxes = document.querySelectorAll('.agent-checkbox:checked');
+    const agentIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+    
+    if (agentIds.length === 0) {
+        alert('Please select at least one agent');
+        return;
+    }
+    
+    const confirmMessage = `Are you sure you want to ${command} ${agentIds.length} selected agents?`;
+    
+    if (confirm(confirmMessage)) {
+        // Send command to each selected agent
+        const promises = agentIds.map(agentId => {
+            return fetch(`/api/agent/${agentId}/command`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    command: command,
+                    params: {}
+                })
+            }).then(response => response.json());
+        });
+        
+        Promise.all(promises)
+            .then(results => {
+                const successful = results.filter(r => r.success).length;
+                const failed = results.length - successful;
+                
+                let message = `Bulk ${command} completed: ${successful} successful`;
+                if (failed > 0) {
+                    message += `, ${failed} failed`;
+                }
+                
+                alert(message);
+                refreshAgents();
+            })
+            .catch(error => {
+                alert(`Error executing bulk command: ${error}`);
+            });
+    }
+}
+
+function configureAgent(agentId) {
+    window.location.href = `/agent/${agentId}#config`;
+}
+
+function updateAgent(agentId) {
+    if (confirm(`Update agent ${agentId} to the latest version?`)) {
+        sendCommand(agentId, 'update');
+    }
+}
+
+function exportLogs(agentId) {
+    // Implementation would export agent logs
+    alert(`Exporting logs for agent ${agentId}...`);
+}
+
+function removeAgent(agentId) {
+    if (confirm(`Are you sure you want to permanently remove agent ${agentId}? This action cannot be undone.`)) {
+        // Implementation would remove agent from system
+        alert(`Agent ${agentId} removal initiated...`);
+    }
+}
+
+function addAgent() {
+    const hostname = document.getElementById('agentHostname').value;
+    const ip = document.getElementById('agentIP').value;
+    const port = document.getElementById('agentPort').value;
+    
+    const collectors = [];
+    if (document.getElementById('enableWindowsEvent').checked) collectors.push('windows_event');
+    if (document.getElementById('enableSyslog').checked) collectors.push('syslog');
+    if (document.getElementById('enableFile').checked) collectors.push('file');
+    
+    if (!hostname || !ip) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    // Implementation would register new agent
+    alert(`Adding agent ${hostname} (${ip}:${port}) with collectors: ${collectors.join(', ')}`);
+    
+    // Close modal and refresh
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addAgentModal'));
+    modal.hide();
+    
+    setTimeout(() => {
+        refreshAgents();
+    }, 1000);
+}
+
+function refreshAgents() {
+    window.location.reload();
+}
+</script>
+{% endblock %}

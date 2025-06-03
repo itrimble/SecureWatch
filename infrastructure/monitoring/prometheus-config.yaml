@@ -1,0 +1,315 @@
+# SecureWatch Prometheus Configuration
+# Comprehensive metrics collection for all platform components
+
+global:
+  scrape_interval: 15s          # How frequently to scrape targets
+  evaluation_interval: 15s      # How frequently to evaluate rules
+  external_labels:
+    cluster: 'securewatch-prod'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+  - kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - monitoring
+      selectors:
+      - role: pod
+        label: "app=alertmanager"
+    scheme: http
+    path_prefix: /
+    timeout: 10s
+    api_version: v1
+
+# Rule files configuration
+rule_files:
+  - /etc/prometheus/rules/*.yml
+  - /etc/prometheus/rules.d/*.yml
+
+# Remote write configuration for long-term storage
+remote_write:
+  - url: http://thanos-receive:19291/api/v1/receive
+    write_relabel_configs:
+    - source_labels: [__name__]
+      regex: "(go_|process_).*"
+      action: drop
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+    - targets: ['localhost:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Kubernetes API Server
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+    - role: endpoints
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+      action: keep
+      regex: default;kubernetes;https
+
+  # Kubernetes Nodes
+  - job_name: 'kubernetes-nodes'
+    kubernetes_sd_configs:
+    - role: node
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+    - action: labelmap
+      regex: __meta_kubernetes_node_label_(.+)
+    - target_label: __address__
+      replacement: kubernetes.default.svc:443
+    - source_labels: [__meta_kubernetes_node_name]
+      regex: (.+)
+      target_label: __metrics_path__
+      replacement: /api/v1/nodes/${1}/proxy/metrics
+
+  # Node Exporter
+  - job_name: 'node-exporter'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - monitoring
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: node-exporter
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_node_name]
+      target_label: node
+    - source_labels: [__address__]
+      regex: '([^:]+):.*'
+      target_label: instance
+      replacement: '${1}'
+
+  # SecureWatch API Gateway
+  - job_name: 'securewatch-api-gateway'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - securewatch
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: securewatch-api-gateway
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      regex: true
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+      regex: (.+)
+      target_label: __metrics_path__
+      action: replace
+    - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+      regex: ([^:]+)(?::\d+)?;(\d+)
+      target_label: __address__
+      replacement: $1:$2
+      action: replace
+    - source_labels: [__meta_kubernetes_namespace]
+      target_label: namespace
+    - source_labels: [__meta_kubernetes_pod_name]
+      target_label: pod
+    - source_labels: [__meta_kubernetes_pod_label_version]
+      target_label: version
+    metric_relabel_configs:
+    - source_labels: [__name__]
+      regex: "(request_duration_seconds|request_size_bytes|response_size_bytes|requests_total)"
+      action: keep
+
+  # SecureWatch Log Ingestion Service
+  - job_name: 'securewatch-log-ingestion'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - securewatch
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: securewatch-log-ingestion
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      regex: true
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+      regex: (.+)
+      target_label: __address__
+      action: replace
+      replacement: $1
+    - source_labels: [__meta_kubernetes_namespace]
+      target_label: namespace
+    - source_labels: [__meta_kubernetes_pod_name]
+      target_label: pod
+    metric_relabel_configs:
+    - source_labels: [__name__]
+      regex: "(log_events_processed_total|log_events_failed_total|log_processing_duration_seconds|buffer_usage_bytes)"
+      action: keep
+
+  # SecureWatch Auth Service
+  - job_name: 'securewatch-auth-service'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - securewatch
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: securewatch-auth-service
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      regex: true
+      action: keep
+    metric_relabel_configs:
+    - source_labels: [__name__]
+      regex: "(auth_attempts_total|auth_failures_total|token_generation_duration_seconds|active_sessions_total)"
+      action: keep
+
+  # SecureWatch Search API
+  - job_name: 'securewatch-search-api'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - securewatch
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: securewatch-search-api
+      action: keep
+    metric_relabel_configs:
+    - source_labels: [__name__]
+      regex: "(search_queries_total|search_latency_seconds|index_size_bytes|search_errors_total)"
+      action: keep
+
+  # SecureWatch Analytics Engine
+  - job_name: 'securewatch-analytics-engine'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - securewatch
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: securewatch-analytics-engine
+      action: keep
+    metric_relabel_configs:
+    - source_labels: [__name__]
+      regex: "(analytics_jobs_total|analytics_processing_duration_seconds|anomalies_detected_total|ml_model_accuracy)"
+      action: keep
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres-exporter'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - securewatch
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: postgres-exporter
+      action: keep
+    metric_relabel_configs:
+    - source_labels: [__name__]
+      regex: "(pg_up|pg_database_size_bytes|pg_stat_activity_count|pg_replication_lag)"
+      action: keep
+
+  # Redis Exporter
+  - job_name: 'redis-exporter'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - securewatch
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: redis-exporter
+      action: keep
+    metric_relabel_configs:
+    - source_labels: [__name__]
+      regex: "(redis_up|redis_memory_used_bytes|redis_connected_clients|redis_commands_processed_total)"
+      action: keep
+
+  # Kafka Exporter
+  - job_name: 'kafka-exporter'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - securewatch
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: kafka-exporter
+      action: keep
+    metric_relabel_configs:
+    - source_labels: [__name__]
+      regex: "(kafka_topic_partition_current_offset|kafka_consumer_lag|kafka_brokers|kafka_topic_messages_total)"
+      action: keep
+
+  # Elasticsearch Exporter
+  - job_name: 'elasticsearch-exporter'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - securewatch
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: elasticsearch-exporter
+      action: keep
+    metric_relabel_configs:
+    - source_labels: [__name__]
+      regex: "(es_cluster_health_status|es_indices_count|es_disk_usage_bytes|es_search_query_time_seconds)"
+      action: keep
+
+  # Blackbox Exporter for endpoint monitoring
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+    - targets:
+      - https://api.securewatch.com/health
+      - https://securewatch.com
+      - https://auth.securewatch.com/health
+    relabel_configs:
+    - source_labels: [__address__]
+      target_label: __param_target
+    - source_labels: [__param_target]
+      target_label: instance
+    - target_label: __address__
+      replacement: blackbox-exporter:9115
+
+  # Custom Application Metrics
+  - job_name: 'custom-metrics'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - securewatch
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      regex: true
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_custom_metrics]
+      regex: true
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+      regex: (.+)
+      target_label: __metrics_path__
+      action: replace
+    - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+      regex: ([^:]+)(?::\d+)?;(\d+)
+      target_label: __address__
+      replacement: $1:$2
+      action: replace

@@ -1,0 +1,20 @@
+# SecureWatch Agent Management Console Requirements
+
+# Web Framework
+Flask==3.0.0
+Flask-SocketIO==5.3.6
+
+# HTTP Client
+aiohttp==3.9.1
+
+# Database
+# (Using sqlite3 from standard library)
+
+# Async Support
+asyncio-mqtt==0.16.1
+
+# Utilities
+python-dateutil==2.8.2
+
+# Development/Optional
+gunicorn==21.2.0  # For production deployment

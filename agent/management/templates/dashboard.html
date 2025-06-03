@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SecureWatch Management Console{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mb-4">
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="card metric-card border-primary">
+            <div class="card-body text-center">
+                <div class="h2 text-primary" id="total-agents">{{ stats.total_agents }}</div>
+                <div class="text-muted">Total Agents</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="card metric-card border-success">
+            <div class="card-body text-center">
+                <div class="h2 text-success" id="online-agents">{{ stats.online_agents }}</div>
+                <div class="text-muted">Online</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="card metric-card border-secondary">
+            <div class="card-body text-center">
+                <div class="h2 text-secondary" id="offline-agents">{{ stats.offline_agents }}</div>
+                <div class="text-muted">Offline</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="card metric-card border-danger">
+            <div class="card-body text-center">
+                <div class="h2 text-danger" id="error-agents">{{ stats.error_agents }}</div>
+                <div class="text-muted">Errors</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="card metric-card border-info">
+            <div class="card-body text-center">
+                <div class="h2 text-info" id="total-events">{{ stats.total_events_per_minute }}</div>
+                <div class="text-muted">Events/min</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="card metric-card border-warning">
+            <div class="card-body text-center">
+                <div class="h2 text-warning" id="avg-health">{{ stats.average_health_score }}</div>
+                <div class="text-muted">Avg Health</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Events per Minute</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="eventsChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Agent Status Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Agents Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Recent Agent Activity</h5>
+        <a href="{{ url_for('agents_list') }}" class="btn btn-sm btn-primary">View All Agents</a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Agent</th>
+                        <th>Hostname</th>
+                        <th>Status</th>
+                        <th>Health</th>
+                        <th>Events/min</th>
+                        <th>CPU</th>
+                        <th>Memory</th>
+                        <th>Last Seen</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for agent in agents %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('agent_detail', agent_id=agent.agent_id) }}" 
+                               class="text-decoration-none">
+                                {{ agent.agent_id }}
+                            </a>
+                        </td>
+                        <td>{{ agent.hostname }}</td>
+                        <td>
+                            <span class="status-badge status-{{ agent.status }}" 
+                                  id="agent-status-{{ agent.agent_id }}"></span>
+                            <span class="text-capitalize">{{ agent.status }}</span>
+                        </td>
+                        <td>
+                            <span class="health-score {{ 'excellent' if agent.health_score >= 80 else 'good' if agent.health_score >= 60 else 'poor' }}">
+                                {{ agent.health_score }}%
+                            </span>
+                        </td>
+                        <td>{{ agent.events_per_minute }}</td>
+                        <td>{{ agent.cpu_usage }}%</td>
+                        <td>{{ agent.memory_usage }}%</td>
+                        <td>
+                            <span class="text-muted" title="{{ agent.last_seen.strftime('%Y-%m-%d %H:%M:%S') }}">
+                                {{ agent.last_seen.strftime('%H:%M') }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('agent_detail', agent_id=agent.agent_id) }}" 
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button class="btn btn-outline-secondary btn-sm" 
+                                        onclick="restartAgent('{{ agent.agent_id }}')">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm"
+                                        onclick="configureAgent('{{ agent.agent_id }}')">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Events per minute chart
+const eventsCtx = document.getElementById('eventsChart').getContext('2d');
+const eventsChart = new Chart(eventsCtx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: 'Events per Minute',
+            data: [],
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Status distribution chart  
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+const statusChart = new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Online', 'Offline', 'Error', 'Unknown'],
+        datasets: [{
+            data: [{{ stats.online_agents }}, {{ stats.offline_agents }}, {{ stats.error_agents }}, 0],
+            backgroundColor: ['#28a745', '#6c757d', '#dc3545', '#ffc107']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Update charts with real-time data
+function updateDashboardStats(stats) {
+    // Update status chart
+    statusChart.data.datasets[0].data = [
+        stats.online_agents,
+        stats.offline_agents, 
+        stats.error_agents,
+        0
+    ];
+    statusChart.update();
+    
+    // Update events chart
+    const now = new Date();
+    const timeLabel = now.toLocaleTimeString();
+    
+    eventsChart.data.labels.push(timeLabel);
+    eventsChart.data.datasets[0].data.push(stats.total_events_per_minute);
+    
+    // Keep only last 20 data points
+    if (eventsChart.data.labels.length > 20) {
+        eventsChart.data.labels.shift();
+        eventsChart.data.datasets[0].data.shift();
+    }
+    
+    eventsChart.update();
+    
+    // Update summary cards
+    const elements = {
+        'total-agents': stats.total_agents,
+        'online-agents': stats.online_agents,
+        'offline-agents': stats.offline_agents,
+        'error-agents': stats.error_agents,
+        'total-events': stats.total_events_per_minute,
+        'avg-health': Math.round(stats.average_health_score * 10) / 10
+    };
+    
+    for (const [id, value] of Object.entries(elements)) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        }
+    }
+}
+
+// Agent control functions
+function restartAgent(agentId) {
+    if (confirm(`Are you sure you want to restart agent ${agentId}?`)) {
+        fetch(`/api/agent/${agentId}/command`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                command: 'restart',
+                params: {}
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Agent restart command sent successfully');
+            } else {
+                alert(`Failed to restart agent: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            alert(`Error sending restart command: ${error}`);
+        });
+    }
+}
+
+function configureAgent(agentId) {
+    // Redirect to agent configuration page
+    window.location.href = `/agent/${agentId}#config`;
+}
+
+// Initialize charts with some data
+setTimeout(() => {
+    // Add initial data points to events chart
+    const now = new Date();
+    for (let i = 9; i >= 0; i--) {
+        const time = new Date(now.getTime() - i * 60000);
+        eventsChart.data.labels.push(time.toLocaleTimeString());
+        eventsChart.data.datasets[0].data.push(Math.floor(Math.random() * 100) + 50);
+    }
+    eventsChart.update();
+}, 1000);
+</script>
+{% endblock %}

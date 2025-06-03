@@ -1,0 +1,347 @@
+# SecureWatch Prometheus Alerting Rules
+# Comprehensive alerting for system health, performance, and security
+
+groups:
+  # Service Health Alerts
+  - name: service_health
+    interval: 30s
+    rules:
+    - alert: ServiceDown
+      expr: up{job=~"securewatch-.*"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        team: sre
+      annotations:
+        summary: "{{ $labels.job }} service is down"
+        description: "{{ $labels.job }} on {{ $labels.instance }} has been down for more than 2 minutes"
+        runbook_url: "https://runbooks.securewatch.com/service-down"
+
+    - alert: HighErrorRate
+      expr: |
+        (
+          sum(rate(http_requests_total{status=~"5.."}[5m])) by (job, service)
+          /
+          sum(rate(http_requests_total[5m])) by (job, service)
+        ) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+      annotations:
+        summary: "High error rate for {{ $labels.service }}"
+        description: "{{ $labels.service }} has error rate of {{ $value | humanizePercentage }} (>5%)"
+
+    - alert: HighResponseTime
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(http_request_duration_seconds_bucket[5m])) by (job, service, le)
+        ) > 1
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+      annotations:
+        summary: "High response time for {{ $labels.service }}"
+        description: "95th percentile response time is {{ $value }}s (>1s) for {{ $labels.service }}"
+
+  # Resource Utilization Alerts
+  - name: resource_utilization
+    interval: 30s
+    rules:
+    - alert: HighCPUUsage
+      expr: |
+        100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+      for: 10m
+      labels:
+        severity: warning
+        team: infrastructure
+      annotations:
+        summary: "High CPU usage on {{ $labels.instance }}"
+        description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+    - alert: HighMemoryUsage
+      expr: |
+        (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+      for: 10m
+      labels:
+        severity: warning
+        team: infrastructure
+      annotations:
+        summary: "High memory usage on {{ $labels.instance }}"
+        description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+    - alert: DiskSpaceLow
+      expr: |
+        (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs"} / node_filesystem_size_bytes) * 100 < 10
+      for: 5m
+      labels:
+        severity: critical
+        team: infrastructure
+      annotations:
+        summary: "Low disk space on {{ $labels.instance }}"
+        description: "Disk {{ $labels.device }} on {{ $labels.instance }} has only {{ $value }}% free space"
+
+    - alert: PodMemoryUsageHigh
+      expr: |
+        (sum(container_memory_working_set_bytes{pod!=""}) by (pod, namespace) 
+        / sum(container_spec_memory_limit_bytes{pod!=""}) by (pod, namespace)) > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+      annotations:
+        summary: "Pod {{ $labels.pod }} memory usage is high"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is using {{ $value | humanizePercentage }} of its memory limit"
+
+  # Log Ingestion Alerts
+  - name: log_ingestion
+    interval: 30s
+    rules:
+    - alert: LogIngestionRateHigh
+      expr: |
+        sum(rate(log_events_processed_total[5m])) > 100000
+      for: 5m
+      labels:
+        severity: warning
+        team: data
+      annotations:
+        summary: "High log ingestion rate"
+        description: "Log ingestion rate is {{ $value }} events/sec (>100k/sec)"
+
+    - alert: LogIngestionBacklog
+      expr: |
+        (buffer_usage_bytes / buffer_capacity_bytes) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        team: data
+      annotations:
+        summary: "Log ingestion buffer is filling up"
+        description: "Buffer usage is at {{ $value | humanizePercentage }} capacity"
+
+    - alert: LogIngestionErrors
+      expr: |
+        rate(log_events_failed_total[5m]) > 100
+      for: 5m
+      labels:
+        severity: critical
+        team: data
+      annotations:
+        summary: "High rate of log ingestion failures"
+        description: "{{ $value }} log events/sec are failing to process"
+
+  # Database Alerts
+  - name: database_health
+    interval: 30s
+    rules:
+    - alert: DatabaseDown
+      expr: pg_up == 0
+      for: 1m
+      labels:
+        severity: critical
+        team: data
+      annotations:
+        summary: "PostgreSQL database is down"
+        description: "PostgreSQL instance {{ $labels.instance }} is down"
+
+    - alert: DatabaseConnectionsHigh
+      expr: |
+        pg_stat_activity_count / pg_settings_max_connections > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        team: data
+      annotations:
+        summary: "Database connections near limit"
+        description: "{{ $value | humanizePercentage }} of max connections are in use"
+
+    - alert: DatabaseReplicationLag
+      expr: |
+        pg_replication_lag > 10
+      for: 5m
+      labels:
+        severity: warning
+        team: data
+      annotations:
+        summary: "Database replication lag detected"
+        description: "Replication lag is {{ $value }}s on {{ $labels.instance }}"
+
+    - alert: DatabaseSlowQueries
+      expr: |
+        rate(pg_stat_activity_max_tx_duration[5m]) > 10
+      for: 5m
+      labels:
+        severity: warning
+        team: data
+      annotations:
+        summary: "Slow database queries detected"
+        description: "Queries taking longer than {{ $value }}s on {{ $labels.instance }}"
+
+  # Security Alerts
+  - name: security_alerts
+    interval: 30s
+    rules:
+    - alert: HighAuthFailureRate
+      expr: |
+        (
+          sum(rate(auth_failures_total[5m])) by (service)
+          /
+          sum(rate(auth_attempts_total[5m])) by (service)
+        ) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        team: security
+      annotations:
+        summary: "High authentication failure rate"
+        description: "{{ $value | humanizePercentage }} of auth attempts are failing"
+
+    - alert: SuspiciousActivityDetected
+      expr: |
+        sum(rate(security_events_total{severity="critical"}[5m])) > 10
+      for: 2m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: "Suspicious activity detected"
+        description: "{{ $value }} critical security events per second"
+
+    - alert: BruteForceAttempt
+      expr: |
+        sum(rate(auth_failures_total[1m])) by (source_ip) > 10
+      for: 2m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: "Potential brute force attack from {{ $labels.source_ip }}"
+        description: "{{ $value }} failed auth attempts per minute from {{ $labels.source_ip }}"
+
+  # Kafka Alerts
+  - name: kafka_health
+    interval: 30s
+    rules:
+    - alert: KafkaConsumerLag
+      expr: |
+        kafka_consumer_lag > 10000
+      for: 5m
+      labels:
+        severity: warning
+        team: data
+      annotations:
+        summary: "Kafka consumer lag is high"
+        description: "Consumer {{ $labels.consumer_group }} has lag of {{ $value }} messages on topic {{ $labels.topic }}"
+
+    - alert: KafkaBrokerDown
+      expr: |
+        kafka_brokers < 3
+      for: 2m
+      labels:
+        severity: critical
+        team: data
+      annotations:
+        summary: "Kafka broker down"
+        description: "Only {{ $value }} Kafka brokers are available (expected 3+)"
+
+  # Elasticsearch Alerts
+  - name: elasticsearch_health
+    interval: 30s
+    rules:
+    - alert: ElasticsearchClusterRed
+      expr: |
+        es_cluster_health_status{color="red"} == 1
+      for: 2m
+      labels:
+        severity: critical
+        team: data
+      annotations:
+        summary: "Elasticsearch cluster is RED"
+        description: "Elasticsearch cluster health is RED - data loss possible"
+
+    - alert: ElasticsearchDiskSpaceLow
+      expr: |
+        (es_fs_total_available_bytes / es_fs_total_total_bytes) < 0.1
+      for: 5m
+      labels:
+        severity: warning
+        team: data
+      annotations:
+        summary: "Elasticsearch disk space low"
+        description: "Only {{ $value | humanizePercentage }} disk space available on {{ $labels.node }}"
+
+  # SLO/SLI Alerts
+  - name: slo_sli_alerts
+    interval: 30s
+    rules:
+    - alert: SLOViolation_Availability
+      expr: |
+        (
+          sum(rate(http_requests_total{status!~"5.."}[30m])) by (service)
+          /
+          sum(rate(http_requests_total[30m])) by (service)
+        ) < 0.999
+      for: 5m
+      labels:
+        severity: critical
+        team: sre
+        slo: availability
+      annotations:
+        summary: "SLO violation: {{ $labels.service }} availability below 99.9%"
+        description: "{{ $labels.service }} availability is {{ $value | humanizePercentage }} over last 30m"
+
+    - alert: SLOViolation_Latency
+      expr: |
+        histogram_quantile(0.99,
+          sum(rate(http_request_duration_seconds_bucket[30m])) by (service, le)
+        ) > 0.5
+      for: 5m
+      labels:
+        severity: warning
+        team: sre
+        slo: latency
+      annotations:
+        summary: "SLO violation: {{ $labels.service }} latency above target"
+        description: "{{ $labels.service }} 99th percentile latency is {{ $value }}s (target: 500ms)"
+
+    - alert: ErrorBudgetBurnRateHigh
+      expr: |
+        (
+          sum(rate(http_requests_total{status=~"5.."}[1h])) by (service)
+          /
+          sum(rate(http_requests_total[1h])) by (service)
+        ) > 0.01
+      for: 5m
+      labels:
+        severity: warning
+        team: sre
+      annotations:
+        summary: "High error budget burn rate for {{ $labels.service }}"
+        description: "{{ $labels.service }} is consuming error budget at {{ $value | humanizePercentage }} per hour"
+
+  # Multi-Tenancy Alerts
+  - name: multi_tenancy
+    interval: 30s
+    rules:
+    - alert: TenantQuotaExceeded
+      expr: |
+        (tenant_resource_usage / tenant_resource_quota) > 0.95
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+      annotations:
+        summary: "Tenant {{ $labels.tenant_id }} approaching quota limit"
+        description: "Tenant {{ $labels.tenant_id }} is using {{ $value | humanizePercentage }} of {{ $labels.resource }} quota"
+
+    - alert: TenantIsolationBreach
+      expr: |
+        cross_tenant_access_attempts > 0
+      for: 1m
+      labels:
+        severity: critical
+        team: security
+      annotations:
+        summary: "Tenant isolation breach detected"
+        description: "{{ $value }} cross-tenant access attempts from {{ $labels.source_tenant }} to {{ $labels.target_tenant }}"

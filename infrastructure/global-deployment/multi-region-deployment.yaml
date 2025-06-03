@@ -1,0 +1,549 @@
+# SecureWatch Multi-Region Global Deployment
+# Implements global deployment with cross-region replication and failover
+
+# Global Load Balancer Configuration
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: securewatch-ssl-cert
+spec:
+  domains:
+    - securewatch.com
+    - api.securewatch.com
+    - *.securewatch.com
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: securewatch-global-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*.securewatch.com"
+    tls:
+      httpsRedirect: true
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: securewatch-tls-secret
+    hosts:
+    - "*.securewatch.com"
+
+---
+# Global Virtual Service for Traffic Management
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: securewatch-global-routing
+  namespace: securewatch
+spec:
+  hosts:
+  - "*.securewatch.com"
+  gateways:
+  - istio-system/securewatch-global-gateway
+  http:
+  # API Traffic
+  - match:
+    - uri:
+        prefix: /api/
+    - headers:
+        x-region:
+          exact: us-west
+    route:
+    - destination:
+        host: securewatch-api-gateway.securewatch-us-west.svc.cluster.local
+        port:
+          number: 8080
+      weight: 90
+    - destination:
+        host: securewatch-api-gateway.securewatch-us-east.svc.cluster.local
+        port:
+          number: 8080
+      weight: 10
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 5s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+      retryOn: gateway-error,connect-failure,refused-stream
+  
+  # EU Traffic
+  - match:
+    - uri:
+        prefix: /api/
+    - headers:
+        x-region:
+          exact: eu-central
+    route:
+    - destination:
+        host: securewatch-api-gateway.securewatch-eu-central.svc.cluster.local
+        port:
+          number: 8080
+      weight: 90
+    - destination:
+        host: securewatch-api-gateway.securewatch-eu-west.svc.cluster.local
+        port:
+          number: 8080
+      weight: 10
+      
+  # Asia Pacific Traffic
+  - match:
+    - uri:
+        prefix: /api/
+    - headers:
+        x-region:
+          exact: asia-southeast
+    route:
+    - destination:
+        host: securewatch-api-gateway.securewatch-asia-southeast.svc.cluster.local
+        port:
+          number: 8080
+      weight: 90
+    - destination:
+        host: securewatch-api-gateway.securewatch-asia-northeast.svc.cluster.local
+        port:
+          number: 8080
+      weight: 10
+      
+  # Default routing (with geolocation-based routing)
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: securewatch-web-frontend.securewatch-us-west.svc.cluster.local
+        port:
+          number: 3000
+      weight: 40
+    - destination:
+        host: securewatch-web-frontend.securewatch-eu-central.svc.cluster.local
+        port:
+          number: 3000
+      weight: 30
+    - destination:
+        host: securewatch-web-frontend.securewatch-asia-southeast.svc.cluster.local
+        port:
+          number: 3000
+      weight: 30
+
+---
+# Destination Rules for Circuit Breaker and Load Balancing
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: securewatch-destination-rules
+  namespace: securewatch
+spec:
+  host: "*.securewatch.com"
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_CONN
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        consecutiveGatewayErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+        maxEjectionPercent: 50
+        minHealthPercent: 30
+    outlierDetection:
+      consecutive5xxErrors: 5
+      consecutiveGatewayErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+  subsets:
+  - name: us-west
+    labels:
+      region: us-west
+    trafficPolicy:
+      loadBalancer:
+        simple: ROUND_ROBIN
+  - name: us-east
+    labels:
+      region: us-east
+  - name: eu-central
+    labels:
+      region: eu-central
+  - name: eu-west
+    labels:
+      region: eu-west
+  - name: asia-southeast
+    labels:
+      region: asia-southeast
+  - name: asia-northeast
+    labels:
+      region: asia-northeast
+
+---
+# Global Service Entry for External Dependencies
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: external-database-clusters
+  namespace: securewatch
+spec:
+  hosts:
+  - postgres-us-west.securewatch.internal
+  - postgres-us-east.securewatch.internal
+  - postgres-eu-central.securewatch.internal
+  - postgres-asia-southeast.securewatch.internal
+  ports:
+  - number: 5432
+    name: postgres
+    protocol: TCP
+  location: MESH_EXTERNAL
+  resolution: DNS
+
+---
+# Cross-Region Database Synchronization Job
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cross-region-sync
+  namespace: securewatch
+spec:
+  schedule: "*/10 * * * *"  # Every 10 minutes
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cross-region-sync
+        spec:
+          containers:
+          - name: sync-coordinator
+            image: securewatch/cross-region-sync:v1.0.0
+            env:
+            - name: SYNC_REGIONS
+              value: "us-west,us-east,eu-central,asia-southeast"
+            - name: SYNC_MODE
+              value: "incremental"
+            - name: CONFLICT_RESOLUTION
+              value: "last-write-wins"
+            - name: ENCRYPTION_ENABLED
+              value: "true"
+            resources:
+              requests:
+                cpu: 200m
+                memory: 256Mi
+              limits:
+                cpu: 1000m
+                memory: 1Gi
+            volumeMounts:
+            - name: sync-config
+              mountPath: /app/config
+          volumes:
+          - name: sync-config
+            configMap:
+              name: cross-region-sync-config
+          restartPolicy: OnFailure
+
+---
+# Regional Health Check Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: region-health-check
+  namespace: securewatch
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: health
+  selector:
+    app: region-health-monitor
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: region-health-monitor
+  namespace: securewatch
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: region-health-monitor
+  template:
+    metadata:
+      labels:
+        app: region-health-monitor
+    spec:
+      containers:
+      - name: health-monitor
+        image: securewatch/region-health-monitor:v1.0.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: REGION_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['region']
+        - name: CHECK_INTERVAL
+          value: "30s"
+        - name: ALERT_THRESHOLD
+          value: "3"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+---
+# Global CDN Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cdn-config
+  namespace: securewatch
+data:
+  cloudflare-config.yaml: |
+    zones:
+      - zone_id: "securewatch-zone-id"
+        domain: "securewatch.com"
+        settings:
+          ssl: full
+          cache_level: aggressive
+          minify:
+            css: true
+            js: true
+            html: true
+          polish: lossless
+          rocket_loader: true
+          mirage: true
+        page_rules:
+          - targets:
+              - "api.securewatch.com/*"
+            actions:
+              cache_level: bypass
+              ssl: full
+          - targets:
+              - "*.securewatch.com/static/*"
+            actions:
+              cache_level: cache_everything
+              edge_cache_ttl: 86400
+        origin_rules:
+          - description: "Primary US West"
+            expression: '(http.request.uri.path matches "^/api/" and cf.colo.name eq "LAX")'
+            action: route
+            action_parameters:
+              origin:
+                host: us-west-lb.securewatch.com
+          - description: "Primary EU Central"
+            expression: '(http.request.uri.path matches "^/api/" and cf.colo.region eq "Europe")'
+            action: route
+            action_parameters:
+              origin:
+                host: eu-central-lb.securewatch.com
+          - description: "Primary Asia Southeast"
+            expression: '(http.request.uri.path matches "^/api/" and cf.colo.region eq "Asia")'
+            action: route
+            action_parameters:
+              origin:
+                host: asia-southeast-lb.securewatch.com
+
+---
+# Disaster Recovery Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: disaster-recovery-config
+  namespace: securewatch
+data:
+  recovery-plan.yaml: |
+    disaster_recovery:
+      regions:
+        us-west:
+          priority: 1
+          backup_regions: [us-east, eu-central]
+          recovery_time_objective: "4h"
+          recovery_point_objective: "15m"
+        us-east:
+          priority: 2
+          backup_regions: [us-west, eu-central]
+          recovery_time_objective: "6h"
+          recovery_point_objective: "30m"
+        eu-central:
+          priority: 1
+          backup_regions: [eu-west, us-west]
+          recovery_time_objective: "4h"
+          recovery_point_objective: "15m"
+        asia-southeast:
+          priority: 1
+          backup_regions: [asia-northeast, us-west]
+          recovery_time_objective: "6h"
+          recovery_point_objective: "30m"
+      
+      failover_scenarios:
+        region_failure:
+          detection_threshold: 3
+          detection_window: "5m"
+          automatic_failover: true
+          notification_channels: ["slack", "email", "pagerduty"]
+          
+        partial_failure:
+          detection_threshold: 2
+          detection_window: "2m"
+          automatic_failover: false
+          manual_approval_required: true
+          
+        database_failure:
+          detection_threshold: 1
+          detection_window: "1m"
+          automatic_failover: true
+          promote_read_replica: true
+
+---
+# Global Monitoring and Alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: global-deployment-alerts
+  namespace: securewatch
+spec:
+  groups:
+  - name: global-deployment
+    rules:
+    - alert: RegionDown
+      expr: up{job="region-health-check"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        team: sre
+      annotations:
+        summary: "Region {{ $labels.region }} is down"
+        description: "Region {{ $labels.region }} has been down for more than 2 minutes"
+        runbook_url: "https://runbooks.securewatch.com/region-failure"
+        
+    - alert: HighLatencyBetweenRegions
+      expr: histogram_quantile(0.95, rate(istio_request_duration_milliseconds_bucket{source_workload="cross-region-sync"}[5m])) > 1000
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+      annotations:
+        summary: "High latency detected in cross-region communication"
+        description: "95th percentile latency between regions is {{ $value }}ms"
+        
+    - alert: DatabaseSyncLag
+      expr: increase(securewatch_database_sync_lag_seconds[10m]) > 300
+      for: 2m
+      labels:
+        severity: warning
+        team: data
+      annotations:
+        summary: "Database synchronization lag detected"
+        description: "Database sync lag has increased by {{ $value }} seconds in the last 10 minutes"
+        
+    - alert: FailoverActivated
+      expr: increase(securewatch_region_failover_total[5m]) > 0
+      for: 0m
+      labels:
+        severity: critical
+        team: sre
+      annotations:
+        summary: "Automatic failover activated for region {{ $labels.region }}"
+        description: "Region {{ $labels.region }} has failed over to {{ $labels.backup_region }}"
+        runbook_url: "https://runbooks.securewatch.com/failover-recovery"
+
+---
+# Data Replication Configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: replication-credentials
+  namespace: securewatch
+type: Opaque
+data:
+  postgres-replication-user: cG9zdGdyZXNfcmVwbGljYXRpb24=  # postgres_replication
+  postgres-replication-password: cmVwbGljYXRpb25fcGFzcw==  # replication_pass
+  redis-replication-password: cmVkaXNfcmVwbGljYXRpb24=  # redis_replication
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-replication-controller
+  namespace: securewatch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: data-replication-controller
+  template:
+    metadata:
+      labels:
+        app: data-replication-controller
+    spec:
+      containers:
+      - name: replication-controller
+        image: securewatch/data-replication-controller:v1.0.0
+        env:
+        - name: REPLICATION_MODE
+          value: "async"
+        - name: CONFLICT_RESOLUTION
+          value: "timestamp-based"
+        - name: BATCH_SIZE
+          value: "1000"
+        - name: SYNC_INTERVAL
+          value: "30s"
+        - name: ENCRYPTION_ENABLED
+          value: "true"
+        - name: COMPRESSION_ENABLED
+          value: "true"
+        envFrom:
+        - secretRef:
+            name: replication-credentials
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        volumeMounts:
+        - name: replication-config
+          mountPath: /app/config
+      volumes:
+      - name: replication-config
+        configMap:
+          name: disaster-recovery-config

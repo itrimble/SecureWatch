@@ -1,0 +1,180 @@
+# SecureWatch Distributed Architecture Configuration
+# Implements horizontal scaling with microservices architecture
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: securewatch
+  labels:
+    name: securewatch
+    monitoring: enabled
+    security: strict
+
+---
+# Configuration Map for shared settings
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: securewatch-config
+  namespace: securewatch
+data:
+  # Database configuration
+  db_host: "postgres-cluster.securewatch.svc.cluster.local"
+  db_port: "5432"
+  db_name: "securewatch"
+  
+  # Cache configuration
+  redis_host: "redis-cluster.securewatch.svc.cluster.local"
+  redis_port: "6379"
+  
+  # Messaging configuration
+  kafka_brokers: "kafka-cluster.securewatch.svc.cluster.local:9092"
+  
+  # Service mesh configuration
+  service_mesh_enabled: "true"
+  tracing_enabled: "true"
+  
+  # Scaling configuration
+  min_replicas: "3"
+  max_replicas: "50"
+  target_cpu: "70"
+  target_memory: "80"
+
+---
+# Secrets for sensitive data
+apiVersion: v1
+kind: Secret
+metadata:
+  name: securewatch-secrets
+  namespace: securewatch
+type: Opaque
+data:
+  db_password: cGFzc3dvcmQxMjM=  # password123 (base64)
+  jwt_secret: andiX3NlY3JldF9rZXlfZm9yX2p3dA==  # jwt_secret_key_for_jwt (base64)
+  api_key: YXBpX2tleV9mb3Jfc2VjdXJld2F0Y2g=  # api_key_for_securewatch (base64)
+
+---
+# Network Policy for micro-segmentation
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: securewatch-network-policy
+  namespace: securewatch
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: securewatch
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: securewatch
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 443
+
+---
+# Service Account with RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: securewatch-service-account
+  namespace: securewatch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: securewatch
+  name: securewatch-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: securewatch-role-binding
+  namespace: securewatch
+subjects:
+- kind: ServiceAccount
+  name: securewatch-service-account
+  namespace: securewatch
+roleRef:
+  kind: Role
+  name: securewatch-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Pod Disruption Budget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: securewatch-pdb
+  namespace: securewatch
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: securewatch
+
+---
+# Resource Quota for tenant isolation
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: securewatch-quota
+  namespace: securewatch
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    pods: "100"
+    services: "20"
+    persistentvolumeclaims: "10"
+
+---
+# Limit Range for resource governance
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: securewatch-limits
+  namespace: securewatch
+spec:
+  limits:
+  - default:
+      cpu: "1000m"
+      memory: "1Gi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container
+  - max:
+      cpu: "4000m"
+      memory: "8Gi"
+    min:
+      cpu: "50m"
+      memory: "64Mi"
+    type: Container

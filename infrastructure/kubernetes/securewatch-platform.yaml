@@ -1,0 +1,706 @@
+# SecureWatch Platform Kubernetes Deployment
+# Complete container orchestration for all platform components
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-api-gateway
+  namespace: securewatch
+  labels:
+    app: securewatch-api-gateway
+    component: gateway
+    tier: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: securewatch-api-gateway
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: securewatch-api-gateway
+        component: gateway
+        tier: frontend
+      annotations:
+        securewatch.io/horizontal-scaling: "enabled"
+        securewatch.io/min-replicas: "3"
+        securewatch.io/max-replicas: "20"
+        securewatch.io/target-cpu: "70"
+        securewatch.io/target-memory: "80"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: securewatch-service-account
+      containers:
+      - name: api-gateway
+        image: securewatch/api-gateway:v1.0.0
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8443
+          name: https
+        - containerPort: 9090
+          name: metrics
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+        - name: METRICS_PORT
+          value: "9090"
+        - name: AUTH_SERVICE_URL
+          value: "http://securewatch-auth-service:3000"
+        - name: LOG_INGESTION_URL
+          value: "http://securewatch-log-ingestion:4000"
+        - name: SEARCH_API_URL
+          value: "http://securewatch-search-api:5000"
+        - name: ANALYTICS_ENGINE_URL
+          value: "http://securewatch-analytics-engine:6000"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: securewatch-secrets
+              key: jwt_secret
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: securewatch-secrets
+              key: api_key
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+        - name: tls-certs
+          mountPath: /app/certs
+          readOnly: true
+      volumes:
+      - name: config-volume
+        configMap:
+          name: securewatch-config
+      - name: tls-certs
+        secret:
+          secretName: securewatch-tls
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-auth-service
+  namespace: securewatch
+  labels:
+    app: securewatch-auth-service
+    component: auth
+    tier: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: securewatch-auth-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: securewatch-auth-service
+        component: auth
+        tier: backend
+      annotations:
+        securewatch.io/horizontal-scaling: "enabled"
+        securewatch.io/min-replicas: "2"
+        securewatch.io/max-replicas: "15"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+    spec:
+      serviceAccountName: securewatch-service-account
+      containers:
+      - name: auth-service
+        image: securewatch/auth-service:v1.0.0
+        ports:
+        - containerPort: 3000
+          name: http
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: db_host
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: db_port
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: db_name
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: securewatch-secrets
+              key: db_password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: securewatch-secrets
+              key: jwt_secret
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: redis_host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: redis_port
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-log-ingestion
+  namespace: securewatch
+  labels:
+    app: securewatch-log-ingestion
+    component: ingestion
+    tier: backend
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: securewatch-log-ingestion
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: securewatch-log-ingestion
+        component: ingestion
+        tier: backend
+      annotations:
+        securewatch.io/horizontal-scaling: "enabled"
+        securewatch.io/min-replicas: "3"
+        securewatch.io/max-replicas: "50"
+        securewatch.io/target-cpu: "60"
+        securewatch.io/target-memory: "70"
+    spec:
+      serviceAccountName: securewatch-service-account
+      containers:
+      - name: log-ingestion
+        image: securewatch/log-ingestion:v1.0.0
+        ports:
+        - containerPort: 4000
+          name: http
+        - containerPort: 514
+          name: syslog-udp
+          protocol: UDP
+        - containerPort: 1514
+          name: syslog-tcp
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "4000"
+        - name: KAFKA_BROKERS
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: kafka_brokers
+        - name: ELASTICSEARCH_HOST
+          value: "elasticsearch-cluster.securewatch.svc.cluster.local:9200"
+        - name: BUFFER_SIZE
+          value: "10000"
+        - name: BATCH_SIZE
+          value: "1000"
+        - name: FLUSH_INTERVAL
+          value: "5000"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-search-api
+  namespace: securewatch
+  labels:
+    app: securewatch-search-api
+    component: search
+    tier: backend
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: securewatch-search-api
+  template:
+    metadata:
+      labels:
+        app: securewatch-search-api
+        component: search
+        tier: backend
+      annotations:
+        securewatch.io/horizontal-scaling: "enabled"
+        securewatch.io/min-replicas: "2"
+        securewatch.io/max-replicas: "25"
+    spec:
+      serviceAccountName: securewatch-service-account
+      containers:
+      - name: search-api
+        image: securewatch/search-api:v1.0.0
+        ports:
+        - containerPort: 5000
+          name: http
+        resources:
+          requests:
+            cpu: 300m
+            memory: 512Mi
+          limits:
+            cpu: 1500m
+            memory: 2Gi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "5000"
+        - name: ELASTICSEARCH_HOST
+          value: "elasticsearch-cluster.securewatch.svc.cluster.local:9200"
+        - name: CACHE_ENABLED
+          value: "true"
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: redis_host
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-analytics-engine
+  namespace: securewatch
+  labels:
+    app: securewatch-analytics-engine
+    component: analytics
+    tier: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: securewatch-analytics-engine
+  template:
+    metadata:
+      labels:
+        app: securewatch-analytics-engine
+        component: analytics
+        tier: backend
+      annotations:
+        securewatch.io/horizontal-scaling: "enabled"
+        securewatch.io/min-replicas: "2"
+        securewatch.io/max-replicas: "20"
+    spec:
+      serviceAccountName: securewatch-service-account
+      containers:
+      - name: analytics-engine
+        image: securewatch/analytics-engine:v1.0.0
+        ports:
+        - containerPort: 6000
+          name: http
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 1Gi
+          limits:
+            cpu: 4000m
+            memory: 8Gi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 6000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 6000
+          initialDelaySeconds: 45
+          periodSeconds: 15
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "6000"
+        - name: KAFKA_BROKERS
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: kafka_brokers
+        - name: ELASTICSEARCH_HOST
+          value: "elasticsearch-cluster.securewatch.svc.cluster.local:9200"
+        - name: ML_MODEL_PATH
+          value: "/app/models"
+        volumeMounts:
+        - name: model-storage
+          mountPath: /app/models
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: analytics-models-pvc
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-web-frontend
+  namespace: securewatch
+  labels:
+    app: securewatch-web-frontend
+    component: frontend
+    tier: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: securewatch-web-frontend
+  template:
+    metadata:
+      labels:
+        app: securewatch-web-frontend
+        component: frontend
+        tier: frontend
+      annotations:
+        securewatch.io/horizontal-scaling: "enabled"
+        securewatch.io/min-replicas: "2"
+        securewatch.io/max-replicas: "15"
+    spec:
+      serviceAccountName: securewatch-service-account
+      containers:
+      - name: web-frontend
+        image: securewatch/web-frontend:v1.0.0
+        ports:
+        - containerPort: 3000
+          name: http
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
+        - name: API_GATEWAY_URL
+          value: "http://securewatch-api-gateway:8080"
+        - name: NEXT_PUBLIC_API_URL
+          value: "/api"
+
+---
+# Services for all components
+apiVersion: v1
+kind: Service
+metadata:
+  name: securewatch-api-gateway
+  namespace: securewatch
+  labels:
+    app: securewatch-api-gateway
+spec:
+  selector:
+    app: securewatch-api-gateway
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: https
+    port: 8443
+    targetPort: 8443
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: securewatch-auth-service
+  namespace: securewatch
+  labels:
+    app: securewatch-auth-service
+spec:
+  selector:
+    app: securewatch-auth-service
+  ports:
+  - port: 3000
+    targetPort: 3000
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: securewatch-log-ingestion
+  namespace: securewatch
+  labels:
+    app: securewatch-log-ingestion
+spec:
+  selector:
+    app: securewatch-log-ingestion
+  ports:
+  - name: http
+    port: 4000
+    targetPort: 4000
+  - name: syslog-udp
+    port: 514
+    targetPort: 514
+    protocol: UDP
+  - name: syslog-tcp
+    port: 1514
+    targetPort: 1514
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: securewatch-search-api
+  namespace: securewatch
+  labels:
+    app: securewatch-search-api
+spec:
+  selector:
+    app: securewatch-search-api
+  ports:
+  - port: 5000
+    targetPort: 5000
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: securewatch-analytics-engine
+  namespace: securewatch
+  labels:
+    app: securewatch-analytics-engine
+spec:
+  selector:
+    app: securewatch-analytics-engine
+  ports:
+  - port: 6000
+    targetPort: 6000
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: securewatch-web-frontend
+  namespace: securewatch
+  labels:
+    app: securewatch-web-frontend
+spec:
+  selector:
+    app: securewatch-web-frontend
+  ports:
+  - port: 3000
+    targetPort: 3000
+  type: ClusterIP
+
+---
+# Horizontal Pod Autoscalers
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: securewatch-api-gateway-hpa
+  namespace: securewatch
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: securewatch-api-gateway
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: securewatch-log-ingestion-hpa
+  namespace: securewatch
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: securewatch-log-ingestion
+  minReplicas: 3
+  maxReplicas: 50
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+      - type: Percent
+        value: 200
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 600
+      policies:
+      - type: Percent
+        value: 20
+        periodSeconds: 120
+
+---
+# Persistent Volume Claims
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: analytics-models-pvc
+  namespace: securewatch
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: fast-ssd

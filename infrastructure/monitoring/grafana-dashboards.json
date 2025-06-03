@@ -1,0 +1,692 @@
+{
+  "dashboards": [
+    {
+      "uid": "securewatch-overview",
+      "title": "SecureWatch Platform Overview",
+      "tags": ["securewatch", "overview", "sre"],
+      "timezone": "browser",
+      "panels": [
+        {
+          "id": 1,
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "type": "graph",
+          "title": "Request Rate by Service",
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total[5m])) by (service)",
+              "legendFormat": "{{ service }}"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "reqps",
+              "label": "Requests/sec"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "type": "graph",
+          "title": "Error Rate by Service",
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) by (service)",
+              "legendFormat": "{{ service }}"
+            }
+          ],
+          "alert": {
+            "conditions": [
+              {
+                "evaluator": {
+                  "params": [0.05],
+                  "type": "gt"
+                },
+                "operator": {
+                  "type": "and"
+                },
+                "query": {
+                  "params": ["A", "5m", "now"]
+                },
+                "reducer": {
+                  "params": [],
+                  "type": "avg"
+                },
+                "type": "query"
+              }
+            ]
+          }
+        },
+        {
+          "id": 3,
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "type": "graph",
+          "title": "Response Time Percentiles",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le))",
+              "legendFormat": "p99 - {{ service }}"
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le))",
+              "legendFormat": "p95 - {{ service }}"
+            },
+            {
+              "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le))",
+              "legendFormat": "p50 - {{ service }}"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "s",
+              "label": "Response Time"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "type": "stat",
+          "title": "Service Availability",
+          "targets": [
+            {
+              "expr": "avg(up{job=~\"securewatch-.*\"})",
+              "instant": true
+            }
+          ],
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"]
+            },
+            "orientation": "auto",
+            "textMode": "auto",
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto"
+          },
+          "pluginVersion": "9.0.0",
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 0.95 },
+                  { "color": "green", "value": 0.99 }
+                ]
+              },
+              "unit": "percentunit"
+            }
+          }
+        },
+        {
+          "id": 5,
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+          "type": "table",
+          "title": "Service Health Status",
+          "targets": [
+            {
+              "expr": "up{job=~\"securewatch-.*\"}",
+              "format": "table",
+              "instant": true
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": false,
+                "displayName": "service"
+              }
+            ]
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "displayMode": "color-background",
+                "inspect": false
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {
+                      "text": "DOWN",
+                      "color": "red"
+                    },
+                    "1": {
+                      "text": "UP",
+                      "color": "green"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "uid": "securewatch-infrastructure",
+      "title": "SecureWatch Infrastructure Metrics",
+      "tags": ["securewatch", "infrastructure", "resources"],
+      "timezone": "browser",
+      "panels": [
+        {
+          "id": 1,
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "type": "graph",
+          "title": "CPU Usage by Node",
+          "targets": [
+            {
+              "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+              "legendFormat": "{{ instance }}"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "percent",
+              "label": "CPU Usage",
+              "max": 100,
+              "min": 0
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "type": "graph",
+          "title": "Memory Usage by Node",
+          "targets": [
+            {
+              "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+              "legendFormat": "{{ instance }}"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "percent",
+              "label": "Memory Usage",
+              "max": 100,
+              "min": 0
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "type": "graph",
+          "title": "Disk Usage by Node",
+          "targets": [
+            {
+              "expr": "100 - ((node_filesystem_avail_bytes{fstype!~\"tmpfs|fuse.lxcfs\"} / node_filesystem_size_bytes) * 100)",
+              "legendFormat": "{{ instance }} - {{ device }}"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "percent",
+              "label": "Disk Usage",
+              "max": 100,
+              "min": 0
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "type": "graph",
+          "title": "Network I/O",
+          "targets": [
+            {
+              "expr": "rate(node_network_receive_bytes_total[5m])",
+              "legendFormat": "RX - {{ instance }} - {{ device }}"
+            },
+            {
+              "expr": "rate(node_network_transmit_bytes_total[5m])",
+              "legendFormat": "TX - {{ instance }} - {{ device }}"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "Bps",
+              "label": "Bytes/sec"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+          "type": "heatmap",
+          "title": "Pod CPU Usage Heatmap",
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{pod!=\"\"}[5m])) by (pod)",
+              "format": "heatmap"
+            }
+          ],
+          "dataFormat": "timeseries",
+          "yAxis": {
+            "format": "short",
+            "decimals": 0
+          },
+          "cards": {
+            "cardPadding": null,
+            "cardRound": null
+          },
+          "color": {
+            "mode": "spectrum",
+            "scheme": "interpolateOranges"
+          }
+        }
+      ]
+    },
+    {
+      "uid": "securewatch-logs",
+      "title": "SecureWatch Log Processing",
+      "tags": ["securewatch", "logs", "ingestion"],
+      "timezone": "browser",
+      "panels": [
+        {
+          "id": 1,
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "type": "graph",
+          "title": "Log Ingestion Rate",
+          "targets": [
+            {
+              "expr": "sum(rate(log_events_processed_total[5m]))",
+              "legendFormat": "Events/sec"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "Events/sec"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "type": "graph",
+          "title": "Log Processing Errors",
+          "targets": [
+            {
+              "expr": "sum(rate(log_events_failed_total[5m])) by (reason)",
+              "legendFormat": "{{ reason }}"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "Errors/sec"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "type": "graph",
+          "title": "Buffer Usage",
+          "targets": [
+            {
+              "expr": "(buffer_usage_bytes / buffer_capacity_bytes) * 100",
+              "legendFormat": "Buffer Usage %"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "percent",
+              "label": "Buffer Usage",
+              "max": 100,
+              "min": 0
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "type": "gauge",
+          "title": "Current Ingestion Rate",
+          "targets": [
+            {
+              "expr": "sum(rate(log_events_processed_total[1m]))",
+              "instant": true
+            }
+          ],
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 50000 },
+                  { "color": "red", "value": 100000 }
+                ]
+              },
+              "unit": "ops",
+              "max": 150000
+            }
+          }
+        },
+        {
+          "id": 5,
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+          "type": "bargauge",
+          "title": "Log Events by Source",
+          "targets": [
+            {
+              "expr": "sum(rate(log_events_processed_total[5m])) by (source)",
+              "instant": true
+            }
+          ],
+          "options": {
+            "displayMode": "gradient",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "uid": "securewatch-database",
+      "title": "SecureWatch Database Metrics",
+      "tags": ["securewatch", "database", "postgresql"],
+      "timezone": "browser",
+      "panels": [
+        {
+          "id": 1,
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "type": "graph",
+          "title": "Database Connections",
+          "targets": [
+            {
+              "expr": "pg_stat_activity_count",
+              "legendFormat": "Active Connections"
+            },
+            {
+              "expr": "pg_settings_max_connections",
+              "legendFormat": "Max Connections"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "Connections"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "type": "graph",
+          "title": "Database Size",
+          "targets": [
+            {
+              "expr": "pg_database_size_bytes",
+              "legendFormat": "{{ datname }}"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "bytes",
+              "label": "Size"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "type": "graph",
+          "title": "Query Performance",
+          "targets": [
+            {
+              "expr": "rate(pg_stat_database_blks_hit{datname=\"securewatch\"}[5m])",
+              "legendFormat": "Cache Hits/sec"
+            },
+            {
+              "expr": "rate(pg_stat_database_blks_read{datname=\"securewatch\"}[5m])",
+              "legendFormat": "Disk Reads/sec"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "ops",
+              "label": "Operations/sec"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "type": "stat",
+          "title": "Replication Lag",
+          "targets": [
+            {
+              "expr": "pg_replication_lag",
+              "instant": true
+            }
+          ],
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 5 },
+                  { "color": "red", "value": 10 }
+                ]
+              },
+              "unit": "s"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "uid": "securewatch-slo",
+      "title": "SecureWatch SLO/SLI Dashboard",
+      "tags": ["securewatch", "slo", "sli", "reliability"],
+      "timezone": "browser",
+      "panels": [
+        {
+          "id": 1,
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "type": "stat",
+          "title": "Service Availability (30d)",
+          "targets": [
+            {
+              "expr": "avg_over_time((sum(rate(http_requests_total{status!~\"5..\"}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service))[30d:5m])",
+              "instant": true
+            }
+          ],
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"]
+            },
+            "orientation": "auto",
+            "textMode": "auto",
+            "colorMode": "value",
+            "graphMode": "none"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 0.99 },
+                  { "color": "green", "value": 0.999 }
+                ]
+              },
+              "unit": "percentunit",
+              "decimals": 4
+            }
+          }
+        },
+        {
+          "id": 2,
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "type": "gauge",
+          "title": "Error Budget Remaining",
+          "targets": [
+            {
+              "expr": "1 - (sum(increase(http_requests_total{status=~\"5..\"}[30d])) / sum(increase(http_requests_total[30d]))) / 0.001",
+              "instant": true
+            }
+          ],
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 0.2 },
+                  { "color": "green", "value": 0.5 }
+                ]
+              },
+              "unit": "percentunit",
+              "max": 1,
+              "min": 0
+            }
+          }
+        },
+        {
+          "id": 3,
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+          "type": "graph",
+          "title": "SLO Burn Rate",
+          "targets": [
+            {
+              "expr": "(sum(rate(http_requests_total{status=~\"5..\"}[1h])) by (service) / sum(rate(http_requests_total[1h])) by (service)) / 0.001",
+              "legendFormat": "{{ service }} - 1h burn rate"
+            },
+            {
+              "expr": "(sum(rate(http_requests_total{status=~\"5..\"}[6h])) by (service) / sum(rate(http_requests_total[6h])) by (service)) / 0.001",
+              "legendFormat": "{{ service }} - 6h burn rate"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "Burn Rate Multiple"
+            }
+          ],
+          "thresholds": [
+            {
+              "value": 14.4,
+              "op": "gt",
+              "fill": true,
+              "line": true,
+              "colorMode": "critical"
+            },
+            {
+              "value": 6,
+              "op": "gt",
+              "fill": true,
+              "line": true,
+              "colorMode": "custom",
+              "fillColor": "rgba(255, 152, 48, 0.2)",
+              "lineColor": "rgba(255, 152, 48, 1)"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "type": "graph",
+          "title": "Latency SLI (p99)",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le))",
+              "legendFormat": "{{ service }}"
+            }
+          ],
+          "yaxes": [
+            {
+              "format": "s",
+              "label": "Response Time"
+            }
+          ],
+          "thresholds": [
+            {
+              "value": 0.5,
+              "op": "gt",
+              "fill": true,
+              "line": true,
+              "colorMode": "critical"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "type": "table",
+          "title": "SLO Compliance Summary",
+          "targets": [
+            {
+              "expr": "avg_over_time((sum(rate(http_requests_total{status!~\"5..\"}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service))[7d:5m]) >= 0.999",
+              "format": "table",
+              "instant": true
+            }
+          ],
+          "options": {
+            "showHeader": true
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "displayMode": "color-background"
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {
+                      "text": "VIOLATED",
+                      "color": "red"
+                    },
+                    "1": {
+                      "text": "COMPLIANT",
+                      "color": "green"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus-uid",
+    "url": "http://prometheus:9090"
+  }
+}

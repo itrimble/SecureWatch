@@ -1,0 +1,625 @@
+# SecureWatch ELK Stack Deployment with Fluentd
+# Centralized log aggregation and analysis
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logging
+  labels:
+    name: logging
+
+---
+# Elasticsearch StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+  namespace: logging
+spec:
+  serviceName: elasticsearch
+  replicas: 3
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      initContainers:
+      - name: fix-permissions
+        image: busybox:1.35
+        command: ["sh", "-c", "chown -R 1000:1000 /usr/share/elasticsearch/data"]
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/elasticsearch/data
+      - name: increase-vm-max-map
+        image: busybox:1.35
+        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+        securityContext:
+          privileged: true
+      - name: increase-fd-ulimit
+        image: busybox:1.35
+        command: ["sh", "-c", "ulimit -n 65536"]
+        securityContext:
+          privileged: true
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+        ports:
+        - containerPort: 9200
+          name: rest
+        - containerPort: 9300
+          name: inter-node
+        resources:
+          limits:
+            cpu: 2
+            memory: 4Gi
+          requests:
+            cpu: 1
+            memory: 2Gi
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/elasticsearch/data
+        - name: config
+          mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          subPath: elasticsearch.yml
+        env:
+        - name: cluster.name
+          value: securewatch-logs
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: discovery.seed_hosts
+          value: "elasticsearch-0.elasticsearch,elasticsearch-1.elasticsearch,elasticsearch-2.elasticsearch"
+        - name: cluster.initial_master_nodes
+          value: "elasticsearch-0,elasticsearch-1,elasticsearch-2"
+        - name: ES_JAVA_OPTS
+          value: "-Xms2g -Xmx2g"
+        - name: xpack.security.enabled
+          value: "true"
+        - name: xpack.security.transport.ssl.enabled
+          value: "true"
+        - name: xpack.security.transport.ssl.verification_mode
+          value: certificate
+        - name: xpack.security.transport.ssl.keystore.path
+          value: elastic-certificates.p12
+        - name: xpack.security.transport.ssl.truststore.path
+          value: elastic-certificates.p12
+        - name: ELASTIC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elastic-credentials
+              key: password
+      volumes:
+      - name: config
+        configMap:
+          name: elasticsearch-config
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        app: elasticsearch
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 100Gi
+
+---
+# Elasticsearch Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: logging
+  labels:
+    app: elasticsearch
+spec:
+  selector:
+    app: elasticsearch
+  clusterIP: None
+  ports:
+  - port: 9200
+    name: rest
+  - port: 9300
+    name: inter-node
+
+---
+# Elasticsearch Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-config
+  namespace: logging
+data:
+  elasticsearch.yml: |
+    cluster.name: "securewatch-logs"
+    network.host: 0.0.0.0
+    bootstrap.memory_lock: true
+    
+    # Cluster settings
+    discovery.type: zen
+    discovery.zen.minimum_master_nodes: 2
+    
+    # Index settings
+    action.auto_create_index: ".monitoring*,.watches,.triggered_watches,.watcher-history*,.ml*,securewatch-*"
+    
+    # Performance settings
+    indices.memory.index_buffer_size: 30%
+    indices.queries.cache.size: 20%
+    
+    # Security settings
+    xpack.security.enabled: true
+    xpack.security.transport.ssl.enabled: true
+    xpack.security.http.ssl.enabled: false
+    
+    # Monitoring
+    xpack.monitoring.collection.enabled: true
+    xpack.monitoring.elasticsearch.collection.enabled: true
+
+---
+# Kibana Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: logging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana:8.10.2
+        ports:
+        - containerPort: 5601
+        resources:
+          limits:
+            cpu: 1
+            memory: 2Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+        env:
+        - name: ELASTICSEARCH_HOSTS
+          value: "http://elasticsearch:9200"
+        - name: ELASTICSEARCH_USERNAME
+          value: "elastic"
+        - name: ELASTICSEARCH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elastic-credentials
+              key: password
+        - name: SERVER_NAME
+          value: "securewatch-kibana"
+        - name: SERVER_HOST
+          value: "0.0.0.0"
+        - name: XPACK_SECURITY_ENABLED
+          value: "true"
+        - name: XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
+          valueFrom:
+            secretKeyRef:
+              name: kibana-encryption-key
+              key: key
+        volumeMounts:
+        - name: config
+          mountPath: /usr/share/kibana/config/kibana.yml
+          subPath: kibana.yml
+      volumes:
+      - name: config
+        configMap:
+          name: kibana-config
+
+---
+# Kibana Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: logging
+spec:
+  selector:
+    app: kibana
+  ports:
+  - port: 5601
+    targetPort: 5601
+  type: LoadBalancer
+
+---
+# Kibana Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-config
+  namespace: logging
+data:
+  kibana.yml: |
+    server.name: kibana
+    server.host: "0"
+    elasticsearch.hosts: ["http://elasticsearch:9200"]
+    monitoring.ui.container.elasticsearch.enabled: true
+    
+    # Security settings
+    xpack.security.enabled: true
+    xpack.encryptedSavedObjects.encryptionKey: ${XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY}
+    
+    # Telemetry
+    telemetry.enabled: false
+    telemetry.optIn: false
+    
+    # Saved objects
+    savedObjects.maxImportExportSize: 10000
+    
+    # Logging
+    logging:
+      appenders:
+        file:
+          type: file
+          fileName: /var/log/kibana/kibana.log
+          layout:
+            type: json
+      root:
+        appenders: [file]
+        level: info
+
+---
+# Fluentd DaemonSet
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  namespace: logging
+  labels:
+    k8s-app: fluentd-logging
+spec:
+  selector:
+    matchLabels:
+      k8s-app: fluentd-logging
+  template:
+    metadata:
+      labels:
+        k8s-app: fluentd-logging
+    spec:
+      serviceAccount: fluentd
+      serviceAccountName: fluentd
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: fluentd
+        image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch8-1
+        env:
+        - name: FLUENT_ELASTICSEARCH_HOST
+          value: "elasticsearch"
+        - name: FLUENT_ELASTICSEARCH_PORT
+          value: "9200"
+        - name: FLUENT_ELASTICSEARCH_SCHEME
+          value: "http"
+        - name: FLUENT_ELASTICSEARCH_USER
+          value: "elastic"
+        - name: FLUENT_ELASTICSEARCH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elastic-credentials
+              key: password
+        - name: FLUENT_ELASTICSEARCH_INDEX_NAME
+          value: "securewatch"
+        - name: FLUENT_ELASTICSEARCH_TYPE_NAME
+          value: "_doc"
+        - name: FLUENT_ELASTICSEARCH_LOGSTASH_FORMAT
+          value: "true"
+        - name: FLUENT_ELASTICSEARCH_LOGSTASH_PREFIX
+          value: "securewatch"
+        - name: FLUENT_ELASTICSEARCH_BUFFER_CHUNK_LIMIT_SIZE
+          value: "8M"
+        - name: FLUENT_ELASTICSEARCH_BUFFER_QUEUE_LIMIT_LENGTH
+          value: "32"
+        - name: FLUENT_ELASTICSEARCH_FLUSH_INTERVAL
+          value: "5s"
+        - name: FLUENT_ELASTICSEARCH_MAX_RETRY_WAIT
+          value: "30"
+        - name: FLUENT_ELASTICSEARCH_DISABLE_RETRY_LIMIT
+          value: "true"
+        - name: FLUENT_CONTAINER_TAIL_PARSER_TYPE
+          value: "cri"
+        - name: FLUENT_CONTAINER_TAIL_PARSER_TIME_FORMAT
+          value: "%Y-%m-%dT%H:%M:%S.%N%:z"
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: 200m
+          requests:
+            memory: 256Mi
+            cpu: 100m
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        - name: config
+          mountPath: /fluentd/etc/
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: config
+        configMap:
+          name: fluentd-config
+
+---
+# Fluentd Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: logging
+data:
+  fluent.conf: |
+    @include "#{ENV['FLUENTD_SYSTEMD_CONF'] || 'systemd'}.conf"
+    @include "#{ENV['FLUENTD_PROMETHEUS_CONF'] || 'prometheus'}.conf"
+    @include kubernetes.conf
+    @include conf.d/*.conf
+
+    # SecureWatch specific configuration
+    <filter kubernetes.**>
+      @type parser
+      key_name log
+      reserve_data true
+      remove_key_name_field true
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_key timestamp
+          keep_time_key true
+        </pattern>
+        <pattern>
+          format regexp
+          expression /^(?<timestamp>[^ ]+) (?<level>[^ ]+) (?<message>.*)$/
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+          keep_time_key true
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # Add SecureWatch metadata
+    <filter kubernetes.**>
+      @type record_transformer
+      enable_ruby true
+      <record>
+        service_name ${record["kubernetes"]["labels"]["app"] || record["kubernetes"]["labels"]["k8s-app"] || "unknown"}
+        namespace ${record["kubernetes"]["namespace_name"]}
+        pod_name ${record["kubernetes"]["pod_name"]}
+        container_name ${record["kubernetes"]["container_name"]}
+        node_name ${record["kubernetes"]["host"]}
+        cluster "securewatch-prod"
+        environment "production"
+        @timestamp ${time.strftime('%Y-%m-%dT%H:%M:%S.%LZ')}
+      </record>
+    </filter>
+
+    # Output to Elasticsearch
+    <match **>
+      @type elasticsearch
+      @id out_es
+      @log_level info
+      include_tag_key true
+      host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
+      port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
+      path "#{ENV['FLUENT_ELASTICSEARCH_PATH']}"
+      scheme "#{ENV['FLUENT_ELASTICSEARCH_SCHEME'] || 'http'}"
+      ssl_verify "#{ENV['FLUENT_ELASTICSEARCH_SSL_VERIFY'] || 'true'}"
+      ssl_version "#{ENV['FLUENT_ELASTICSEARCH_SSL_VERSION'] || 'TLSv1_2'}"
+      user "#{ENV['FLUENT_ELASTICSEARCH_USER'] || use_default}"
+      password "#{ENV['FLUENT_ELASTICSEARCH_PASSWORD'] || use_default}"
+      reload_connections "#{ENV['FLUENT_ELASTICSEARCH_RELOAD_CONNECTIONS'] || 'false'}"
+      reconnect_on_error true
+      reload_on_failure true
+      log_es_400_reason false
+      logstash_prefix "#{ENV['FLUENT_ELASTICSEARCH_LOGSTASH_PREFIX'] || 'logstash'}"
+      logstash_dateformat "#{ENV['FLUENT_ELASTICSEARCH_LOGSTASH_DATEFORMAT'] || '%Y.%m.%d'}"
+      logstash_format "#{ENV['FLUENT_ELASTICSEARCH_LOGSTASH_FORMAT'] || 'true'}"
+      index_name "#{ENV['FLUENT_ELASTICSEARCH_LOGSTASH_INDEX_NAME'] || 'logstash'}"
+      type_name "#{ENV['FLUENT_ELASTICSEARCH_TYPE_NAME'] || '_doc'}"
+      include_timestamp "#{ENV['FLUENT_ELASTICSEARCH_INCLUDE_TIMESTAMP'] || 'false'}"
+      <buffer>
+        @type file
+        path /var/log/fluentd-buffers/kubernetes.system.buffer
+        flush_mode interval
+        retry_type exponential_backoff
+        flush_thread_count 2
+        flush_interval 5s
+        retry_forever
+        retry_max_interval 30
+        chunk_limit_size "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_CHUNK_LIMIT_SIZE'] || '8M'}"
+        queue_limit_length "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_QUEUE_LIMIT_LENGTH'] || '32'}"
+        overflow_action block
+      </buffer>
+    </match>
+
+---
+# Fluentd ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fluentd
+  namespace: logging
+
+---
+# Fluentd ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluentd
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+
+---
+# Fluentd ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fluentd
+roleRef:
+  kind: ClusterRole
+  name: fluentd
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: fluentd
+  namespace: logging
+
+---
+# Elasticsearch Curator for log rotation
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: elasticsearch-curator
+  namespace: logging
+spec:
+  schedule: "0 1 * * *"  # Daily at 1 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: curator
+            image: bitnami/elasticsearch-curator:5.8.4
+            args:
+            - --config
+            - /etc/config/config.yml
+            - /etc/config/actions.yml
+            volumeMounts:
+            - name: config
+              mountPath: /etc/config
+            env:
+            - name: ELASTICSEARCH_HOST
+              value: elasticsearch
+            - name: ELASTICSEARCH_PORT
+              value: "9200"
+            - name: ELASTICSEARCH_USERNAME
+              value: elastic
+            - name: ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: password
+          volumes:
+          - name: config
+            configMap:
+              name: curator-config
+          restartPolicy: OnFailure
+
+---
+# Curator Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: curator-config
+  namespace: logging
+data:
+  config.yml: |
+    client:
+      hosts:
+        - ${ELASTICSEARCH_HOST}
+      port: ${ELASTICSEARCH_PORT}
+      username: ${ELASTICSEARCH_USERNAME}
+      password: ${ELASTICSEARCH_PASSWORD}
+      use_ssl: False
+      ssl_no_validate: False
+      timeout: 30
+      master_only: False
+    logging:
+      loglevel: INFO
+      logformat: default
+  actions.yml: |
+    actions:
+      1:
+        action: delete_indices
+        description: >-
+          Delete indices older than 30 days
+        options:
+          ignore_empty_list: True
+          timeout_override:
+          continue_if_exception: False
+          disable_action: False
+        filters:
+        - filtertype: pattern
+          kind: prefix
+          value: securewatch-
+          exclude:
+        - filtertype: age
+          source: creation_date
+          direction: older
+          unit: days
+          unit_count: 30
+      2:
+        action: forcemerge
+        description: >-
+          Forcemerge indices older than 2 days
+        options:
+          max_num_segments: 1
+          timeout_override:
+          continue_if_exception: False
+          disable_action: False
+        filters:
+        - filtertype: pattern
+          kind: prefix
+          value: securewatch-
+          exclude:
+        - filtertype: age
+          source: creation_date
+          direction: older
+          unit: days
+          unit_count: 2
+        - filtertype: forcemerged
+          max_num_segments: 1
+          exclude: True
+
+---
+# Secrets for Elasticsearch
+apiVersion: v1
+kind: Secret
+metadata:
+  name: elastic-credentials
+  namespace: logging
+type: Opaque
+data:
+  password: Y2hhbmdlbWU=  # changeme (base64 encoded)
+
+---
+# Secrets for Kibana
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kibana-encryption-key
+  namespace: logging
+type: Opaque
+data:
+  key: YTMyZGY4OTBhZjQ4ZGY5MGFkZjg5MGFkZjg5MGFkZjg5MA==  # 32 character string (base64 encoded)

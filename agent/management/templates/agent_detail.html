@@ -1,0 +1,578 @@
+{% extends "base.html" %}
+
+{% block title %}{{ agent.agent_id }} - Agent Details{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('agents_list') }}">Agents</a></li>
+                <li class="breadcrumb-item active">{{ agent.agent_id }}</li>
+            </ol>
+        </nav>
+        <h1 class="h2">{{ agent.hostname }}</h1>
+        <p class="text-muted">{{ agent.agent_id }}</p>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-success btn-sm" onclick="sendCommand('start')">
+                <i class="fas fa-play"></i> Start
+            </button>
+            <button type="button" class="btn btn-warning btn-sm" onclick="sendCommand('restart')">
+                <i class="fas fa-redo"></i> Restart
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="sendCommand('stop')">
+                <i class="fas fa-stop"></i> Stop
+            </button>
+        </div>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshPage()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Status Overview -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Agent Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Status:</dt>
+                            <dd class="col-sm-8">
+                                <span class="status-badge status-{{ agent.status }}"></span>
+                                <span class="badge bg-{{ 'success' if agent.status == 'online' else 'danger' if agent.status == 'error' else 'secondary' }} text-capitalize">
+                                    {{ agent.status }}
+                                </span>
+                            </dd>
+                            
+                            <dt class="col-sm-4">IP Address:</dt>
+                            <dd class="col-sm-8">{{ agent.ip_address }}</dd>
+                            
+                            <dt class="col-sm-4">Version:</dt>
+                            <dd class="col-sm-8">{{ agent.version }}</dd>
+                            
+                            <dt class="col-sm-4">Config Path:</dt>
+                            <dd class="col-sm-8"><code>{{ agent.config_path }}</code></dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Last Seen:</dt>
+                            <dd class="col-sm-8">{{ agent.last_seen.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+                            
+                            <dt class="col-sm-4">Uptime:</dt>
+                            <dd class="col-sm-8">
+                                {{ (agent.uptime // 86400) }}d {{ ((agent.uptime % 86400) // 3600) }}h {{ ((agent.uptime % 3600) // 60) }}m
+                            </dd>
+                            
+                            <dt class="col-sm-4">Events/min:</dt>
+                            <dd class="col-sm-8">{{ agent.events_per_minute }}</dd>
+                            
+                            <dt class="col-sm-4">Errors:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-{{ 'danger' if agent.errors_count > 0 else 'success' }}">
+                                    {{ agent.errors_count }}
+                                </span>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Health Score</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="progress mb-3" style="height: 30px;">
+                    <div class="progress-bar bg-{{ 'success' if agent.health_score >= 80 else 'warning' if agent.health_score >= 60 else 'danger' }}" 
+                         style="width: {{ agent.health_score }}%">
+                        {{ agent.health_score }}%
+                    </div>
+                </div>
+                <p class="health-score {{ 'excellent' if agent.health_score >= 80 else 'good' if agent.health_score >= 60 else 'poor' }}">
+                    {{ 'Excellent' if agent.health_score >= 80 else 'Good' if agent.health_score >= 60 else 'Poor' }} Health
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Metrics -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="h4 text-primary">{{ agent.cpu_usage }}%</div>
+                <div class="text-muted">CPU Usage</div>
+                <div class="progress mt-2" style="height: 5px;">
+                    <div class="progress-bar bg-{{ 'danger' if agent.cpu_usage >= 80 else 'warning' if agent.cpu_usage >= 60 else 'success' }}" 
+                         style="width: {{ agent.cpu_usage }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="h4 text-info">{{ agent.memory_usage }}%</div>
+                <div class="text-muted">Memory Usage</div>
+                <div class="progress mt-2" style="height: 5px;">
+                    <div class="progress-bar bg-{{ 'danger' if agent.memory_usage >= 80 else 'warning' if agent.memory_usage >= 60 else 'info' }}" 
+                         style="width: {{ agent.memory_usage }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="h4 text-warning">{{ agent.disk_usage }}%</div>
+                <div class="text-muted">Disk Usage</div>
+                <div class="progress mt-2" style="height: 5px;">
+                    <div class="progress-bar bg-{{ 'danger' if agent.disk_usage >= 90 else 'warning' if agent.disk_usage >= 70 else 'success' }}" 
+                         style="width: {{ agent.disk_usage }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="h4 text-success">{{ agent.events_per_minute }}</div>
+                <div class="text-muted">Events/min</div>
+                <div class="progress mt-2" style="height: 5px;">
+                    <div class="progress-bar bg-success" style="width: {{ min(100, agent.events_per_minute / 10) }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs" id="agentTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="metrics-tab" data-bs-toggle="tab" data-bs-target="#metrics" 
+                type="button" role="tab">
+            <i class="fas fa-chart-line"></i> Metrics
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="collectors-tab" data-bs-toggle="tab" data-bs-target="#collectors" 
+                type="button" role="tab">
+            <i class="fas fa-cogs"></i> Collectors
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="events-tab" data-bs-toggle="tab" data-bs-target="#events" 
+                type="button" role="tab">
+            <i class="fas fa-list"></i> Events
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="config-tab" data-bs-toggle="tab" data-bs-target="#config" 
+                type="button" role="tab">
+            <i class="fas fa-edit"></i> Configuration
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="agentTabsContent">
+    <!-- Metrics Tab -->
+    <div class="tab-pane fade show active" id="metrics" role="tabpanel">
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Historical Metrics (Last 24 Hours)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="metricsChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Collectors Tab -->
+    <div class="tab-pane fade" id="collectors" role="tabpanel">
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Enabled Collectors</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for collector in agent.collectors_enabled %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title text-capitalize">{{ collector.replace('_', ' ') }}</h6>
+                                        <span class="badge bg-success">Enabled</span>
+                                    </div>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-warning" onclick="configureCollector('{{ collector }}')">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="disableCollector('{{ collector }}')">
+                                            <i class="fas fa-stop"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <h6>Available Collectors</h6>
+                <div class="row">
+                    {% set all_collectors = ['windows_event', 'syslog', 'file'] %}
+                    {% for collector in all_collectors %}
+                        {% if collector not in agent.collectors_enabled %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-secondary">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="card-title text-capitalize">{{ collector.replace('_', ' ') }}</h6>
+                                            <span class="badge bg-secondary">Disabled</span>
+                                        </div>
+                                        <button class="btn btn-outline-success btn-sm" onclick="enableCollector('{{ collector }}')">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Events Tab -->
+    <div class="tab-pane fade" id="events" role="tabpanel">
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Events</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Type</th>
+                                <th>Message</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in events %}
+                            <tr>
+                                <td>{{ event.timestamp }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'danger' if event.event_type == 'error' else 'warning' if event.event_type == 'config_update' else 'info' }}">
+                                        {{ event.event_type }}
+                                    </span>
+                                </td>
+                                <td>{{ event.message }}</td>
+                                <td>
+                                    {% if event.details %}
+                                        <button class="btn btn-sm btn-outline-secondary" 
+                                                onclick="showEventDetails('{{ event.details }}')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Configuration Tab -->
+    <div class="tab-pane fade" id="config" role="tabpanel">
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Agent Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form id="configForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="pollingInterval" class="form-label">Polling Interval (seconds)</label>
+                                <input type="number" class="form-control" id="pollingInterval" value="30">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="batchSize" class="form-label">Batch Size</label>
+                                <input type="number" class="form-control" id="batchSize" value="100">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="compressionLevel" class="form-label">Compression Level</label>
+                                <select class="form-select" id="compressionLevel">
+                                    <option value="3">Low (3)</option>
+                                    <option value="6" selected>Medium (6)</option>
+                                    <option value="9">High (9)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="bufferSize" class="form-label">Buffer Size (MB)</label>
+                                <input type="number" class="form-control" id="bufferSize" value="100">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="maxRetries" class="form-label">Max Retries</label>
+                                <input type="number" class="form-control" id="maxRetries" value="3">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="enableTLS" checked>
+                                    <label class="form-check-label" for="enableTLS">Enable TLS</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-primary" onclick="saveConfiguration()">
+                                <i class="fas fa-save"></i> Save Configuration
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetConfiguration()">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const agentId = '{{ agent.agent_id }}';
+
+// Metrics chart
+const metricsCtx = document.getElementById('metricsChart').getContext('2d');
+const metricsChart = new Chart(metricsCtx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [
+            {
+                label: 'CPU Usage (%)',
+                data: [],
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                yAxisID: 'y'
+            },
+            {
+                label: 'Memory Usage (%)',
+                data: [],
+                borderColor: '#17a2b8',
+                backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                yAxisID: 'y'
+            },
+            {
+                label: 'Events/min',
+                data: [],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                yAxisID: 'y1'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                max: 100,
+                title: {
+                    display: true,
+                    text: 'Percentage (%)'
+                }
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: {
+                    display: true,
+                    text: 'Events per Minute'
+                },
+                grid: {
+                    drawOnChartArea: false,
+                }
+            }
+        }
+    }
+});
+
+// Load metrics data
+function loadMetrics() {
+    fetch(`/api/agent/${agentId}/metrics?hours=24`)
+        .then(response => response.json())
+        .then(data => {
+            const labels = data.map(item => new Date(item.timestamp).toLocaleTimeString());
+            
+            metricsChart.data.labels = labels;
+            metricsChart.data.datasets[0].data = data.map(item => item.cpu_usage);
+            metricsChart.data.datasets[1].data = data.map(item => item.memory_usage);
+            metricsChart.data.datasets[2].data = data.map(item => item.events_per_minute);
+            
+            metricsChart.update();
+        })
+        .catch(error => console.error('Error loading metrics:', error));
+}
+
+// Agent control functions
+function sendCommand(command) {
+    const confirmMessage = `Are you sure you want to ${command} this agent?`;
+    
+    if (confirm(confirmMessage)) {
+        fetch(`/api/agent/${agentId}/command`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                command: command,
+                params: {}
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Command "${command}" sent successfully`);
+                setTimeout(refreshPage, 2000);
+            } else {
+                alert(`Failed to send command: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            alert(`Error sending command: ${error}`);
+        });
+    }
+}
+
+// Collector management
+function configureCollector(collector) {
+    alert(`Opening configuration for ${collector} collector...`);
+}
+
+function enableCollector(collector) {
+    if (confirm(`Enable ${collector} collector?`)) {
+        alert(`Enabling ${collector} collector...`);
+    }
+}
+
+function disableCollector(collector) {
+    if (confirm(`Disable ${collector} collector?`)) {
+        alert(`Disabling ${collector} collector...`);
+    }
+}
+
+// Configuration management
+function saveConfiguration() {
+    const config = {
+        polling_interval: document.getElementById('pollingInterval').value,
+        batch_size: document.getElementById('batchSize').value,
+        compression_level: document.getElementById('compressionLevel').value,
+        buffer_size: document.getElementById('bufferSize').value,
+        max_retries: document.getElementById('maxRetries').value,
+        enable_tls: document.getElementById('enableTLS').checked
+    };
+    
+    fetch(`/api/agent/${agentId}/config`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Configuration saved successfully');
+        } else {
+            alert(`Failed to save configuration: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        alert(`Error saving configuration: ${error}`);
+    });
+}
+
+function resetConfiguration() {
+    if (confirm('Reset configuration to defaults?')) {
+        document.getElementById('pollingInterval').value = '30';
+        document.getElementById('batchSize').value = '100';
+        document.getElementById('compressionLevel').value = '6';
+        document.getElementById('bufferSize').value = '100';
+        document.getElementById('maxRetries').value = '3';
+        document.getElementById('enableTLS').checked = true;
+    }
+}
+
+function showEventDetails(details) {
+    try {
+        const parsed = JSON.parse(details);
+        alert(`Event Details:\n${JSON.stringify(parsed, null, 2)}`);
+    } catch (e) {
+        alert(`Event Details:\n${details}`);
+    }
+}
+
+function refreshPage() {
+    window.location.reload();
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadMetrics();
+    
+    // Check URL hash for tab
+    if (window.location.hash) {
+        const tabId = window.location.hash.substring(1);
+        const tabButton = document.getElementById(`${tabId}-tab`);
+        if (tabButton) {
+            tabButton.click();
+        }
+    }
+});
+
+// Subscribe to real-time updates for this agent
+socket.emit('subscribe_agent', {agent_id: agentId});
+</script>
+{% endblock %}

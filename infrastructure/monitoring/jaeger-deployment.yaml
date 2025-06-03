@@ -1,0 +1,420 @@
+# SecureWatch Jaeger Distributed Tracing Deployment
+# Complete observability with distributed tracing across all services
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tracing
+  labels:
+    name: tracing
+
+---
+# Jaeger Operator for managing Jaeger instances
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger-operator
+  namespace: tracing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: jaeger-operator
+  template:
+    metadata:
+      labels:
+        name: jaeger-operator
+    spec:
+      serviceAccountName: jaeger-operator
+      containers:
+      - name: jaeger-operator
+        image: jaegertracing/jaeger-operator:1.48.0
+        ports:
+        - containerPort: 8383
+          name: metrics
+        - containerPort: 8686
+          name: apis
+        args: ["start"]
+        env:
+        - name: WATCH_NAMESPACE
+          value: ""
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: OPERATOR_NAME
+          value: "jaeger-operator"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+
+---
+# Jaeger ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jaeger-operator
+  namespace: tracing
+
+---
+# Jaeger ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: jaeger-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - events
+  - configmaps
+  - secrets
+  - serviceaccounts
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - jaegertracing.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+
+---
+# Jaeger ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jaeger-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: jaeger-operator
+subjects:
+- kind: ServiceAccount
+  name: jaeger-operator
+  namespace: tracing
+
+---
+# Jaeger Production Instance
+apiVersion: jaegertracing.io/v1
+kind: Jaeger
+metadata:
+  name: securewatch-jaeger
+  namespace: tracing
+spec:
+  strategy: production
+  
+  # Collector configuration
+  collector:
+    replicas: 3
+    maxReplicas: 5
+    resources:
+      limits:
+        cpu: 1
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    options:
+      collector:
+        zipkin-http-port: 9411
+        grpc-port: 14250
+        http-port: 14268
+      log-level: info
+    autoscale: true
+    
+  # Query service configuration
+  query:
+    replicas: 2
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 200m
+        memory: 512Mi
+    options:
+      query:
+        base-path: /jaeger
+      log-level: info
+        
+  # Agent configuration (as DaemonSet)
+  agent:
+    strategy: DaemonSet
+    resources:
+      limits:
+        cpu: 200m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    options:
+      agent:
+        tags: "cluster=securewatch,region=us-west"
+      log-level: info
+      
+  # Storage configuration - Elasticsearch backend
+  storage:
+    type: elasticsearch
+    options:
+      es:
+        server-urls: http://elasticsearch:9200
+        index-prefix: jaeger
+        tags-as-fields:
+          all: true
+        username: elastic
+        password: changeme
+    esIndexCleaner:
+      enabled: true
+      numberOfDays: 7
+      schedule: "55 23 * * *"
+    dependencies:
+      enabled: true
+      sparkMaster: ""
+      schedule: "55 23 * * *"
+      
+  # Ingester for Kafka integration
+  ingester:
+    options:
+      kafka:
+        consumer:
+          brokers: kafka-headless:9092
+          topic: jaeger-spans
+      ingester:
+        deadlockInterval: 5m
+        parallelism: 1000
+
+---
+# Jaeger Sampling Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-sampling-config
+  namespace: tracing
+data:
+  sampling.json: |
+    {
+      "service_strategies": [
+        {
+          "service": "securewatch-api-gateway",
+          "type": "adaptive",
+          "max_traces_per_second": 100,
+          "sampling_rate": 0.1
+        },
+        {
+          "service": "securewatch-auth-service",
+          "type": "probabilistic",
+          "param": 0.1
+        },
+        {
+          "service": "securewatch-log-ingestion",
+          "type": "adaptive",
+          "max_traces_per_second": 50,
+          "sampling_rate": 0.05
+        },
+        {
+          "service": "securewatch-search-api",
+          "type": "probabilistic",
+          "param": 0.1
+        },
+        {
+          "service": "securewatch-analytics-engine",
+          "type": "probabilistic",
+          "param": 0.2
+        }
+      ],
+      "default_strategy": {
+        "type": "probabilistic",
+        "param": 0.01
+      }
+    }
+
+---
+# Service Monitor for Prometheus integration
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: jaeger-metrics
+  namespace: tracing
+  labels:
+    app: jaeger
+spec:
+  selector:
+    matchLabels:
+      app: jaeger
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
+---
+# Jaeger UI Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-query
+  namespace: tracing
+  labels:
+    app: jaeger
+    component: query
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 16686
+  selector:
+    app.kubernetes.io/name: securewatch-jaeger-query
+    app.kubernetes.io/component: query
+
+---
+# Jaeger Collector Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-collector
+  namespace: tracing
+  labels:
+    app: jaeger
+    component: collector
+spec:
+  ports:
+  - name: grpc
+    port: 14250
+    targetPort: 14250
+  - name: http
+    port: 14268
+    targetPort: 14268
+  - name: zipkin
+    port: 9411
+    targetPort: 9411
+  selector:
+    app.kubernetes.io/name: securewatch-jaeger-collector
+    app.kubernetes.io/component: collector
+
+---
+# Jaeger Agent Service (for service discovery)
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-agent
+  namespace: tracing
+  labels:
+    app: jaeger
+    component: agent
+spec:
+  ports:
+  - name: thrift-compact
+    port: 6831
+    targetPort: 6831
+    protocol: UDP
+  - name: thrift-binary
+    port: 6832
+    targetPort: 6832
+    protocol: UDP
+  - name: configs
+    port: 5778
+    targetPort: 5778
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: securewatch-jaeger-agent
+    app.kubernetes.io/component: agent
+
+---
+# HorizontalPodAutoscaler for Jaeger Query
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: jaeger-query-hpa
+  namespace: tracing
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: securewatch-jaeger-query
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Network Policy for Jaeger components
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: jaeger-network-policy
+  namespace: tracing
+spec:
+  podSelector:
+    matchLabels:
+      app: jaeger
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: securewatch
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 14250
+    - protocol: TCP
+      port: 14268
+    - protocol: UDP
+      port: 6831
+    - protocol: UDP
+      port: 6832
+    - protocol: TCP
+      port: 16686
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: securewatch
+    ports:
+    - protocol: TCP
+      port: 9200  # Elasticsearch
+    - protocol: TCP
+      port: 9092  # Kafka
