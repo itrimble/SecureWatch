@@ -27,6 +27,42 @@ export function LogSearch() {
   const [timeRange, setTimeRange] = useState("Last 24 hours")
   const [expandedFields, setExpandedFields] = useState<string[]>(["status", "method", "host"])
   const [selectedView, setSelectedView] = useState("Events")
+  const [isSearching, setIsSearching] = useState(false)
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      return
+    }
+    
+    setIsSearching(true)
+    try {
+      const response = await fetch('http://localhost:4004/api/v1/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: searchQuery
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Search failed: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log('Search results:', data)
+      
+      // Update search results state if available
+      // setLogEvents(data.results || [])
+      
+    } catch (error) {
+      console.error('Search error:', error)
+      // Handle error - could show toast notification
+    } finally {
+      setIsSearching(false)
+    }
+  }
 
   const fieldData = {
     status: [
@@ -110,6 +146,21 @@ export function LogSearch() {
     setExpandedFields((prev) => (prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field]))
   }
 
+  const handleSave = () => {
+    console.log('Save search:', searchQuery)
+    // TODO: Implement save functionality
+  }
+
+  const handleShare = () => {
+    console.log('Share search:', searchQuery)
+    // TODO: Implement share functionality
+  }
+
+  const handleExport = () => {
+    console.log('Export search results')
+    // TODO: Implement export functionality
+  }
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Main Content */}
@@ -124,9 +175,14 @@ export function LogSearch() {
                 className="font-mono text-sm pr-20"
                 placeholder="Enter your KQL search..."
               />
-              <Button className="absolute right-1 top-1 bg-green-600 hover:bg-green-700" size="sm">
+              <Button 
+                onClick={handleSearch}
+                disabled={isSearching}
+                className="absolute right-1 top-1 bg-green-600 hover:bg-green-700" 
+                size="sm"
+              >
                 <Search className="h-4 w-4 mr-1" />
-                Search
+                {isSearching ? "Searching..." : "Search"}
               </Button>
             </div>
             <Button variant="outline" size="sm">
@@ -155,15 +211,15 @@ export function LogSearch() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
+              <Button onClick={handleSave} variant="outline" size="sm">
                 <Save className="h-4 w-4 mr-1" />
                 Save
               </Button>
-              <Button variant="outline" size="sm">
+              <Button onClick={handleShare} variant="outline" size="sm">
                 <Share className="h-4 w-4 mr-1" />
                 Share
               </Button>
-              <Button variant="outline" size="sm">
+              <Button onClick={handleExport} variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-1" />
                 Export
               </Button>
@@ -261,52 +317,54 @@ export function LogSearch() {
 
             {/* Events List */}
             <div className="flex-1 overflow-y-auto">
-              <TabsContent value="Events" className="m-0">
-                <div className="space-y-2 p-4">
-                  {logEvents.map((event, index) => (
-                    <Card key={index} className="border-l-4 border-l-gray-300">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <span>{event.timestamp}</span>
-                            <span>host={event.host}</span>
-                            <span>source={event.source}</span>
-                            <span>sourcetype={event.sourcetype}</span>
+              <Tabs value={selectedView} onValueChange={setSelectedView} className="h-full">
+                <TabsContent value="Events" className="m-0 h-full">
+                  <div className="space-y-2 p-4">
+                    {logEvents.map((event, index) => (
+                      <Card key={index} className="border-l-4 border-l-gray-300">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <span>{event.timestamp}</span>
+                              <span>host={event.host}</span>
+                              <span>source={event.source}</span>
+                              <span>sourcetype={event.sourcetype}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={getSeverityColor(event.severity)}>{event.severity}</Badge>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm">
+                                <ChevronDown className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className={getSeverityColor(event.severity)}>{event.severity}</Badge>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <ChevronDown className="h-4 w-4" />
-                            </Button>
+
+                          <div className="font-mono text-sm bg-gray-50 p-3 rounded border">{event.rawLog}</div>
+
+                          <div className="mt-2 flex flex-wrap gap-4 text-sm">
+                            {Object.entries(event.fields).map(([key, value]) => (
+                              <span key={key}>
+                                <span className="font-medium">{key}=</span>
+                                <span className="text-blue-600">{value}</span>
+                              </span>
+                            ))}
                           </div>
-                        </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </TabsContent>
 
-                        <div className="font-mono text-sm bg-gray-50 p-3 rounded border">{event.rawLog}</div>
+                <TabsContent value="Patterns" className="m-0 p-4">
+                  <div className="text-center text-gray-500 py-8">Pattern analysis view - Coming soon</div>
+                </TabsContent>
 
-                        <div className="mt-2 flex flex-wrap gap-4 text-sm">
-                          {Object.entries(event.fields).map(([key, value]) => (
-                            <span key={key}>
-                              <span className="font-medium">{key}=</span>
-                              <span className="text-blue-600">{value}</span>
-                            </span>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="Patterns" className="m-0 p-4">
-                <div className="text-center text-gray-500 py-8">Pattern analysis view - Coming soon</div>
-              </TabsContent>
-
-              <TabsContent value="Statistics" className="m-0 p-4">
-                <div className="text-center text-gray-500 py-8">Statistical analysis view - Coming soon</div>
-              </TabsContent>
+                <TabsContent value="Statistics" className="m-0 p-4">
+                  <div className="text-center text-gray-500 py-8">Statistical analysis view - Coming soon</div>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </div>

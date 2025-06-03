@@ -3,9 +3,17 @@
 
 export async function GET() {
   let counter = 0
+  let intervalId: NodeJS.Timeout | null = null
+  let isClosed = false
+  
   const stream = new ReadableStream({
     start(controller) {
-      const intervalId = setInterval(() => {
+      intervalId = setInterval(() => {
+        if (isClosed) {
+          if (intervalId) clearInterval(intervalId)
+          return
+        }
+        
         counter++
         const mockNotification = {
           id: `notif-${Date.now()}-${counter}`,
@@ -19,21 +27,28 @@ export async function GET() {
           actions: ["View Details", "Acknowledge"],
           read: false,
         }
-        const data = `data: ${JSON.stringify(mockNotification)}\n\n`
-        controller.enqueue(new TextEncoder().encode(data))
+        
+        try {
+          const data = `data: ${JSON.stringify(mockNotification)}\n\n`
+          controller.enqueue(new TextEncoder().encode(data))
+        } catch (error) {
+          // Controller is closed, stop the interval
+          isClosed = true
+          if (intervalId) clearInterval(intervalId)
+        }
 
         if (counter > 100) {
           // Stop after 100 messages for demo purposes
-          clearInterval(intervalId)
+          isClosed = true
+          if (intervalId) clearInterval(intervalId)
           controller.close()
         }
       }, 3000) // Send a notification every 3 seconds
-
-      // Cleanup when the connection is closed by the client
-      controller.signal.addEventListener("abort", () => {
-        clearInterval(intervalId)
-        console.log("SSE stream aborted by client.")
-      })
+    },
+    cancel() {
+      // Called when the client disconnects
+      isClosed = true
+      if (intervalId) clearInterval(intervalId)
     },
   })
 

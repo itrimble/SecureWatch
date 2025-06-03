@@ -19,7 +19,7 @@
     "lru-cache": "^10.4.3",
     "pg": "^8.16.0",
     "uuid": "^10.0.0",
-    "winston": "^3.18.0"
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
@@ -28,6 +28,6 @@
     "jest": "^29.7.0",
     "tsup": "^8.3.5",
     "typescript": "^5",
-    "vitest": "^2.2.1"
+    "vitest": "^3.2.0"
   }
 }

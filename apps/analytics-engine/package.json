@@ -16,16 +16,16 @@
     "bull": "^4.16.5",
     "express": "^4.21.2",
     "ioredis": "^5.4.2",
-    "ml.js": "^6.0.0",
+    "ml-matrix": "^6.12.1",
     "pg": "^8.16.0",
-    "tensorflow": "^0.0.3",
-    "winston": "^3.18.0"
+    "tensorflow": "^0.7.0",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",
     "@types/node": "^20",
     "@types/pg": "^8.15.2",
-    "tsx": "^4.23.0",
+    "tsx": "^4.19.4",
     "typescript": "^5"
   }
 }

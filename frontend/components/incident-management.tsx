@@ -13,6 +13,27 @@ import { Shield, Clock, User, Plus, Search } from "lucide-react"
 export function IncidentManagement() {
   const [showCreateForm, setShowCreateForm] = useState(false)
 
+  const handleCreateIncident = () => {
+    console.log('Creating new incident...')
+    // TODO: Implement incident creation
+    setShowCreateForm(false)
+  }
+
+  const handleSearchIncidents = () => {
+    console.log('Searching incidents...')
+    // TODO: Implement incident search
+  }
+
+  const handleViewDetails = (incidentId: string) => {
+    console.log('Viewing incident details:', incidentId)
+    // TODO: Implement view details
+  }
+
+  const handleUpdateIncident = (incidentId: string) => {
+    console.log('Updating incident:', incidentId)
+    // TODO: Implement update incident
+  }
+
   const incidents = [
     {
       id: "INC-2024-001",
@@ -142,7 +163,7 @@ export function IncidentManagement() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button>Create Incident</Button>
+              <Button onClick={handleCreateIncident}>Create Incident</Button>
               <Button variant="outline" onClick={() => setShowCreateForm(false)}>
                 Cancel
               </Button>
@@ -164,7 +185,7 @@ export function IncidentManagement() {
             <div className="flex-1">
               <Input placeholder="Search incidents..." className="w-full" />
             </div>
-            <Button variant="outline">
+            <Button onClick={handleSearchIncidents} variant="outline">
               <Search className="h-4 w-4 mr-2" />
               Search
             </Button>
@@ -204,8 +225,8 @@ export function IncidentManagement() {
                     </div>
 
                     <div className="flex gap-2">
-                      <Button size="sm">View Details</Button>
-                      <Button size="sm" variant="outline">
+                      <Button onClick={() => handleViewDetails(incident.id)} size="sm">View Details</Button>
+                      <Button onClick={() => handleUpdateIncident(incident.id)} size="sm" variant="outline">
                         Update
                       </Button>
                     </div>

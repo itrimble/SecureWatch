@@ -16,12 +16,11 @@
     "bull": "^4.16.5",
     "express": "^4.21.2",
     "ioredis": "^5.4.2",
-    "kafkajs": "^2.2.5",
+    "kafkajs": "^2.2.4",
     "pg": "^8.16.0",
     "prom-client": "^15.1.0",
-    "timescaledb": "^0.2.0",
     "uuid": "^10.0.0",
-    "winston": "^3.18.0",
+    "winston": "^3.17.0",
     "zlib": "^1.0.5"
   },
   "devDependencies": {
@@ -29,7 +28,7 @@
     "@types/express": "^5.0.1",
     "@types/node": "^20",
     "@types/pg": "^8.15.2",
-    "tsx": "^4.23.0",
+    "tsx": "^4.19.4",
     "typescript": "^5"
   }
 }

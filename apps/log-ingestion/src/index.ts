@@ -12,7 +12,7 @@ import { kafkaConfig, producerConfig, consumerConfig, topics, performanceConfig 
 import logger from './utils/logger';
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 4002;
 
 // Initialize components
 let kafka: Kafka;

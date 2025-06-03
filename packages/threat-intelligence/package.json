@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@securewatch/ai-engine": "workspace:*",
-    "@securewatch/kql-parser": "workspace:*",
+    "@securewatch/kql-engine": "workspace:*",
     "axios": "^1.7.7",
     "bullmq": "^5.7.8",
     "ioredis": "^5.4.1",

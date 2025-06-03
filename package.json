@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Enterprise SIEM platform with advanced log analysis and threat detection",
   "private": true,
+  "packageManager": "pnpm@10.11.1",
   "author": "Ian Trimble <itrimble@gmail.com>",
   "repository": {
     "type": "git",

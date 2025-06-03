@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Search,
   Calendar,
@@ -26,90 +27,164 @@ import {
   List,
   ArrowUpDown,
   Eye,
+  Brain,
+  Zap,
+  Code,
+  MessageSquare,
+  History,
+  BookOpen,
 } from "lucide-react"
 
 export function EnhancedSearch() {
-  const [searchQuery, setSearchQuery] = useState("index=main sourcetype=access_combined | stats count by status")
+  const [searchQuery, setSearchQuery] = useState("SecurityEvent | where EventID == 4624 | summarize LoginCount = count() by Account, Computer | order by LoginCount desc")
+  const [naturalLanguageQuery, setNaturalLanguageQuery] = useState("")
   const [timeRange, setTimeRange] = useState("Last 24 hours")
   const [isSearching, setIsSearching] = useState(false)
-  const [sortField, setSortField] = useState("_time")
+  const [sortField, setSortField] = useState("TimeGenerated")
   const [sortOrder, setSortOrder] = useState("desc")
+  const [searchMode, setSearchMode] = useState("kql") // "kql" or "natural"
+  const [isAiGenerating, setIsAiGenerating] = useState(false)
 
-  const runSearch = () => {
+  const runSearch = async () => {
+    if (!searchQuery.trim()) {
+      return
+    }
+    
     setIsSearching(true)
-    setTimeout(() => setIsSearching(false), 2000)
+    try {
+      const response = await fetch('http://localhost:4004/api/v1/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: searchQuery
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Search failed: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log('Search results:', data)
+      
+      // Update search results state if available
+      // setSearchResults(data.results || [])
+      
+    } catch (error) {
+      console.error('Search error:', error)
+      // Handle error - could show toast notification
+    } finally {
+      setIsSearching(false)
+    }
   }
+
+  const generateKqlFromNaturalLanguage = async () => {
+    setIsAiGenerating(true)
+    // Simulate AI generation
+    setTimeout(() => {
+      const mockKqlQueries = {
+        "show me failed login attempts": "SecurityEvent | where EventID == 4625 | project TimeGenerated, Account, WorkstationName, IpAddress, LogonType",
+        "suspicious network activity": "NetworkTraffic | where Protocol == 'TCP' and BytesOut > 1000000 | summarize TotalBytes = sum(BytesOut) by SourceIP | order by TotalBytes desc",
+        "malware detections": "SecurityEvent | where EventID == 1116 | project TimeGenerated, Computer, ThreatName, Path",
+        "admin login activities": "SecurityEvent | where EventID == 4624 and LogonType == 2 | where Account has 'admin' | project TimeGenerated, Account, Computer, IpAddress"
+      }
+      
+      const closestMatch = Object.keys(mockKqlQueries).find(key => 
+        naturalLanguageQuery.toLowerCase().includes(key.split(' ')[0])
+      ) || "show me failed login attempts"
+      
+      setSearchQuery(mockKqlQueries[closestMatch])
+      setIsAiGenerating(false)
+    }, 1500)
+  }
+
+  const kqlTemplates = [
+    {
+      name: "Failed Login Attempts",
+      query: "SecurityEvent | where EventID == 4625 | project TimeGenerated, Account, WorkstationName, IpAddress, LogonType",
+      description: "Shows all failed authentication attempts"
+    },
+    {
+      name: "Process Creation Events",
+      query: "SecurityEvent | where EventID == 4688 | project TimeGenerated, Computer, ProcessName, CommandLine, ParentProcessName",
+      description: "Shows process creation events with command lines"
+    },
+    {
+      name: "Network Connections",
+      query: "NetworkTraffic | where Direction == 'Outbound' | summarize ConnectionCount = count() by DestinationIP, DestinationPort | order by ConnectionCount desc",
+      description: "Outbound network connections by destination"
+    },
+    {
+      name: "Privilege Escalation",
+      query: "SecurityEvent | where EventID == 4672 | project TimeGenerated, Account, Computer, PrivilegeList",
+      description: "Special privileges assigned to new logon"
+    }
+  ]
 
   const searchResults = [
     {
-      _time: "2024-01-15 14:32:15.123",
-      host: "web-server-01",
-      source: "/var/log/access.log",
-      sourcetype: "access_combined",
-      index: "main",
-      _raw: '192.168.1.100 - admin [15/Jan/2024:14:32:15 +0000] "POST /login HTTP/1.1" 401 1234 "-" "Mozilla/5.0"',
-      status: "401",
-      method: "POST",
-      uri: "/login",
-      clientip: "192.168.1.100",
-      user: "admin",
+      TimeGenerated: "2024-01-15T14:32:15.123Z",
+      Computer: "DC-01.contoso.com",
+      EventID: 4625,
+      Account: "admin@contoso.com",
+      WorkstationName: "WORKSTATION-01",
+      IpAddress: "192.168.1.100",
+      LogonType: 3,
+      SubStatus: "0xC000006A",
       severity: "high",
+      EventData: 'Failed logon attempt for admin@contoso.com from 192.168.1.100',
     },
     {
-      _time: "2024-01-15 14:31:45.456",
-      host: "web-server-01",
-      source: "/var/log/access.log",
-      sourcetype: "access_combined",
-      index: "main",
-      _raw: '10.0.0.50 - - [15/Jan/2024:14:31:45 +0000] "GET /admin HTTP/1.1" 403 567 "-" "curl/7.68.0"',
-      status: "403",
-      method: "GET",
-      uri: "/admin",
-      clientip: "10.0.0.50",
-      user: "-",
-      severity: "medium",
+      TimeGenerated: "2024-01-15T14:31:45.456Z",
+      Computer: "WEB-01.contoso.com",
+      EventID: 4688,
+      Account: "SYSTEM",
+      ProcessName: "powershell.exe",
+      CommandLine: "powershell.exe -ExecutionPolicy Bypass -File suspicious.ps1",
+      ParentProcessName: "cmd.exe",
+      severity: "high",
+      EventData: 'Process creation: powershell.exe with suspicious command line',
     },
     {
-      _time: "2024-01-15 14:30:22.789",
-      host: "web-server-02",
-      source: "/var/log/access.log",
-      sourcetype: "access_combined",
-      index: "main",
-      _raw: '172.16.0.25 - john.doe [15/Jan/2024:14:30:22 +0000] "GET /dashboard HTTP/1.1" 200 2048 "-" "Mozilla/5.0"',
-      status: "200",
-      method: "GET",
-      uri: "/dashboard",
-      clientip: "172.16.0.25",
-      user: "john.doe",
+      TimeGenerated: "2024-01-15T14:30:22.789Z",
+      Computer: "SQL-01.contoso.com",
+      EventID: 4624,
+      Account: "john.doe@contoso.com",
+      WorkstationName: "LAPTOP-JOHN",
+      IpAddress: "172.16.0.25",
+      LogonType: 2,
       severity: "low",
+      EventData: 'Successful logon for john.doe@contoso.com from 172.16.0.25',
     },
   ]
 
   const fieldStats = [
     {
-      field: "status",
+      field: "EventID",
       values: [
-        { value: "200", count: 1247 },
-        { value: "404", count: 89 },
-        { value: "401", count: 45 },
-        { value: "403", count: 23 },
+        { value: "4624", count: 1247 },
+        { value: "4625", count: 89 },
+        { value: "4688", count: 456 },
+        { value: "4672", count: 23 },
       ],
     },
     {
-      field: "method",
+      field: "LogonType",
       values: [
-        { value: "GET", count: 1156 },
-        { value: "POST", count: 187 },
-        { value: "PUT", count: 34 },
-        { value: "DELETE", count: 12 },
+        { value: "2", count: 1156 },
+        { value: "3", count: 187 },
+        { value: "10", count: 34 },
+        { value: "4", count: 12 },
       ],
     },
     {
-      field: "host",
+      field: "Computer",
       values: [
-        { value: "web-server-01", count: 678 },
-        { value: "web-server-02", count: 456 },
-        { value: "web-server-03", count: 234 },
+        { value: "DC-01.contoso.com", count: 678 },
+        { value: "WEB-01.contoso.com", count: 456 },
+        { value: "SQL-01.contoso.com", count: 234 },
       ],
     },
   ]
@@ -135,45 +210,160 @@ export function EnhancedSearch() {
         {/* Enhanced Search Header */}
         <div className="border-b bg-card p-4">
           <div className="space-y-4">
-            {/* Main Search Input */}
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Enter search query... (e.g., index=main error | stats count by host)"
-                  className="font-mono text-sm pl-10 pr-20 h-12"
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {/* Search Mode Toggle */}
+            <div className="flex items-center gap-2">
+              <Tabs value={searchMode} onValueChange={setSearchMode} className="w-auto">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="kql" className="flex items-center gap-2">
+                    <Code className="h-4 w-4" />
+                    KQL Query
+                  </TabsTrigger>
+                  <TabsTrigger value="natural" className="flex items-center gap-2">
+                    <Brain className="h-4 w-4" />
+                    Natural Language
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <Badge variant="outline" className="text-blue-600 border-blue-600">
+                <Zap className="w-3 h-3 mr-1" />
+                AI Enabled
+              </Badge>
+            </div>
+
+            {/* Search Input Area */}
+            {searchMode === "kql" ? (
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Code className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Textarea
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Enter KQL query... (e.g., SecurityEvent | where EventID == 4625 | project TimeGenerated, Account, Computer)"
+                    className="font-mono text-sm pl-10 pr-20 min-h-[60px] resize-none"
+                  />
+                  <div className="absolute right-2 top-2 flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="sm" variant="ghost" className="h-6 px-2">
+                          <BookOpen className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>KQL Reference</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={runSearch}
+                      disabled={isSearching}
+                      className="bg-green-600 hover:bg-green-700 h-[60px] px-6"
+                    >
+                      {isSearching ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Play className="h-4 w-4 mr-2" />
+                      )}
+                      {isSearching ? "Searching..." : "Run Query"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Execute KQL Query</TooltipContent>
+                </Tooltip>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Textarea
+                      value={naturalLanguageQuery}
+                      onChange={(e) => setNaturalLanguageQuery(e.target.value)}
+                      placeholder="Ask in plain English... (e.g., Show me failed login attempts from the last hour)"
+                      className="pl-10 pr-20 min-h-[60px] resize-none"
+                    />
+                  </div>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button size="sm" variant="ghost" className="h-6 px-2">
-                        <MoreHorizontal className="h-3 w-3" />
+                      <Button
+                        onClick={generateKqlFromNaturalLanguage}
+                        disabled={isAiGenerating || !naturalLanguageQuery.trim()}
+                        className="bg-blue-600 hover:bg-blue-700 h-[60px] px-6"
+                      >
+                        {isAiGenerating ? (
+                          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Brain className="h-4 w-4 mr-2" />
+                        )}
+                        {isAiGenerating ? "Generating..." : "Generate KQL"}
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Search Options</TooltipContent>
+                    <TooltipContent>Convert to KQL using AI</TooltipContent>
                   </Tooltip>
                 </div>
+                
+                {searchQuery && (
+                  <div className="bg-muted/50 p-3 rounded border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Code className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium">Generated KQL Query:</span>
+                    </div>
+                    <code className="text-sm font-mono block">{searchQuery}</code>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        onClick={runSearch}
+                        disabled={isSearching}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {isSearching ? (
+                          <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                        ) : (
+                          <Play className="h-3 w-3 mr-1" />
+                        )}
+                        Run Query
+                      </Button>
+                      <Button
+                        onClick={() => setSearchMode("kql")}
+                        size="sm"
+                        variant="outline"
+                      >
+                        Edit KQL
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={runSearch}
-                    disabled={isSearching}
-                    className="bg-green-600 hover:bg-green-700 h-12 px-6"
-                  >
-                    {isSearching ? (
-                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Play className="h-4 w-4 mr-2" />
-                    )}
-                    {isSearching ? "Searching..." : "Search"}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Run Search Query</TooltipContent>
-              </Tooltip>
-            </div>
+            )}
+
+            {/* KQL Templates */}
+            {searchMode === "kql" && (
+              <div className="bg-muted/30 p-3 rounded">
+                <div className="flex items-center gap-2 mb-2">
+                  <History className="h-4 w-4" />
+                  <span className="text-sm font-medium">Quick Templates:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {kqlTemplates.map((template, index) => (
+                    <Tooltip key={index}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSearchQuery(template.query)}
+                          className="text-xs"
+                        >
+                          {template.name}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="font-medium">{template.name}</p>
+                        <p className="text-xs">{template.description}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Controls Row */}
             <div className="flex items-center justify-between">
@@ -276,16 +466,16 @@ export function EnhancedSearch() {
                 <h4 className="font-medium text-sm mb-2">Selected Fields</h4>
                 <div className="space-y-1 text-xs">
                   <Badge variant="outline" className="mr-1 mb-1">
-                    _time
+                    TimeGenerated
                   </Badge>
                   <Badge variant="outline" className="mr-1 mb-1">
-                    host
+                    Computer
                   </Badge>
                   <Badge variant="outline" className="mr-1 mb-1">
-                    source
+                    EventID
                   </Badge>
                   <Badge variant="outline" className="mr-1 mb-1">
-                    sourcetype
+                    Account
                   </Badge>
                 </div>
               </div>
@@ -306,13 +496,14 @@ export function EnhancedSearch() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Sort by:</span>
                     <Select value={sortField} onValueChange={setSortField}>
-                      <SelectTrigger className="w-32 h-8">
+                      <SelectTrigger className="w-40 h-8">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="_time">Time</SelectItem>
-                        <SelectItem value="host">Host</SelectItem>
-                        <SelectItem value="status">Status</SelectItem>
+                        <SelectItem value="TimeGenerated">TimeGenerated</SelectItem>
+                        <SelectItem value="Computer">Computer</SelectItem>
+                        <SelectItem value="EventID">EventID</SelectItem>
+                        <SelectItem value="Account">Account</SelectItem>
                         <SelectItem value="severity">Severity</SelectItem>
                       </SelectContent>
                     </Select>
@@ -357,10 +548,10 @@ export function EnhancedSearch() {
                           {/* Event Header */}
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <div className="flex items-center gap-4">
-                              <span className="font-mono">{result._time}</span>
-                              <span>host={result.host}</span>
-                              <span>source={result.source}</span>
-                              <span>sourcetype={result.sourcetype}</span>
+                              <span className="font-mono">{result.TimeGenerated}</span>
+                              <span>EventID={result.EventID}</span>
+                              <span>Computer={result.Computer}</span>
+                              {result.Account && <span>Account={result.Account}</span>}
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge className={getSeverityColor(result.severity)}>{result.severity}</Badge>
@@ -383,25 +574,34 @@ export function EnhancedSearch() {
                             </div>
                           </div>
 
-                          {/* Raw Event */}
+                          {/* Event Data */}
                           <div className="font-mono text-sm bg-muted/50 p-3 rounded border-l-4 border-l-primary">
-                            {result._raw}
+                            {result.EventData}
                           </div>
 
                           {/* Extracted Fields */}
                           <div className="flex flex-wrap gap-2 text-xs">
                             <Badge variant="outline" className="hover:bg-accent cursor-pointer">
-                              status={result.status}
+                              EventID={result.EventID}
                             </Badge>
-                            <Badge variant="outline" className="hover:bg-accent cursor-pointer">
-                              method={result.method}
-                            </Badge>
-                            <Badge variant="outline" className="hover:bg-accent cursor-pointer">
-                              clientip={result.clientip}
-                            </Badge>
-                            {result.user !== "-" && (
+                            {result.LogonType && (
                               <Badge variant="outline" className="hover:bg-accent cursor-pointer">
-                                user={result.user}
+                                LogonType={result.LogonType}
+                              </Badge>
+                            )}
+                            {result.IpAddress && (
+                              <Badge variant="outline" className="hover:bg-accent cursor-pointer">
+                                IpAddress={result.IpAddress}
+                              </Badge>
+                            )}
+                            {result.ProcessName && (
+                              <Badge variant="outline" className="hover:bg-accent cursor-pointer">
+                                ProcessName={result.ProcessName}
+                              </Badge>
+                            )}
+                            {result.WorkstationName && (
+                              <Badge variant="outline" className="hover:bg-accent cursor-pointer">
+                                WorkstationName={result.WorkstationName}
                               </Badge>
                             )}
                           </div>
@@ -420,17 +620,24 @@ export function EnhancedSearch() {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between p-3 border rounded hover:bg-accent transition-colors cursor-pointer">
                           <div className="flex-1">
-                            <div className="font-mono text-sm">POST /login HTTP/1.1" 401</div>
-                            <div className="text-xs text-muted-foreground">Failed login attempts</div>
+                            <div className="font-mono text-sm">EventID == 4625 (Failed Logon)</div>
+                            <div className="text-xs text-muted-foreground">Failed authentication attempts</div>
                           </div>
-                          <Badge className="bg-red-600 text-white">45 events</Badge>
+                          <Badge className="bg-red-600 text-white">89 events</Badge>
                         </div>
                         <div className="flex items-center justify-between p-3 border rounded hover:bg-accent transition-colors cursor-pointer">
                           <div className="flex-1">
-                            <div className="font-mono text-sm">GET /admin HTTP/1.1" 403</div>
-                            <div className="text-xs text-muted-foreground">Unauthorized access attempts</div>
+                            <div className="font-mono text-sm">EventID == 4688 (Process Creation)</div>
+                            <div className="text-xs text-muted-foreground">Suspicious process execution</div>
                           </div>
-                          <Badge className="bg-orange-600 text-white">23 events</Badge>
+                          <Badge className="bg-orange-600 text-white">456 events</Badge>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded hover:bg-accent transition-colors cursor-pointer">
+                          <div className="flex-1">
+                            <div className="font-mono text-sm">LogonType == 3 (Network)</div>
+                            <div className="text-xs text-muted-foreground">Network logon attempts</div>
+                          </div>
+                          <Badge className="bg-blue-600 text-white">187 events</Badge>
                         </div>
                       </div>
                     </CardContent>
@@ -448,29 +655,36 @@ export function EnhancedSearch() {
                           <thead>
                             <tr className="border-b">
                               <th className="text-left p-2 cursor-pointer hover:bg-accent">
-                                status <ArrowUpDown className="inline h-3 w-3 ml-1" />
+                                EventID <ArrowUpDown className="inline h-3 w-3 ml-1" />
                               </th>
                               <th className="text-left p-2 cursor-pointer hover:bg-accent">
-                                count <ArrowUpDown className="inline h-3 w-3 ml-1" />
+                                Count <ArrowUpDown className="inline h-3 w-3 ml-1" />
+                              </th>
+                              <th className="text-left p-2 cursor-pointer hover:bg-accent">
+                                Description <ArrowUpDown className="inline h-3 w-3 ml-1" />
                               </th>
                             </tr>
                           </thead>
                           <tbody>
                             <tr className="border-b hover:bg-accent">
-                              <td className="p-2">200</td>
+                              <td className="p-2">4624</td>
                               <td className="p-2">1,247</td>
+                              <td className="p-2 text-sm text-muted-foreground">Successful logon</td>
                             </tr>
                             <tr className="border-b hover:bg-accent">
-                              <td className="p-2">404</td>
+                              <td className="p-2">4688</td>
+                              <td className="p-2">456</td>
+                              <td className="p-2 text-sm text-muted-foreground">Process creation</td>
+                            </tr>
+                            <tr className="border-b hover:bg-accent">
+                              <td className="p-2">4625</td>
                               <td className="p-2">89</td>
+                              <td className="p-2 text-sm text-muted-foreground">Failed logon</td>
                             </tr>
                             <tr className="border-b hover:bg-accent">
-                              <td className="p-2">401</td>
-                              <td className="p-2">45</td>
-                            </tr>
-                            <tr className="border-b hover:bg-accent">
-                              <td className="p-2">403</td>
+                              <td className="p-2">4672</td>
                               <td className="p-2">23</td>
+                              <td className="p-2 text-sm text-muted-foreground">Special privileges assigned</td>
                             </tr>
                           </tbody>
                         </table>

@@ -18,7 +18,7 @@ import { metricsRoutes } from './routes/metrics';
 import logger from './utils/logger';
 
 const app = express();
-const PORT = process.env.PORT || 3004;
+const PORT = process.env.PORT || 4004;
 
 // Database connections
 const db = new Pool({
@@ -68,7 +68,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000', 'http://localhost:4001'],
+  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:4000', 'http://localhost:4001'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Organization-ID']

@@ -24,6 +24,12 @@ import {
   Filter,
   BarChart3,
   Clock,
+  Brain,
+  Zap,
+  Database,
+  Network,
+  Users,
+  FileText,
 } from "lucide-react"
 
 export function ThreatIntelligenceDashboard() {
@@ -36,9 +42,11 @@ export function ThreatIntelligenceDashboard() {
     totalIndicators: 12458,
     newIndicators: 345,
     criticalThreats: 28,
-    activeFeeds: 8,
-    detectionRate: 92,
-    falsePositiveRate: 7,
+    activeFeeds: 12,
+    detectionRate: 94,
+    falsePositiveRate: 5,
+    aiCorrelations: 127,
+    autoHunts: 18,
   }
 
   const threatTrends = [
@@ -111,12 +119,22 @@ export function ThreatIntelligenceDashboard() {
 
   const threatFeeds = [
     {
-      name: "MITRE ATT&CK",
+      name: "MISP Platform",
       type: "Framework",
-      indicators: 1247,
-      lastUpdate: "2 hours ago",
+      indicators: 1876,
+      lastUpdate: "5 minutes ago",
       status: "active",
       reliability: "high",
+      aiEnhanced: true,
+    },
+    {
+      name: "VirusTotal",
+      type: "Commercial",
+      indicators: 4523,
+      lastUpdate: "2 minutes ago",
+      status: "active",
+      reliability: "high",
+      aiEnhanced: true,
     },
     {
       name: "AlienVault OTX",
@@ -125,14 +143,16 @@ export function ThreatIntelligenceDashboard() {
       lastUpdate: "30 minutes ago",
       status: "active",
       reliability: "medium",
+      aiEnhanced: false,
     },
     {
-      name: "Recorded Future",
-      type: "Commercial",
-      indicators: 5678,
-      lastUpdate: "15 minutes ago",
+      name: "MITRE ATT&CK",
+      type: "Framework",
+      indicators: 1247,
+      lastUpdate: "2 hours ago",
       status: "active",
       reliability: "high",
+      aiEnhanced: true,
     },
     {
       name: "CISA Known Exploited",
@@ -141,6 +161,34 @@ export function ThreatIntelligenceDashboard() {
       lastUpdate: "1 day ago",
       status: "active",
       reliability: "high",
+      aiEnhanced: false,
+    },
+    {
+      name: "Threat Intel API",
+      type: "Commercial",
+      indicators: 2891,
+      lastUpdate: "10 minutes ago",
+      status: "active",
+      reliability: "high",
+      aiEnhanced: true,
+    },
+    {
+      name: "Custom IOC Feed",
+      type: "Internal",
+      indicators: 567,
+      lastUpdate: "1 hour ago",
+      status: "active",
+      reliability: "high",
+      aiEnhanced: true,
+    },
+    {
+      name: "Open CTI",
+      type: "Open Source",
+      indicators: 1234,
+      lastUpdate: "45 minutes ago",
+      status: "active",
+      reliability: "medium",
+      aiEnhanced: false,
     },
   ]
 
@@ -190,7 +238,17 @@ export function ThreatIntelligenceDashboard() {
               <Globe className="h-8 w-8" />
               Threat Intelligence Dashboard
             </h1>
-            <p className="text-muted-foreground">Global threat landscape and intelligence analysis</p>
+            <p className="text-muted-foreground">AI-Enhanced Global Threat Intelligence & IOC Correlation</p>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-blue-600 border-blue-600">
+                <Brain className="w-3 h-3 mr-1" />
+                AI Correlation
+              </Badge>
+              <Badge variant="outline" className="text-purple-600 border-purple-600">
+                <Network className="w-3 h-3 mr-1" />
+                Multi-Source Feeds
+              </Badge>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Select value={timeRange} onValueChange={setTimeRange}>
@@ -220,11 +278,11 @@ export function ThreatIntelligenceDashboard() {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4">
           <Card className="hover:shadow-lg transition-all duration-200">
             <CardContent className="p-6 text-center">
               <div className="text-2xl font-bold text-blue-600">{threatStats.totalIndicators.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">Total Indicators</div>
+              <div className="text-sm text-muted-foreground">Total IOCs</div>
             </CardContent>
           </Card>
           <Card className="hover:shadow-lg transition-all duration-200">
@@ -249,7 +307,7 @@ export function ThreatIntelligenceDashboard() {
           </Card>
           <Card className="hover:shadow-lg transition-all duration-200">
             <CardContent className="p-6 text-center">
-              <div className="text-2xl font-bold text-green-600">{threatStats.activeFeeds}</div>
+              <div className="text-2xl font-bold text-indigo-600">{threatStats.activeFeeds}</div>
               <div className="text-sm text-muted-foreground">Active Feeds</div>
             </CardContent>
           </Card>
@@ -259,17 +317,37 @@ export function ThreatIntelligenceDashboard() {
               <div className="text-sm text-muted-foreground">Detection Rate</div>
               <div className="flex items-center justify-center gap-1 mt-1">
                 <TrendingUp className="h-3 w-3 text-green-600" />
-                <span className="text-xs text-green-600">+3%</span>
+                <span className="text-xs text-green-600">+2%</span>
               </div>
             </CardContent>
           </Card>
           <Card className="hover:shadow-lg transition-all duration-200">
             <CardContent className="p-6 text-center">
               <div className="text-2xl font-bold text-yellow-600">{threatStats.falsePositiveRate}%</div>
-              <div className="text-sm text-muted-foreground">False Positive Rate</div>
+              <div className="text-sm text-muted-foreground">False Positive</div>
               <div className="flex items-center justify-center gap-1 mt-1">
                 <TrendingDown className="h-3 w-3 text-green-600" />
                 <span className="text-xs text-green-600">-2%</span>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-lg transition-all duration-200">
+            <CardContent className="p-6 text-center">
+              <div className="text-2xl font-bold text-cyan-600">{threatStats.aiCorrelations}</div>
+              <div className="text-sm text-muted-foreground">AI Correlations</div>
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <Brain className="h-3 w-3 text-cyan-600" />
+                <span className="text-xs text-cyan-600">Active</span>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-lg transition-all duration-200">
+            <CardContent className="p-6 text-center">
+              <div className="text-2xl font-bold text-orange-600">{threatStats.autoHunts}</div>
+              <div className="text-sm text-muted-foreground">Auto Hunts</div>
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <Zap className="h-3 w-3 text-orange-600" />
+                <span className="text-xs text-orange-600">Running</span>
               </div>
             </CardContent>
           </Card>
@@ -548,6 +626,7 @@ export function ThreatIntelligenceDashboard() {
                       <SelectItem value="opensource">Open Source</SelectItem>
                       <SelectItem value="commercial">Commercial</SelectItem>
                       <SelectItem value="government">Government</SelectItem>
+                      <SelectItem value="internal">Internal</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button variant="outline" size="sm">
@@ -565,10 +644,19 @@ export function ThreatIntelligenceDashboard() {
                           <h4 className="font-semibold">{feed.name}</h4>
                           <Badge variant="outline">{feed.type}</Badge>
                           <Badge className="bg-green-600 text-white">{feed.status}</Badge>
+                          {feed.aiEnhanced && (
+                            <Badge variant="outline" className="text-blue-600 border-blue-600">
+                              <Brain className="w-3 h-3 mr-1" />
+                              AI Enhanced
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>Indicators: {feed.indicators.toLocaleString()}</span>
+                          <span>IOCs: {feed.indicators.toLocaleString()}</span>
                           <span>Last update: {feed.lastUpdate}</span>
+                          {feed.aiEnhanced && (
+                            <span className="text-blue-600">Auto-correlation enabled</span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">

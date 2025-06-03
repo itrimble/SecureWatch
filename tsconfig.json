@@ -11,15 +11,21 @@
     }
   },
   "references": [
-    { "path": "./apps/web-frontend" },
+    { "path": "./apps/analytics-engine" },
     { "path": "./apps/api-gateway" },
     { "path": "./apps/auth-service" },
     { "path": "./apps/log-ingestion" },
-    { "path": "./apps/analytics-engine" },
-    { "path": "./packages/ui-components" },
-    { "path": "./packages/shared-utils" },
+    { "path": "./apps/search-api" },
+    { "path": "./packages/ai-engine" },
+    { "path": "./packages/compliance" },
+    { "path": "./packages/dashboard-engine" },
     { "path": "./packages/data-models" },
-    { "path": "./packages/kql-engine" }
+    { "path": "./packages/educational" },
+    { "path": "./packages/incident-response" },
+    { "path": "./packages/kql-engine" },
+    { "path": "./packages/shared-utils" },
+    { "path": "./packages/threat-intelligence" },
+    { "path": "./packages/ui-components" }
   ],
   "include": [],
   "exclude": ["node_modules", "**/node_modules", "dist", "**/dist"]

@@ -36,6 +36,21 @@ export function CaseManagement() {
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterPriority, setFilterPriority] = useState("all")
 
+  const handleExportCases = () => {
+    console.log('Exporting cases...')
+    // TODO: Implement export functionality
+  }
+
+  const handleCreateCase = () => {
+    console.log('Creating new case...')
+    // TODO: Implement create case functionality
+  }
+
+  const handleCaseAction = (action: string, caseId: string) => {
+    console.log(`${action} case ${caseId}`)
+    // TODO: Implement case action handlers
+  }
+
   const cases = [
     {
       id: "CASE-2024-001",
@@ -151,11 +166,11 @@ export function CaseManagement() {
             <p className="text-muted-foreground">Investigate and manage insider risk cases</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline">
+            <Button onClick={handleExportCases} variant="outline">
               <Download className="h-4 w-4 mr-2" />
               Export Cases
             </Button>
-            <Button>
+            <Button onClick={handleCreateCase}>
               <Plus className="h-4 w-4 mr-2" />
               Create Case
             </Button>
@@ -365,19 +380,19 @@ export function CaseManagement() {
                           <div>
                             <h4 className="font-semibold mb-2">Case Actions</h4>
                             <div className="space-y-2">
-                              <Button size="sm" className="w-full">
+                              <Button onClick={() => handleCaseAction('resume', selectedCase || '')} size="sm" className="w-full">
                                 <Play className="h-4 w-4 mr-2" />
                                 Resume Investigation
                               </Button>
-                              <Button size="sm" variant="outline" className="w-full">
+                              <Button onClick={() => handleCaseAction('pause', selectedCase || '')} size="sm" variant="outline" className="w-full">
                                 <Pause className="h-4 w-4 mr-2" />
                                 Pause Case
                               </Button>
-                              <Button size="sm" variant="outline" className="w-full">
+                              <Button onClick={() => handleCaseAction('resolve', selectedCase || '')} size="sm" variant="outline" className="w-full">
                                 <CheckCircle className="h-4 w-4 mr-2" />
                                 Mark Resolved
                               </Button>
-                              <Button size="sm" variant="outline" className="w-full">
+                              <Button onClick={() => handleCaseAction('close', selectedCase || '')} size="sm" variant="outline" className="w-full">
                                 <XCircle className="h-4 w-4 mr-2" />
                                 Close Case
                               </Button>
