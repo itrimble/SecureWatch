@@ -1,10 +1,10 @@
 # Claude.md
 
 ## 1. Project Overview
-- **Brief description:** A comprehensive SIEM (Security Information and Event Management) platform with real-time log collection, processing, and analysis capabilities. Built with Next.js 15, this production-ready system features live Mac agent data collection, TimescaleDB storage, KQL-powered search and visualization pipeline, customizable drag-drop dashboards, interactive analytics (heatmaps, network graphs, geolocation maps), and a professional enterprise-grade UI with 25+ specialized security modules for comprehensive cybersecurity monitoring and threat detection.
+- **Brief description:** A comprehensive SIEM (Security Information and Event Management) platform with real-time log collection, processing, and analysis capabilities. Built with Next.js 15, this production-ready system features live Mac agent data collection, TimescaleDB storage, KQL-powered search and visualization pipeline, real-time correlation & rules engine with automated threat detection, customizable drag-drop dashboards, interactive analytics (heatmaps, network graphs, geolocation maps), and a professional enterprise-grade UI with 25+ specialized security modules for comprehensive cybersecurity monitoring and threat detection.
 - **Tech stack:**
     - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS + Professional Dark Theme, Lucide React Icons, Recharts, Interactive Visualizations (Heatmaps, Network Graphs, Geolocation Maps), Customizable Dashboards
-    - **Backend**: Express.js microservices, KQL Engine, PostgreSQL/TimescaleDB
+    - **Backend**: Express.js microservices, KQL Engine, Correlation & Rules Engine, PostgreSQL/TimescaleDB
     - **Agent**: Python 3.12+ with macOS Unified Logging integration
     - **Infrastructure**: Docker Compose, Redis, Elasticsearch, Kafka
     - **Database**: TimescaleDB (PostgreSQL) with time-series optimization
@@ -63,8 +63,10 @@
       - Mac Agent (PID 22516): ✅ Active log collection from 15+ sources
       - Log Ingestion (Port 4002): ✅ Processing 15 events per batch, 0% error rate
       - Search API (Port 4004): ✅ Connected to TimescaleDB with KQL engine
-      - Frontend (Port 4000): ✅ Live dashboard displaying real Mac logs
+      - Correlation Engine (Port 4005): ✅ Real-time rules engine with pattern detection
+      - Frontend (Port 4000): ✅ Live dashboard displaying real Mac logs with correlation interface
       - End-to-end pipeline: ✅ Mac Agent → Ingestion → TimescaleDB → Search API → Frontend
+      - Correlation pipeline: ✅ Events → Correlation Engine → Rules Evaluation → Incident Generation
 - **Glossary:**
     - **Event ID:** A numerical code that identifies a specific type of event in Windows logs.
     - **Log Source:** The origin of the log data (e.g., specific server, application).
@@ -110,6 +112,7 @@
     # 3. Start services (in separate terminals)
     cd apps/search-api && pnpm run dev      # Port 4004
     cd apps/log-ingestion && pnpm run dev   # Port 4002
+    cd apps/correlation-engine && pnpm run dev # Port 4005
     cd frontend && pnpm run dev             # Port 4000
     
     # 4. Start Mac agent (optional for live data)
@@ -132,6 +135,7 @@
     - **Platform Health:** `curl http://localhost:4000/api/health`
     - **Search API:** `curl http://localhost:4004/health`
     - **Log Ingestion:** `curl http://localhost:4002/health`
+    - **Correlation Engine:** `curl http://localhost:4005/health`
     - **Database Health:** `curl http://localhost:4002/db/health`
     - **Infrastructure Status:** `docker compose -f docker-compose.dev.yml ps`
     - **Agent Status:** `ps aux | grep event_log_agent.py`

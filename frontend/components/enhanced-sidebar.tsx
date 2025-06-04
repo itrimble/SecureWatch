@@ -66,6 +66,7 @@ export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
 
   // Advanced Security Features  
   const advancedMenuItems = [
+    { id: "correlation", label: "Correlation", icon: GitBranch, tooltip: "Rules Engine & Patterns", badge: 7, badgeType: "medium", href: "/correlation" },
     { id: "threat-intel", label: "Threat Intelligence", icon: Target, tooltip: "Threat Intelligence & IOCs" },
     { id: "incidents", label: "Incident Response", icon: Zap, tooltip: "Incident Management & Response", badge: 5, badgeType: "high" },
     { id: "case-management", label: "Case Management", icon: Briefcase, tooltip: "Investigation Cases", badge: 8, badgeType: "medium" },

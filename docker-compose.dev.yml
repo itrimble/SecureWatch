@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # PostgreSQL with TimescaleDB
-  db:
+  postgres:
     image: timescale/timescaledb:latest-pg16
     container_name: securewatch_postgres
     ports:
@@ -10,9 +10,10 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./create_tables.sql:/docker-entrypoint-initdb.d/01_init_schema.sql
+      - ./infrastructure/database/correlation_schema.sql:/docker-entrypoint-initdb.d/02_correlation_schema.sql
     environment:
       POSTGRES_USER: securewatch
-      POSTGRES_PASSWORD: securewatch_dev
+      POSTGRES_PASSWORD: securewatch
       POSTGRES_DB: securewatch
       TS_TUNE_MEMORY: "2GB"
       TS_TUNE_NUM_CPUS: "2"
@@ -25,27 +26,21 @@ services:
       - securewatch_network
 
   # Redis Cluster
-  redis-master:
+  redis:
     image: redis:7-alpine
-    container_name: securewatch_redis_master
+    container_name: securewatch_redis
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes --requirepass securewatch_dev
+    command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
     networks:
       - securewatch_network
-
-  redis-replica:
-    image: redis:7-alpine
-    container_name: securewatch_redis_replica
-    ports:
-      - "6380:6379"
-    command: redis-server --replicaof redis-master 6379 --masterauth securewatch_dev --requirepass securewatch_dev
-    depends_on:
-      - redis-master
-    networks:
-      - securewatch_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Kafka for log ingestion
   zookeeper:
@@ -74,6 +69,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
     networks:
       - securewatch_network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   # Elasticsearch for log search
   elasticsearch:
@@ -102,6 +102,41 @@ services:
       - elasticsearch
     networks:
       - securewatch_network
+
+  # Correlation Engine
+  correlation-engine:
+    build:
+      context: ./apps/correlation-engine
+      dockerfile: Dockerfile
+    container_name: securewatch_correlation_engine
+    environment:
+      - NODE_ENV=development
+      - PORT=4005
+      - CORRELATION_ENGINE_PORT=4005
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=securewatch
+      - DB_USER=securewatch
+      - DB_PASSWORD=securewatch
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKER=kafka:29092
+    ports:
+      - "4005:4005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - securewatch_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 networks:
   securewatch_network:

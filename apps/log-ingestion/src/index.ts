@@ -10,9 +10,11 @@ import { MetricsCollector } from './monitoring/metrics-collector';
 import { HealthChecker } from './monitoring/health-checker';
 import { kafkaConfig, producerConfig, consumerConfig, topics, performanceConfig } from './config/kafka.config';
 import logger from './utils/logger';
+import axios from 'axios';
 
 const app = express();
 const PORT = process.env.PORT || 4002;
+const CORRELATION_ENGINE_URL = process.env.CORRELATION_ENGINE_URL || 'http://localhost:4005';
 
 // Initialize components
 let kafka: Kafka;
@@ -144,6 +146,19 @@ async function startProcessingPipeline() {
         }));
         
         await producerPool.sendBatch(topics.normalized, messages);
+        
+        // Send batch to correlation engine
+        try {
+          await axios.post(`${CORRELATION_ENGINE_URL}/api/events/batch`, normalizedEvents, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 10000 // 10 second timeout for batch
+          });
+        } catch (correlationError) {
+          logger.warn('Failed to send batch to correlation engine', {
+            error: correlationError instanceof Error ? correlationError.message : 'Unknown error',
+            batchSize: normalizedEvents.length
+          });
+        }
       }
       
       // Commit offsets
@@ -175,6 +190,19 @@ app.post('/api/ingest', async (req, res) => {
       try {
         // Normalize the log entry
         const normalizedEntry = await normalizer.normalize(entry);
+        
+        // Send to correlation engine for real-time analysis
+        try {
+          await axios.post(`${CORRELATION_ENGINE_URL}/api/events`, normalizedEntry, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 5000 // 5 second timeout
+          });
+        } catch (correlationError) {
+          logger.warn('Failed to send event to correlation engine', {
+            error: correlationError instanceof Error ? correlationError.message : 'Unknown error'
+          });
+          // Continue processing even if correlation fails
+        }
         
         // TODO: Send to Kafka topic or store in database
         logger.debug('Processed log entry', {

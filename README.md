@@ -39,6 +39,7 @@ SecureWatch is a **fully operational SIEM platform** with complete end-to-end da
 - **Advanced Visualizations**: Heatmaps, Network Graphs, Geolocation Maps, Timeline Analysis
 - **Customizable Dashboards** with 8+ widget types across security categories
 - **Semantic Alert System** with proper severity color coding (Critical=Red, High=Orange, etc.)
+- **Correlation & Rules Engine** with real-time event correlation and automated threat detection
 - **Log Correlation** and attack path visualization tools
 - **Export functionality** for compliance and reporting (CSV, JSON, Visual)
 - **Threat Intelligence** integration with global geolocation mapping
@@ -67,6 +68,7 @@ SecureWatch is a **fully operational SIEM platform** with complete end-to-end da
 - **Search API**: KQL Engine + Elasticsearch
 - **Auth Service**: JWT + OAuth 2.0
 - **Log Ingestion**: Kafka + Node.js
+- **Correlation Engine**: Real-time event correlation + rules engine
 - **Analytics Engine**: Python + TensorFlow
 
 ### Infrastructure
@@ -142,6 +144,7 @@ curl http://localhost:4002/health      # Log Ingestion
 | **Frontend** | http://localhost:4000 | Main SIEM dashboard |
 | **Search API** | http://localhost:4004 | KQL search engine |
 | **Log Ingestion** | http://localhost:4002 | Real-time log processing |
+| **Correlation Engine** | http://localhost:4005 | Rules & correlation engine |
 | **API Documentation** | http://localhost:4004/api-docs | OpenAPI/Swagger docs |
 
 ### 🏥 Health Monitoring
@@ -155,6 +158,7 @@ curl http://localhost:4000/api/health
 # Check individual service health
 curl http://localhost:4004/health  # Search API
 curl http://localhost:4002/health  # Log Ingestion
+curl http://localhost:4005/health  # Correlation Engine
 curl http://localhost:4002/db/health  # Database connectivity
 ```
 
@@ -177,7 +181,9 @@ docker compose -f docker-compose.dev.yml down
 - **Search Engine**: ✅ KQL-powered queries with full-text search (Port 4004)
 - **Frontend**: ✅ Live dashboard with real Mac system logs (Port 4000)
 - **Log Ingestion**: ✅ Real-time processing service active (Port 4002)
+- **Correlation Engine**: ✅ Real-time rules engine with pattern detection (Port 4005)
 - **End-to-End Pipeline**: ✅ Mac Agent → Ingestion → TimescaleDB → Search API → Frontend
+- **Correlation Pipeline**: ✅ Events → Correlation Engine → Rules Evaluation → Incident Generation
 
 ### 🔄 Live Data Sources
 - **Authentication Events**: Login, logout, sudo, authorization failures
@@ -445,7 +451,15 @@ TimescaleDB is configured via `docker-compose.yml`:
 
 ## 📊 Recent Updates
 
-### Latest Features (v1.6.0) - January 2025
+### Latest Features (v1.7.0) - June 2025
+- ✅ **Correlation & Rules Engine**: Real-time event correlation with automated threat detection
+- ✅ **Pattern Recognition**: Advanced attack chain detection and behavioral analysis
+- ✅ **Incident Management**: Automated incident creation, tracking, and response workflows
+- ✅ **Rule Builder Interface**: Visual rule creation with conditions, thresholds, and actions
+- ✅ **ML-Based Detection**: Machine learning anomaly detection and behavioral baselines
+- ✅ **Real-time Processing**: Live event correlation with sub-second response times
+
+### Previous Features (v1.6.0) - January 2025
 - ✅ **KQL Search & Visualization Pipeline**: Complete query-to-chart workflow with Microsoft Sentinel-style KQL support
 - ✅ **Advanced Visualizations Suite**: Interactive heatmaps, network correlation graphs, and threat geolocation maps
 - ✅ **Customizable Dashboard System**: Drag-drop widget arrangement with 8+ specialized security widgets
