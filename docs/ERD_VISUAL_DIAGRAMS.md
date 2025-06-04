@@ -1,7 +1,7 @@
 # SecureWatch SIEM - Visual ERD Diagrams
 
-**Version:** 1.6.0  
-**Last Updated:** June 2025  
+**Version:** 1.7.0  
+**Last Updated:** January 2025  
 **Purpose:** Interactive visual diagrams for SecureWatch architecture  
 
 ## 1. Complete System Architecture
@@ -24,7 +24,7 @@ graph TB
     end
     
     subgraph "Storage & Persistence"
-        TIMESCALE[(TimescaleDB<br/>PostgreSQL 15+<br/>Time-series Optimization)]
+        TIMESCALE[(TimescaleDB<br/>PostgreSQL 15+<br/>**Extended Schema (100+ fields)**<br/>Time-series Optimization)]
         REDIS[(Redis Cache<br/>Query Results<br/>Session Storage)]
         ELASTIC[(Elasticsearch<br/>Full-text Search<br/>Log Indexing)]
         FILES[(File Storage<br/>Reports & Exports)]
@@ -1064,8 +1064,268 @@ graph LR
 
 ---
 
-**Document Version:** 1.6.0  
-**Last Updated:** June 2025  
+## 4. Extended Normalized Schema - Entity Relationship
+
+```mermaid
+erDiagram
+    ORGANIZATIONS {
+        uuid id PK
+        varchar name
+        varchar domain
+        varchar subscription_tier
+        jsonb settings
+        timestamptz created_at
+    }
+
+    LOGS {
+        uuid id PK
+        timestamptz timestamp PK
+        uuid organization_id FK
+        varchar source_identifier
+        varchar source_type
+        varchar log_level
+        text message
+        
+        %% Threat Intelligence Fields
+        varchar threat_indicator
+        varchar threat_category
+        numeric threat_confidence
+        varchar threat_source
+        timestamptz threat_ttl
+        
+        %% Identity & Access Management
+        varchar principal_type
+        varchar principal_id
+        varchar credential_type
+        varchar session_id
+        varchar authentication_protocol
+        boolean privilege_escalation
+        varchar access_level
+        text_array group_membership
+        
+        %% Device & Asset Management
+        varchar device_id
+        varchar device_type
+        varchar device_os
+        varchar device_manufacturer
+        boolean device_compliance
+        numeric device_risk_score
+        varchar asset_criticality
+        varchar asset_owner
+        
+        %% Network Security
+        varchar network_zone
+        varchar traffic_direction
+        inet source_ip
+        inet destination_ip
+        integer source_port
+        integer destination_port
+        varchar protocol
+        varchar dns_query
+        varchar http_method
+        integer http_status_code
+        varchar url_domain
+        varchar ssl_validation_status
+        
+        %% Endpoint Security
+        text process_command_line
+        integer process_parent_id
+        varchar process_parent_name
+        boolean process_elevated
+        varchar file_operation
+        varchar file_hash
+        bigint file_size
+        varchar file_permissions
+        text registry_key
+        
+        %% Email Security
+        varchar email_sender
+        varchar_array email_recipient
+        text email_subject
+        integer email_attachment_count
+        varchar_array email_attachment_hashes
+        numeric email_phishing_score
+        
+        %% Cloud Security
+        varchar cloud_provider
+        varchar cloud_region
+        varchar cloud_account_id
+        varchar cloud_service
+        varchar cloud_api_call
+        
+        %% Application Security
+        varchar vulnerability_id
+        varchar vulnerability_severity
+        numeric vulnerability_score
+        boolean exploit_detected
+        
+        %% Compliance & Audit
+        varchar compliance_framework
+        varchar audit_event_type
+        boolean policy_violation
+        varchar data_classification
+        boolean sensitive_data_detected
+        
+        %% Machine Learning
+        numeric anomaly_score
+        numeric risk_score
+        numeric confidence_score
+        varchar model_version
+        jsonb feature_vector
+        
+        %% Behavioral Analytics
+        numeric user_risk_score
+        boolean behavior_anomaly
+        varchar peer_group
+        boolean time_anomaly
+        
+        %% Geolocation
+        varchar geo_country
+        varchar geo_city
+        numeric geo_latitude
+        numeric geo_longitude
+        varchar geo_isp
+        
+        %% Advanced Threats
+        varchar attack_technique
+        varchar attack_tactic
+        varchar kill_chain_phase
+        boolean c2_communication
+        boolean lateral_movement
+        boolean data_exfiltration
+        
+        %% Incident Response
+        varchar incident_id
+        varchar case_id
+        boolean evidence_collected
+        
+        %% Custom Fields
+        text custom_field_1
+        text custom_field_2
+        text custom_field_3
+        text_array custom_tags
+        
+        %% Processing metadata
+        timestamptz ingested_at
+        boolean normalized
+        boolean enriched
+        tsvector search_vector
+    }
+
+    THREAT_INTELLIGENCE {
+        uuid id PK
+        varchar indicator
+        varchar indicator_type
+        varchar threat_type
+        numeric confidence
+        varchar severity
+        varchar source
+        text description
+        text_array tags
+        timestamptz first_seen
+        timestamptz last_seen
+        boolean active
+        jsonb metadata
+        timestamptz created_at
+    }
+
+    USERS {
+        uuid id PK
+        varchar email
+        varchar password_hash
+        varchar first_name
+        varchar last_name
+        varchar role
+        jsonb preferences
+        boolean is_active
+        timestamptz last_login
+    }
+
+    ALERT_RULES {
+        uuid id PK
+        uuid organization_id FK
+        varchar name
+        text description
+        text query
+        varchar condition_operator
+        numeric condition_value
+        interval time_window
+        varchar severity
+        boolean is_active
+        uuid created_by FK
+        timestamptz created_at
+    }
+
+    ALERTS {
+        uuid id PK
+        uuid rule_id FK
+        uuid organization_id FK
+        timestamptz triggered_at
+        timestamptz resolved_at
+        varchar severity
+        varchar status
+        text message
+        jsonb query_result
+        uuid acknowledged_by FK
+        text notes
+    }
+
+    %% Specialized Views
+    AUTHENTICATION_EVENTS {
+        uuid id PK
+        timestamptz timestamp
+        varchar auth_user
+        varchar auth_result
+        inet source_ip
+        varchar device_id
+        varchar session_id
+        boolean privilege_escalation
+        numeric user_risk_score
+        boolean behavior_anomaly
+    }
+
+    NETWORK_SECURITY_EVENTS {
+        uuid id PK
+        timestamptz timestamp
+        inet source_ip
+        inet destination_ip
+        varchar network_zone
+        varchar threat_indicator
+        varchar dns_query
+        varchar http_method
+    }
+
+    THREAT_DETECTION_EVENTS {
+        uuid id PK
+        timestamptz timestamp
+        varchar threat_indicator
+        varchar attack_technique
+        numeric anomaly_score
+        boolean c2_communication
+        boolean lateral_movement
+    }
+
+    %% Relationships
+    ORGANIZATIONS ||--o{ LOGS : "contains"
+    ORGANIZATIONS ||--o{ USERS : "has"
+    ORGANIZATIONS ||--o{ ALERT_RULES : "defines"
+    ORGANIZATIONS ||--o{ ALERTS : "manages"
+    
+    USERS ||--o{ ALERT_RULES : "creates"
+    USERS ||--o{ ALERTS : "acknowledges"
+    
+    ALERT_RULES ||--o{ ALERTS : "triggers"
+    
+    LOGS ||--o{ THREAT_INTELLIGENCE : "correlates"
+    
+    %% Views derive from LOGS
+    LOGS ||--o{ AUTHENTICATION_EVENTS : "filtered_view"
+    LOGS ||--o{ NETWORK_SECURITY_EVENTS : "filtered_view"
+    LOGS ||--o{ THREAT_DETECTION_EVENTS : "filtered_view"
+```
+
+**Document Version:** 1.7.0  
+**Last Updated:** January 2025  
 **Companion to:** [Entity Relationship Diagram](./ENTITY_RELATIONSHIP_DIAGRAM.md)
 
 These visual diagrams provide interactive Mermaid representations of the SecureWatch SIEM architecture, showing relationships between components, data flows, and system dependencies. Use these diagrams for architectural planning, system understanding, and documentation purposes.

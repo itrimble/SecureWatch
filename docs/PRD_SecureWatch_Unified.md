@@ -16,7 +16,7 @@ Organizations and educational institutions face increasing challenges in:
 - Bridging the skills gap between academic learning and real-world security operations
 
 ### Solution Overview
-SecureWatch provides an intuitive, web-based platform that transforms complex security data into actionable intelligence through KQL-powered search capabilities, AI-enhanced analytics, interactive dashboards, automated alerting, and comprehensive educational resources.
+SecureWatch provides an intuitive, web-based platform that transforms complex security data into actionable intelligence through KQL-powered search capabilities, AI-enhanced analytics, interactive dashboards, automated alerting, and comprehensive educational resources. The platform features an **extended normalized schema with 100+ security fields** supporting **50+ enterprise use cases**, enabling comprehensive threat intelligence correlation, behavioral analytics (UEBA), compliance monitoring, and incident response capabilities.
 
 ## 2. Goals and Objectives
 
@@ -129,6 +129,24 @@ SecureWatch provides an intuitive, web-based platform that transforms complex se
 - **Network Security**: Firewall logs, IDS/IPS alerts, network flow data
 - **Endpoint Security**: EDR/XDR data, antivirus logs, host-based monitoring
 - **Application Logs**: Web server logs, database audit logs, custom applications
+
+#### Extended Normalized Schema (100+ Security Fields)
+- **Threat Intelligence**: IOC correlation, confidence scoring, TTL management, multi-source TI feeds
+- **Identity & Access Management**: Principal tracking, credential types, privilege escalation detection, session management
+- **Device & Asset Management**: Asset inventory, compliance status, risk scoring, manufacturer tracking
+- **Network Security**: Traffic analysis, DNS monitoring, HTTP inspection, SSL validation
+- **Endpoint Security**: Process execution, file operations, registry changes, integrity monitoring
+- **Email Security**: Sender/recipient tracking, attachment analysis, phishing/spam detection
+- **Web Security**: URL categorization, reputation scoring, proxy action tracking
+- **Cloud Security**: Multi-cloud provider support, API call monitoring, resource tracking
+- **Application Security**: Vulnerability management, exploit detection, software inventory
+- **Data Loss Prevention**: Data classification, sensitive data detection, policy enforcement
+- **Compliance & Audit**: SOX, HIPAA, PCI-DSS, GDPR frameworks, policy violation tracking
+- **Incident Response**: Case management, evidence collection, chain of custody
+- **Machine Learning**: Anomaly detection, confidence scoring, feature vector storage
+- **Behavioral Analytics (UEBA)**: User/entity risk scoring, peer group analysis, behavioral anomalies
+- **Geolocation**: Geographic threat analysis, ISP tracking, timezone correlation
+- **Advanced Threat Detection**: MITRE ATT&CK mapping, kill chain analysis, C2 detection
 
 #### AI-Enhanced Analytics
 - **MCP Integration**: Model Context Protocol support for advanced AI analytics
@@ -282,7 +300,9 @@ SecureWatch provides an intuitive, web-based platform that transforms complex se
 
 ### Backend Architecture
 - **API Design**: RESTful APIs with GraphQL for complex queries
-- **Database**: PostgreSQL with TimescaleDB for time-series data
+- **Database**: PostgreSQL with TimescaleDB for time-series data + **Extended Normalized Schema (100+ security fields)**
+- **Schema Features**: Threat intelligence correlation, MITRE ATT&CK mapping, UEBA, compliance frameworks (SOX, HIPAA, PCI-DSS, GDPR)
+- **Performance**: 30+ strategic indexes, materialized views, specialized security event views
 - **Caching**: Redis Cluster for session management and query caching
 - **Message Queue**: Apache Kafka for high-throughput event streaming
 - **Search Engine**: Elasticsearch with custom security analyzers

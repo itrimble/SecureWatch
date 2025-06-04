@@ -16,11 +16,13 @@
 SecureWatch implements a Microsoft Sentinel-style KQL (Kusto Query Language) search and visualization pipeline. This guide covers the complete API for executing KQL queries and generating visualizations from security data.
 
 ### Key Features
-- **Full KQL Support**: Complete Kusto Query Language implementation
+- **Full KQL Support**: Complete Kusto Query Language implementation with **100+ security fields**
+- **Extended Schema**: Support for threat intelligence, UEBA, compliance, and 50+ enterprise use cases
 - **Multiple Visualization Types**: Table, Bar, Line, Area, Pie, Timeline
 - **Real-time Execution**: Query caching and performance optimization
 - **Template System**: Predefined security-focused query templates
 - **Interactive Results**: Click-to-drill-down capabilities
+- **Specialized Views**: Pre-built views for authentication, network, file system, threat detection, and compliance events
 
 ---
 
@@ -207,6 +209,92 @@ Get IntelliSense completions for KQL query editing.
     "insertText": "enriched_data.severity"
   }
 ]
+```
+
+### Extended Schema Fields
+
+SecureWatch supports **100+ security fields** across multiple domains for comprehensive threat hunting and analysis:
+
+#### Core Event Fields
+```kql
+logs 
+| project timestamp, organization_id, source_identifier, source_type, 
+          log_level, message, hostname, process_name, user_name
+```
+
+#### Threat Intelligence Fields
+```kql
+logs 
+| where isnotempty(threat_indicator)
+| project timestamp, threat_indicator, threat_category, threat_confidence, 
+          threat_source, threat_ttl
+```
+
+#### Identity & Access Management
+```kql
+authentication_events  // Specialized view
+| project timestamp, principal_id, credential_type, privilege_escalation,
+          session_id, authentication_protocol, access_level, group_membership
+```
+
+#### Network Security
+```kql
+network_security_events  // Specialized view
+| project timestamp, source_ip, destination_ip, network_zone, traffic_direction,
+          dns_query, http_method, http_status_code, url_domain, ssl_validation_status
+```
+
+#### Endpoint Security
+```kql
+file_system_events  // Specialized view
+| project timestamp, process_command_line, file_operation, file_hash,
+          process_elevated, registry_key, file_permissions
+```
+
+#### Behavioral Analytics (UEBA)
+```kql
+logs 
+| where user_risk_score > 0.7 or behavior_anomaly == true
+| project timestamp, user_name, user_risk_score, behavior_anomaly,
+          peer_group, time_anomaly, location_anomaly
+```
+
+#### Compliance & Audit
+```kql
+compliance_events  // Specialized view
+| project timestamp, compliance_framework, audit_event_type, policy_violation,
+          data_classification, sensitive_data_detected, retention_required
+```
+
+#### Advanced Threat Detection
+```kql
+threat_detection_events  // Specialized view
+| project timestamp, attack_technique, attack_tactic, kill_chain_phase,
+          c2_communication, lateral_movement, data_exfiltration, malware_family
+```
+
+#### Cloud Security
+```kql
+logs 
+| where isnotempty(cloud_provider)
+| project timestamp, cloud_provider, cloud_region, cloud_account_id,
+          cloud_service, cloud_api_call, cloud_resource_id
+```
+
+#### Machine Learning & Analytics
+```kql
+logs 
+| where anomaly_score > 0.5
+| project timestamp, anomaly_score, risk_score, confidence_score,
+          model_version, baseline_deviation
+```
+
+#### Geolocation Analysis
+```kql
+logs 
+| where isnotempty(geo_country)
+| project timestamp, source_ip, geo_country, geo_city, geo_latitude,
+          geo_longitude, geo_isp, geo_organization
 ```
 
 ### Search Statistics

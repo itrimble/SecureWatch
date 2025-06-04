@@ -175,6 +175,66 @@ COLLECTION_INTERVAL_SECONDS = 15
 
 ---
 
+## 🗄️ Database Schema & Extended Normalization
+
+SecureWatch features an **Extended Normalized Schema** with **100+ security fields** supporting **50+ enterprise use cases**.
+
+### Schema Migration
+The extended schema is automatically applied during deployment, but can be manually managed:
+
+```bash
+# Apply extended schema migration
+docker exec -i securewatch_postgres psql -U securewatch -d securewatch < infrastructure/database/migrations/001_extend_logs_schema.sql
+
+# Verify schema extension
+docker exec -i securewatch_postgres psql -U securewatch -d securewatch -c "
+SELECT COUNT(*) as total_columns 
+FROM information_schema.columns 
+WHERE table_name = 'logs' AND table_schema = 'public';"
+
+# Check specialized views
+docker exec -i securewatch_postgres psql -U securewatch -d securewatch -c "\dv"
+```
+
+### Schema Components
+
+**Core Tables:**
+- `logs` - Extended normalized log storage (100+ fields)
+- `threat_intelligence` - Dedicated TI correlation
+- `organizations` - Multi-tenancy support
+- `alert_rules` - Configurable alerting
+- `alerts` - Alert instance tracking
+
+**Specialized Views:**
+- `authentication_events` - Login/access analysis
+- `network_security_events` - Traffic monitoring
+- `file_system_events` - Endpoint security
+- `threat_detection_events` - Advanced threat hunting
+- `compliance_events` - Regulatory compliance
+
+**Performance Features:**
+- 30+ strategic indexes for optimal query performance
+- Materialized views for real-time threat correlation
+- Time-series partitioning with automatic compression
+- Full-text search across all security fields
+
+### Security Domain Coverage
+
+The extended schema supports comprehensive enterprise security use cases:
+
+| Domain | Key Fields | Use Cases |
+|--------|------------|-----------|
+| **Threat Intelligence** | `threat_indicator`, `threat_confidence` | IOC correlation, attribution |
+| **UEBA** | `user_risk_score`, `behavior_anomaly` | Insider threat detection |
+| **Compliance** | `compliance_framework`, `policy_violation` | SOX, HIPAA, PCI-DSS, GDPR |
+| **Incident Response** | `incident_id`, `evidence_collected` | Case management |
+| **MITRE ATT&CK** | `attack_technique`, `kill_chain_phase` | Threat mapping |
+| **Geolocation** | `geo_country`, `geo_latitude` | Geographic analysis |
+| **Device Management** | `device_compliance`, `asset_criticality` | Asset inventory |
+| **Cloud Security** | `cloud_provider`, `cloud_api_call` | Multi-cloud monitoring |
+
+---
+
 ## 🏭 Production Deployment
 
 ### Docker Compose Production Setup
