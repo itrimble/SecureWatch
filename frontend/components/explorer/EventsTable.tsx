@@ -13,17 +13,31 @@ const ITEMS_PER_PAGE = 15;
 type LogEntrySortKey = 'timestamp' | 'source_identifier' | 'log_file';
 type SortOrder = 'asc' | 'desc';
 
+interface FilterState {
+  eventId: string;
+  keywords: string;
+  user: string;
+  sourceIp: string;
+  timeRangeStart: string;
+  timeRangeEnd: string;
+  logLevel: string;
+  regexSearch: string;
+  sigmaRuleSearch: string;
+}
+
 interface EventsTableProps {
   logEntries: LogEntry[];
   isLoading: boolean;
   error: string | null;
+  appliedFilters?: FilterState | null;
   // onOpenModal: (logEntry: LogEntry) => void; // Optional: if modal control is lifted
 }
 
 const EventsTable: React.FC<EventsTableProps> = ({ 
   logEntries, 
   isLoading, 
-  error 
+  error,
+  appliedFilters
   // onOpenModal 
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,10 +51,10 @@ const EventsTable: React.FC<EventsTableProps> = ({
   
   const debouncedSearchTerm = useDebounce(searchTerm, 300); // Debounce search term by 300ms
 
-  // Reset current page when logEntries or debouncedSearchTerm change
+  // Reset current page when logEntries, debouncedSearchTerm, or appliedFilters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [logEntries, debouncedSearchTerm]);
+  }, [logEntries, debouncedSearchTerm, appliedFilters]);
 
   const sortedData = useMemo(() => {
     // Sort the initial logEntries
@@ -59,26 +73,117 @@ const EventsTable: React.FC<EventsTableProps> = ({
   }, [logEntries, sortKey, sortOrder]);
 
   const filteredData = useMemo(() => {
-    if (!debouncedSearchTerm.trim()) {
-      return sortedData; // Use sortedData as the base for filtering
+    let data = [...sortedData];
+
+    // Apply advanced filters first
+    if (appliedFilters) {
+      data = data.filter(log => {
+        // Event ID filter
+        if (appliedFilters.eventId && log.enriched_data?.event_id) {
+          const eventId = log.enriched_data.event_id.toString().toLowerCase();
+          if (!eventId.includes(appliedFilters.eventId.toLowerCase())) {
+            return false;
+          }
+        }
+
+        // Keywords filter (in message)
+        if (appliedFilters.keywords) {
+          const keywords = appliedFilters.keywords.toLowerCase().split(' ').filter(kw => kw);
+          const messageText = log.message.toLowerCase();
+          if (!keywords.every(keyword => messageText.includes(keyword))) {
+            return false;
+          }
+        }
+
+        // User filter
+        if (appliedFilters.user && log.enriched_data?.user_id) {
+          const userId = log.enriched_data.user_id.toString().toLowerCase();
+          if (!userId.includes(appliedFilters.user.toLowerCase())) {
+            return false;
+          }
+        }
+
+        // Source IP filter
+        if (appliedFilters.sourceIp && log.enriched_data?.ip_address) {
+          const ipAddress = log.enriched_data.ip_address.toString().toLowerCase();
+          if (!ipAddress.includes(appliedFilters.sourceIp.toLowerCase())) {
+            return false;
+          }
+        }
+
+        // Log Level filter
+        if (appliedFilters.logLevel && log.enriched_data?.severity) {
+          const severity = log.enriched_data.severity.toString().toLowerCase();
+          if (severity !== appliedFilters.logLevel.toLowerCase()) {
+            return false;
+          }
+        }
+
+        // Time range filter
+        if (appliedFilters.timeRangeStart || appliedFilters.timeRangeEnd) {
+          const logTime = new Date(log.timestamp);
+          if (appliedFilters.timeRangeStart) {
+            const startTime = new Date(appliedFilters.timeRangeStart);
+            if (logTime < startTime) return false;
+          }
+          if (appliedFilters.timeRangeEnd) {
+            const endTime = new Date(appliedFilters.timeRangeEnd);
+            if (logTime > endTime) return false;
+          }
+        }
+
+        // Regex search filter
+        if (appliedFilters.regexSearch) {
+          try {
+            const regex = new RegExp(appliedFilters.regexSearch, 'i');
+            const searchableText = [
+              log.message,
+              log.source_identifier,
+              log.log_file,
+              log.enriched_data ? JSON.stringify(log.enriched_data) : ''
+            ].join(' ');
+            if (!regex.test(searchableText)) {
+              return false;
+            }
+          } catch (e) {
+            // Invalid regex, fall back to string search
+            const searchableText = [
+              log.message,
+              log.source_identifier,
+              log.log_file,
+              log.enriched_data ? JSON.stringify(log.enriched_data) : ''
+            ].join(' ').toLowerCase();
+            if (!searchableText.includes(appliedFilters.regexSearch.toLowerCase())) {
+              return false;
+            }
+          }
+        }
+
+        return true;
+      });
     }
 
-    const keywords = debouncedSearchTerm.toLowerCase().split(' ').filter(kw => kw);
+    // Apply search term filter
+    if (debouncedSearchTerm.trim()) {
+      const keywords = debouncedSearchTerm.toLowerCase().split(' ').filter(kw => kw);
 
-    return sortedData.filter(log => {
-      const searchableText = [
-        log.message,
-        log.source_identifier,
-        log.log_file,
-        // Basic search in enriched_data: stringify and search
-        // This is a simple approach; more complex objects might need specific field targeting
-        log.enriched_data ? JSON.stringify(log.enriched_data) : ''
-      ].join(' ').toLowerCase();
+      data = data.filter(log => {
+        const searchableText = [
+          log.message,
+          log.source_identifier,
+          log.log_file,
+          // Basic search in enriched_data: stringify and search
+          // This is a simple approach; more complex objects might need specific field targeting
+          log.enriched_data ? JSON.stringify(log.enriched_data) : ''
+        ].join(' ').toLowerCase();
 
-      // All keywords must be present in the searchableText
-      return keywords.every(keyword => searchableText.includes(keyword));
-    });
-  }, [debouncedSearchTerm, sortedData]);
+        // All keywords must be present in the searchableText
+        return keywords.every(keyword => searchableText.includes(keyword));
+      });
+    }
+
+    return data;
+  }, [debouncedSearchTerm, sortedData, appliedFilters]);
 
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -146,8 +251,8 @@ const EventsTable: React.FC<EventsTableProps> = ({
   }
 
   return (
-    <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg mt-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="w-full bg-gray-800 rounded-lg shadow-lg border border-gray-600">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 border-b border-gray-600 space-y-2 sm:space-y-0">
         <h2 className="text-xl font-semibold text-gray-100">Event Log Entries</h2>
         <div className="flex space-x-2">
           <button
@@ -174,17 +279,17 @@ const EventsTable: React.FC<EventsTableProps> = ({
       </div>
       
       {/* Search Input and Clear Button */}
-      <div className="mb-4 flex items-center">
+      <div className="p-4 border-b border-gray-600">
         <div className="relative w-full">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <SearchIcon className="h-5 w-5 text-gray-400" />
             </div>
             <input
             type="text"
-            placeholder="Search logs (keywords for message, source, file, enriched data...)"
+            placeholder="Quick search logs (keywords for message, source, file, enriched data...)"
             value={searchTerm}
             onChange={handleSearchChange}
-            className="w-full p-2 pl-10 rounded-md bg-gray-700 text-gray-200 border border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-10 py-3 rounded-md bg-gray-700 text-gray-200 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
             />
             {searchTerm && (
             <button
@@ -192,7 +297,7 @@ const EventsTable: React.FC<EventsTableProps> = ({
                     setSearchTerm('');
                     setCurrentPage(1); // Optionally reset page
                 }}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200 transition-colors"
                 aria-label="Clear search"
             >
                 <XCircle className="h-5 w-5" />
@@ -256,19 +361,19 @@ const EventsTable: React.FC<EventsTableProps> = ({
       </div>
 
       {totalPages > 1 && (
-        <div className="mt-4 flex justify-between items-center text-sm text-gray-400">
+        <div className="px-4 py-3 border-t border-gray-600 flex justify-between items-center text-sm text-gray-400">
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="px-3 py-1 rounded-md bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Previous
           </button>
-          <span>Page {currentPage} of {totalPages} ({filteredData.length} entries)</span>
+          <span className="font-medium">Page {currentPage} of {totalPages} ({filteredData.length} entries)</span>
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="px-3 py-1 rounded-md bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Next
           </button>

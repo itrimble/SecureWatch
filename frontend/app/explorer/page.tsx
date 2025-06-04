@@ -10,6 +10,7 @@ const ExplorerPage: React.FC = () => {
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [appliedFilters, setAppliedFilters] = useState<any>(null);
 
   // Placeholder state for modal - can be lifted here or managed in EventsTable
   // const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,6 +25,11 @@ const ExplorerPage: React.FC = () => {
   //   setIsModalOpen(false);
   //   setSelectedEvent(null);
   // };
+
+  const handleFiltersApplied = (filters: any) => {
+    setAppliedFilters(filters);
+    console.log('Filters applied in explorer:', filters);
+  };
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -51,23 +57,19 @@ const ExplorerPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-100">Event Log Explorer</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Event Log Explorer</h1>
+        <p className="text-muted-foreground mt-2">Search and analyze security events from your systems</p>
+      </div>
       
-      <AdvancedFilterPanel />
+      <AdvancedFilterPanel onFiltersApplied={handleFiltersApplied} />
       <EventsTable 
         logEntries={logEntries}
         isLoading={isLoading}
         error={error}
+        appliedFilters={appliedFilters}
         // onOpenModal={handleOpenModal} // Pass this if modal is enabled
-      /> 
-      
-      {/* 
-      <EventDetailsModal 
-        isOpen={isModalOpen} 
-        onClose={handleCloseModal} 
-        eventData={selectedEvent} 
-      /> 
-      */}
+      />
     </div>
   );
 };
