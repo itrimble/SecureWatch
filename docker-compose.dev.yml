@@ -138,6 +138,49 @@ services:
       timeout: 10s
       retries: 5
 
+  # KQL Analytics Engine
+  analytics-engine:
+    build:
+      context: ./apps/analytics-engine
+      dockerfile: Dockerfile
+    container_name: securewatch_analytics_engine
+    environment:
+      - NODE_ENV=development
+      - PORT=4006
+      - HOST=0.0.0.0
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=securewatch
+      - DB_USER=securewatch
+      - DB_PASSWORD=securewatch
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=1
+      - MAX_QUERY_TIME=300
+      - MAX_MEMORY_MB=2048
+      - MAX_RESULT_ROWS=100000
+      - MAX_CONCURRENT_QUERIES=10
+      - MAX_QUERY_COMPLEXITY=100
+      - RATE_LIMIT_MAX=100
+      - LOG_LEVEL=info
+    ports:
+      - "4006:4006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - securewatch_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - /tmp:/tmp # For log files
+
 networks:
   securewatch_network:
     driver: bridge
