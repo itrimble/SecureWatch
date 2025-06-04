@@ -6,6 +6,14 @@ export interface ServiceStatus {
     lastChecked: Date;
     error?: string;
     details?: any;
+    healthScore?: number;
+    healthEndpoint?: string;
+    metricsEndpoint?: string;
+    port?: number;
+    version?: string;
+    environment?: string;
+    dependencies?: string[];
+    memory?: number;
 }
 export interface ServiceMetrics {
     name: string;
@@ -39,8 +47,10 @@ export interface ServiceMetrics {
 export interface DockerServiceStatus {
     name: string;
     status: string;
-    ports: string;
+    ports?: string;
     health?: string;
+    uptime?: number;
+    port?: number;
 }
 export interface SystemResourceUsage {
     cpu: {
