@@ -1,14 +1,14 @@
 # Claude.md
 
 ## 1. Project Overview
-- **Brief description:** A comprehensive Windows Event Log analysis platform built with Next.js 15, designed for cybersecurity education and training. This application provides a modern, interactive interface for exploring and analyzing Windows Event Logs, featuring a dashboard-style layout with multiple components for log exploration, visualization, reporting, and security monitoring.
+- **Brief description:** A comprehensive SIEM (Security Information and Event Management) platform with real-time log collection, processing, and analysis capabilities. Built with Next.js 15, this production-ready system features live Mac agent data collection, TimescaleDB storage, KQL-powered search, and a professional enterprise-grade UI with 25+ specialized security modules for comprehensive cybersecurity monitoring and threat detection.
 - **Tech stack:**
-    - Framework: Next.js 15 (with App Router)
-    - Language: TypeScript
-    - Styling: Tailwind CSS
-    - Icons: Heroicons
-    - Charts: Recharts
-    - Build (development): Turbopack
+    - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS + Professional Dark Theme, Lucide React Icons, Recharts
+    - **Backend**: Express.js microservices, KQL Engine, PostgreSQL/TimescaleDB
+    - **Agent**: Python 3.12+ with macOS Unified Logging integration
+    - **Infrastructure**: Docker Compose, Redis, Elasticsearch, Kafka
+    - **Database**: TimescaleDB (PostgreSQL) with time-series optimization
+    - **Build**: Turbopack (development), pnpm workspaces
 
 ## 2. Directory and File Structure
 - **High-level directory map:**
@@ -54,7 +54,9 @@
 - **Domain-specific logic:**
     - The application heavily relies on understanding the structure and meaning of Windows Event IDs (e.g., `4624` for successful logon, `4625` for failed logon). Some of this data is present in `src/lib/data/windows_event_ids.json` and `docs/windows-event-id.csv`.
 - **Data Source:**
-    - Currently, the application uses **mock data** for all event log entries and related information (e.g., `lib/data/mock_log_entries.json`, `src/lib/data/mock_log_entries.json`). This is for demonstration and educational purposes.
+    - The application now uses **live data** from a real Mac agent collecting logs from 15+ macOS sources including authentication, security events, process execution, network activity, and system logs.
+    - **TimescaleDB** stores 3,000+ real log entries with full-text search and time-series optimization.
+    - Mock data is maintained as fallback but the production flow uses live agent data end-to-end.
 - **Glossary:**
     - **Event ID:** A numerical code that identifies a specific type of event in Windows logs.
     - **Log Source:** The origin of the log data (e.g., specific server, application).
@@ -76,36 +78,56 @@
        ```bash
        pnpm install
        ```
-    3. **Start infrastructure:**
-       ```bash
-       docker compose -f docker-compose.dev.yml up -d
-       ```
-    4. **Initialize database:**
-       ```bash
-       docker exec -i securewatch_postgres psql -U securewatch -d securewatch < infrastructure/database/auth_schema.sql
-       ```
-- **Build/run commands:**
-    - **Development:** To run all services in development mode:
-      ```bash
-      pnpm run dev
-      ```
-      The frontend will be available at [http://localhost:4000](http://localhost:4000).
-    - **Frontend only:**
-      ```bash
-      cd frontend && pnpm run dev
-      ```
-    - **Production Build:**
-      ```bash
-      pnpm run build
-      ```
-    - **Linting:**
-      ```bash
-      pnpm run lint
-      ```
-- **Infrastructure Health Checks:**
-    - **Database:** `docker exec securewatch_postgres pg_isready -U securewatch -d securewatch`
-    - **Elasticsearch:** `curl http://localhost:9200/_cluster/health`
-    - **Redis:** `docker exec securewatch_redis_master redis-cli -a securewatch_dev ping`
+- **Enterprise Startup (Recommended):**
+    ```bash
+    # Single command to start complete SIEM platform
+    ./start-services.sh
+    ```
+    **This enterprise script automatically:**
+    - ✅ Starts Docker infrastructure with health verification
+    - ✅ Initializes database schema
+    - ✅ Starts all services with proper dependency management
+    - ✅ Runs comprehensive health checks
+    - ✅ Provides real-time monitoring and auto-recovery
+    - ✅ Handles graceful error recovery and service restart
+
+- **Manual Startup (Advanced):**
+    ```bash
+    # 1. Start infrastructure
+    docker compose -f docker-compose.dev.yml up -d
+    
+    # 2. Initialize database
+    docker exec -i securewatch_postgres psql -U securewatch -d securewatch < infrastructure/database/auth_schema.sql
+    
+    # 3. Start services (in separate terminals)
+    cd apps/search-api && pnpm run dev      # Port 4004
+    cd apps/log-ingestion && pnpm run dev   # Port 4002
+    cd frontend && pnpm run dev             # Port 4000
+    
+    # 4. Start Mac agent (optional for live data)
+    source agent_venv/bin/activate
+    python3 agent/event_log_agent.py
+    ```
+
+- **Service Management:**
+    - **Stop all services:** `./stop-services.sh`
+    - **Restart services:** `./stop-services.sh && ./start-services.sh`
+    - **Logs:** Available at `/tmp/{service-name}.log`
+
+- **Build/test commands:**
+    - **Production Build:** `pnpm run build`
+    - **Linting:** `pnpm run lint`
+    - **Unit Tests:** `pnpm run test`
+    - **E2E Tests:** `pnpm run test:e2e`
+
+- **Enterprise Health Monitoring:**
+    - **Platform Health:** `curl http://localhost:4000/api/health`
+    - **Search API:** `curl http://localhost:4004/health`
+    - **Log Ingestion:** `curl http://localhost:4002/health`
+    - **Database Health:** `curl http://localhost:4002/db/health`
+    - **Infrastructure Status:** `docker compose -f docker-compose.dev.yml ps`
+    - **Agent Status:** `ps aux | grep event_log_agent.py`
+    - **Real-time Monitoring:** Services auto-monitor and restart on failure
 
 ## 5. Tool and MCP Integration
 - **List of enabled tools/MCPs:**
@@ -115,6 +137,10 @@
     - **ESLint:** Integrated for code linting (`pnpm run lint`)
     - **Database tools:** Direct PostgreSQL/TimescaleDB access via `docker exec` commands
     - **Redis CLI:** For cache operations and connectivity testing
+    - **Python Virtual Environment:** For Mac agent execution (`agent_venv/`)
+    - **Mac Agent:** Real-time log collection from macOS Unified Logging
+    - **TimescaleDB:** Time-series database for log storage and analytics
+    - **KQL Engine:** Kusto Query Language for log search and analysis
     - **Bug Tracking System:** Python-based bug tracking with JSON persistence (`scripts/bug-tracker.py`)
     - **Test Management System:** Comprehensive testing framework with unit and E2E test tracking (`scripts/test-tracker.py`)
 - **Permissions and safety:**

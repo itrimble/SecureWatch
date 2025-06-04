@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { User } from '@supabase/supabase-js'
-import { Github, LogOut } from 'lucide-react'
+import { Github, LogOut, Activity } from 'lucide-react'
 import Link from 'next/link'
 
 export function Header() {
@@ -46,36 +46,32 @@ export function Header() {
   }
 
   return (
-    <header className="border-b">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="font-bold text-xl">
-            SecureWatch SIEM
-          </Link>
-          <nav className="hidden md:flex items-center gap-4">
-            <Link href="/auth-test" className="text-sm hover:underline">
-              Auth Test
-            </Link>
-          </nav>
+    <header className="border-b border-border bg-card/50 backdrop-blur-sm">
+      <div className="px-6 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Activity className="h-4 w-4" />
+            <span className="text-sm font-medium">Status: Online</span>
+          </div>
         </div>
         
-        <div>
+        <div className="flex items-center gap-4">
           {loading ? (
-            <div className="h-10 w-32 animate-pulse bg-gray-200 rounded" />
+            <div className="h-8 w-24 animate-pulse bg-muted rounded" />
           ) : !supabase ? (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-caption text-muted-foreground">
               Auth disabled
             </div>
           ) : user ? (
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">{user.email}</span>
-              <Button onClick={handleSignOut} variant="outline" size="sm">
+            <div className="flex items-center gap-3">
+              <span className="text-body text-muted-foreground">{user.email}</span>
+              <Button onClick={handleSignOut} variant="outline" size="sm" className="interactive-element">
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out
               </Button>
             </div>
           ) : (
-            <Button onClick={handleSignIn} variant="outline">
+            <Button onClick={handleSignIn} variant="outline" className="interactive-element">
               <Github className="mr-2 h-4 w-4" />
               Sign in with GitHub
             </Button>

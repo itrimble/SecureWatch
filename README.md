@@ -31,12 +31,15 @@ SecureWatch is a **fully operational SIEM platform** with complete end-to-end da
 - **Full-text search** with advanced indexing and aggregation
 - **KQL engine** for powerful log query capabilities
 
-### 🔍 Advanced Analytics
-- **Interactive dashboards** with real-time updates
-- **Advanced filtering** and search capabilities
-- **Log correlation** and pattern analysis
+### 🔍 Advanced Analytics & UI
+- **Professional SIEM Interface** with dark theme optimized for SOC environments
+- **Comprehensive Navigation** with 25+ specialized security modules
+- **Semantic Alert System** with proper severity color coding (Critical=Red, High=Orange, etc.)
+- **Interactive Dashboards** with real-time updates and health monitoring
+- **Advanced Filtering** and KQL-powered search capabilities
+- **Log Correlation** and pattern analysis tools
 - **Export functionality** for compliance and reporting
-- **Threat intelligence** integration ready
+- **Threat Intelligence** integration ready
 
 ### 🚀 Developer Experience
 - **Enterprise startup scripts** with dependency management
@@ -50,10 +53,12 @@ SecureWatch is a **fully operational SIEM platform** with complete end-to-end da
 ### Frontend
 - **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS + Radix UI
+- **Styling**: Tailwind CSS + Radix UI + Professional Dark Theme
+- **Icons**: Lucide React (150+ security-focused icons)
 - **State Management**: Zustand
 - **Charts**: Recharts + Nivo
 - **Authentication**: Supabase Auth
+- **UX Features**: Keyboard shortcuts, semantic colors, responsive design
 
 ### Backend (Microservices)
 - **API Gateway**: Express + GraphQL
@@ -431,18 +436,28 @@ TimescaleDB is configured via `docker-compose.yml`:
 
 ## 📊 Recent Updates
 
-### Latest Features (v1.4.0) - June 2025
+### Latest Features (v1.5.0) - June 2025  
+- ✅ **Professional SIEM Interface**: Complete UI overhaul with enterprise-grade dark theme
+- ✅ **Enhanced Navigation**: 25+ specialized security modules organized in logical groups
+- ✅ **Semantic Alert System**: Proper severity color coding following SIEM industry standards
+- ✅ **UX Best Practices**: Keyboard shortcuts, visual hierarchy, status indicators
+- ✅ **Duplicate Layout Resolution**: Fixed sidebar issues and improved component architecture
+- ✅ **Accessibility Compliance**: WCAG AA contrast ratios and colorblind-friendly design
+
+### Frontend Enhancements (v1.5.0)
+New comprehensive navigation structure:
+- **Security Operations**: Dashboard, Alerts, Notifications, Event Explorer, Reports, Analytics
+- **Security Analysis**: Threat Intelligence, Incident Response, Case Management, Vulnerabilities, Compliance
+- **Intelligence**: User Analytics (UEBA), Insider Risk, Threat Hunting, Digital Forensics, Network Analysis
+- **Infrastructure**: Asset Discovery, Network Topology, Endpoints, Cloud Security, Infrastructure Monitoring  
+- **System**: Health Monitoring, Data Sources, Automation, Integrations
+- **Configuration**: User Management, System Settings
+
+### Previous Features (v1.4.0) - June 2025
 - ✅ **Component Architecture Cleanup**: Resolved all missing component imports
 - ✅ **Frontend Build Optimization**: All components now properly located in frontend directory
 - ✅ **Enhanced Project Structure**: Clear separation between src and frontend components
 - ✅ **Improved Documentation**: Added logical architecture diagram
-
-### Component Import Resolution
-Fixed missing imports by properly organizing components:
-- **AlertsDisplay**: Security alerts feed with real-time status management
-- **RuleEditor**: Sigma-based detection rule creation interface
-- **ReportGenerator**: Comprehensive report configuration with multiple export formats
-- **ScheduledReportsConfig**: Automated report scheduling and management
 
 ### Previous Features (v1.3.0)
 - ✅ **macOS Log Support**: Comprehensive macOS log collection and normalization

@@ -4,65 +4,72 @@
 
 @layer base {
   :root {
+    /* Light theme (fallback) */
     --background: 0 0 100%;
     --foreground: 222.2 84% 4.9%;
-
     --card: 0 0 100%;
     --card-foreground: 222.2 84% 4.9%;
-
     --popover: 0 0 100%;
     --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
-
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 215 20.2% 65.1%;
+    /* SIEM Dark Theme - Base Colors */
+    --background: 216 23% 11%;        /* #1a1d23 - Dark navy-gray */
+    --foreground: 220 9% 91%;         /* #e8eaed - High contrast white */
+    --card: 217 19% 15%;              /* #252830 - Slightly lighter cards */
+    --card-foreground: 220 9% 91%;    /* #e8eaed - High contrast white */
+    --popover: 217 19% 15%;           /* #252830 - Slightly lighter panels */
+    --popover-foreground: 220 9% 91%; /* #e8eaed - High contrast white */
+    
+    /* Primary Action Color */
+    --primary: 217 91% 60%;           /* #3b82f6 - Blue for buttons, links */
+    --primary-foreground: 0 0 100%;   /* #ffffff - White text on primary */
+    
+    /* Secondary/Surface Colors */
+    --secondary: 219 14% 28%;         /* #434956 - Secondary elements */
+    --secondary-foreground: 220 9% 91%; /* #e8eaed - High contrast white */
+    --muted: 219 14% 28%;             /* #434956 - Muted backgrounds */
+    --muted-foreground: 220 9% 64%;   /* #9aa0a6 - Muted gray for labels */
+    --accent: 218 27% 22%;            /* #2f3349 - Hover states, borders */
+    --accent-foreground: 220 9% 91%;  /* #e8eaed - High contrast white */
+    
+    /* Alert Colors - Semantic */
+    --destructive: 0 84% 60%;         /* #dc2626 - Critical/Error red */
+    --destructive-foreground: 0 0 100%; /* #ffffff - White text */
+    
+    /* Border and Input */
+    --border: 218 27% 22%;            /* #2f3349 - Subtle borders */
+    --input: 217 19% 15%;             /* #252830 - Input backgrounds */
+    --ring: 217 91% 60%;              /* #3b82f6 - Focus rings */
+    
+    /* Custom SIEM Alert Colors */
+    --alert-critical: 0 84% 60%;      /* #dc2626 - Bright red for P1 */
+    --alert-critical-bg: 0 93% 94%;   /* #fef2f2 - Critical background */
+    --alert-high: 25 95% 53%;         /* #ea580c - Orange for P2 */
+    --alert-high-bg: 25 100% 97%;     /* #fff7ed - High background */
+    --alert-medium: 32 95% 44%;       /* #d97706 - Amber for P3 */
+    --alert-medium-bg: 48 100% 96%;   /* #fffbeb - Medium background */
+    --alert-low: 217 91% 60%;         /* #2563eb - Blue for info */
+    --alert-low-bg: 214 100% 97%;     /* #eff6ff - Info background */
+    --alert-success: 142 76% 36%;     /* #16a34a - Green for success */
+    --alert-success-bg: 138 76% 97%;  /* #f0fdf4 - Success background */
+    --alert-investigation: 262 83% 58%; /* #9333ea - Purple for investigation */
+    --alert-investigation-bg: 270 100% 98%; /* #faf5ff - Investigation background */
   }
 }
 
@@ -71,73 +78,110 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
   }
 }
 
-/* Turbo Pascal Theme Specifics */
-.theme-turbo-pascal {
-  --tp-bg: #000080; /* Dark Blue */
-  --tp-text-primary: #ffff00; /* Bright Yellow */
-  --tp-text-secondary: #00ffff; /* Bright Cyan */
-  --tp-border: #ffff00; /* Yellow borders */
+@layer components {
+  /* SIEM Alert Components */
+  .alert-critical {
+    @apply bg-red-950 border-l-4 border-red-500 text-red-100;
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+  }
+  
+  .alert-high {
+    @apply bg-orange-950 border-l-4 border-orange-500 text-orange-100 border border-orange-900;
+  }
+  
+  .alert-medium {
+    @apply bg-amber-950 border-l-4 border-amber-500 text-amber-100 border border-amber-900;
+  }
+  
+  .alert-low {
+    @apply bg-blue-950 border-l-4 border-blue-500 text-blue-100 border border-blue-900;
+  }
+  
+  .alert-success {
+    @apply bg-green-950 border-l-4 border-green-500 text-green-100 border border-green-900;
+  }
+  
+  .alert-investigation {
+    @apply bg-purple-950 border-l-4 border-purple-500 text-purple-100 border border-purple-900;
+  }
 
-  background-color: var(--tp-bg);
-  color: var(--tp-text-primary);
-  font-family: theme("fontFamily.mono");
+  /* Status Indicators */
+  .health-good { @apply text-green-400; }
+  .health-degraded { @apply text-amber-400; }
+  .health-critical { @apply text-red-400; }
+  
+  .threat-low { @apply bg-emerald-950 text-emerald-400; }
+  .threat-elevated { @apply bg-amber-950 text-amber-400; }
+  .threat-high { @apply bg-red-950 text-red-400; }
+
+  /* SIEM Card Styling */
+  .siem-card {
+    @apply bg-card border border-border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow;
+  }
+  
+  .siem-card-header {
+    @apply flex items-center justify-between mb-3;
+  }
+  
+  .siem-card-title {
+    @apply text-lg font-semibold text-foreground;
+  }
+  
+  .siem-card-subtitle {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* Navigation States */
+  .nav-active {
+    @apply bg-primary text-primary-foreground shadow-lg font-medium;
+  }
+  
+  .nav-inactive {
+    @apply text-muted-foreground hover:text-foreground hover:bg-accent transition-colors;
+  }
+
+  /* Consistent Typography */
+  .text-primary-heading {
+    @apply text-2xl font-bold text-foreground;
+  }
+  
+  .text-secondary-heading {
+    @apply text-lg font-semibold text-foreground;
+  }
+  
+  .text-body {
+    @apply text-sm text-foreground;
+  }
+  
+  .text-caption {
+    @apply text-xs text-muted-foreground;
+  }
+
+  /* Focus and Interactive States */
+  .interactive-element {
+    @apply transition-all duration-200 hover:scale-105 active:scale-95;
+  }
 }
 
-.theme-turbo-pascal .bg-background {
-  background-color: var(--tp-bg) !important; /* Override shadcn background */
-}
-.theme-turbo-pascal .text-foreground {
-  color: var(--tp-text-primary) !important; /* Override shadcn foreground */
-}
-.theme-turbo-pascal .text-muted-foreground {
-  color: var(--tp-text-secondary) !important;
-}
-.theme-turbo-pascal .border {
-  /* Example for borders */
-  border-color: var(--tp-border) !important;
-}
-/* Ensure cards and other elements adapt somewhat */
-.theme-turbo-pascal .bg-card {
-  background-color: #0000a0 !important; /* Slightly lighter blue for cards */
-  border-color: var(--tp-text-secondary) !important;
-  color: var(--tp-text-primary) !important;
-}
-.theme-turbo-pascal .bg-card .text-muted-foreground {
-  color: var(--tp-text-secondary) !important;
-}
-.theme-turbo-pascal .bg-primary {
-  background-color: var(--tp-text-primary) !important;
-  color: var(--tp-bg) !important;
-}
-.theme-turbo-pascal .text-primary-foreground {
-  color: var(--tp-bg) !important;
-}
-.theme-turbo-pascal .bg-accent {
-  background-color: #0000c0 !important; /* Lighter blue for accent */
-}
-.theme-turbo-pascal .hover\:bg-accent:hover {
-  background-color: #0000c0 !important;
-}
-.theme-turbo-pascal button {
-  border-color: var(--tp-text-secondary);
-}
-.theme-turbo-pascal input {
-  background-color: #000050 !important;
-  border-color: var(--tp-text-secondary) !important;
-  color: var(--tp-text-primary) !important;
-}
-.theme-turbo-pascal ::placeholder {
-  color: var(--tp-text-secondary) !important;
-  opacity: 0.7;
-}
-
-/* Apply Turbo Pascal theme to body by default for this example */
-body.theme-turbo-pascal {
-  background-color: var(--tp-bg);
-  color: var(--tp-text-primary);
-  font-family: theme("fontFamily.mono");
+@layer utilities {
+  /* Custom scrollbar for dark theme */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground rounded-full;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-foreground;
+  }
 }

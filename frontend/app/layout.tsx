@@ -3,6 +3,8 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { Header } from "@/components/header"
+import { ThemeProvider } from "@/components/theme-provider"
+import { LayoutProvider } from "@/components/layout-provider"
 
 export const metadata: Metadata = {
   title: "SecureWatch SIEM Platform",
@@ -18,9 +20,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <Header />
-        <main>{children}</main>
-        <Toaster />
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <LayoutProvider>
+            {children}
+          </LayoutProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   )
