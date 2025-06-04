@@ -25,8 +25,8 @@ const db = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
   database: process.env.DB_NAME || 'securewatch',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'password',
+  user: process.env.DB_USER || 'securewatch',
+  password: process.env.DB_PASSWORD || 'securewatch_dev',
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -35,7 +35,7 @@ const db = new Pool({
 const redis = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
   port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
+  password: process.env.REDIS_PASSWORD || 'securewatch_dev',
   retryDelayOnFailover: 100,
   maxRetriesPerRequest: 3,
 });
@@ -168,6 +168,76 @@ app.get('/health', async (req, res) => {
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
       error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Development endpoint without auth for testing (must come before auth middleware)
+app.get('/api/v1/search/logs', queryLimiter, async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 100, 1000);
+    const offset = parseInt(req.query.offset as string) || 0;
+    
+    // Query real log data from TimescaleDB
+    const query = `
+      SELECT 
+        id,
+        timestamp,
+        source_identifier,
+        source_type,
+        message,
+        log_level,
+        hostname,
+        process_name,
+        attributes,
+        ingested_at
+      FROM logs 
+      ORDER BY timestamp DESC 
+      LIMIT $1 OFFSET $2
+    `;
+    
+    const countQuery = 'SELECT COUNT(*) as total_count FROM logs';
+    
+    const [logsResult, countResult] = await Promise.all([
+      db.query(query, [limit, offset]),
+      db.query(countQuery)
+    ]);
+    
+    const logs = logsResult.rows.map(row => ({
+      id: row.id,
+      timestamp: row.timestamp,
+      source_identifier: row.source_identifier,
+      source_type: row.source_type,
+      message: row.message,
+      enriched_data: {
+        event_id: 'LOG_ENTRY',
+        severity: row.log_level || 'Information',
+        hostname: row.hostname,
+        process_name: row.process_name,
+        ingested_at: row.ingested_at,
+        attributes: row.attributes,
+        tags: ['real-data', 'timescaledb', row.source_type],
+        event_type_id: 'LIVE_LOG_DATA'
+      }
+    }));
+    
+    const totalCount = parseInt(countResult.rows[0].total_count);
+    
+    logger.info('🔍 Real logs endpoint accessed', {
+      limit,
+      offset,
+      returned: logs.length,
+      total: totalCount,
+      dataSource: 'TimescaleDB'
+    });
+
+    res.json(logs);
+  } catch (error) {
+    logger.error('❌ Failed to get real logs from database', error);
+    res.status(500).json({
+      error: 'Failed to get logs',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
     });
   }
 });
