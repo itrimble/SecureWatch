@@ -1,13 +1,13 @@
 # Claude.md
 
 ## 1. Project Overview
-- **Brief description:** A comprehensive SIEM (Security Information and Event Management) platform with real-time log collection, processing, and analysis capabilities. Built with Next.js 15, this production-ready system features live Mac agent data collection, TimescaleDB storage, KQL-powered search and visualization pipeline, real-time correlation & rules engine with automated threat detection, customizable drag-drop dashboards, interactive analytics (heatmaps, network graphs, geolocation maps), and a professional enterprise-grade UI with 25+ specialized security modules for comprehensive cybersecurity monitoring and threat detection.
+- **Brief description:** A comprehensive SIEM (Security Information and Event Management) platform with real-time log collection, processing, and analysis capabilities. Built with Next.js 15, this production-ready system features live Mac agent data collection, TimescaleDB storage with **extended normalized schema (100+ fields)**, KQL-powered search and visualization pipeline, real-time correlation & rules engine with automated threat detection, customizable drag-drop dashboards, interactive analytics (heatmaps, network graphs, geolocation maps), and a professional enterprise-grade UI with 25+ specialized security modules supporting **50+ enterprise security use cases** for comprehensive cybersecurity monitoring and threat detection.
 - **Tech stack:**
     - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS + Professional Dark Theme, Lucide React Icons, Recharts, Interactive Visualizations (Heatmaps, Network Graphs, Geolocation Maps), Customizable Dashboards
     - **Backend**: Express.js microservices, KQL Engine, Correlation & Rules Engine, PostgreSQL/TimescaleDB
     - **Agent**: Python 3.12+ with macOS Unified Logging integration
     - **Infrastructure**: Docker Compose, Redis, Elasticsearch, Kafka
-    - **Database**: TimescaleDB (PostgreSQL) with time-series optimization
+    - **Database**: TimescaleDB (PostgreSQL) with time-series optimization + Extended Normalized Schema (100+ security fields)
     - **Build**: Turbopack (development), pnpm workspaces
 
 ## 2. Directory and File Structure
@@ -57,7 +57,8 @@
     - The application heavily relies on understanding the structure and meaning of Windows Event IDs (e.g., `4624` for successful logon, `4625` for failed logon). Some of this data is present in `src/lib/data/windows_event_ids.json` and `docs/windows-event-id.csv`.
 - **Data Source:**
     - The application now uses **live data** from a real Mac agent collecting logs from 15+ macOS sources including authentication, security events, process execution, network activity, and system logs.
-    - **TimescaleDB** stores 3,000+ real log entries with full-text search and time-series optimization.
+    - **TimescaleDB** stores 3,000+ real log entries with **extended normalized schema (100+ security fields)** supporting threat intelligence, UEBA, compliance, and 50+ enterprise use cases.
+    - **Advanced Schema Features**: Threat intelligence correlation, MITRE ATT&CK mapping, behavioral analytics, geolocation tracking, compliance frameworks (SOX, HIPAA, PCI-DSS, GDPR), and machine learning integration.
     - Mock data is maintained as fallback but the production flow uses live agent data end-to-end.
     - **CURRENT STATUS (June 2025)**: All services verified operational:
       - Mac Agent (PID 22516): ✅ Active log collection from 15+ sources
@@ -189,6 +190,14 @@
     - **Database operations:**
       ```bash
       docker exec -i securewatch_postgres psql -U securewatch -d securewatch -c "\dt"
+      ```
+    - **Database schema migration:**
+      ```bash
+      docker exec -i securewatch_postgres psql -U securewatch -d securewatch < infrastructure/database/migrations/001_extend_logs_schema.sql
+      ```
+    - **Extended schema verification:**
+      ```bash
+      docker exec -i securewatch_postgres psql -U securewatch -d securewatch -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'logs'"
       ```
     - **Installing a new dependency:**
       ```bash

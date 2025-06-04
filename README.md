@@ -27,7 +27,8 @@ SecureWatch is a **fully operational SIEM platform** with complete end-to-end da
 ### 📊 Real-Time Data Pipeline
 - **Live Mac agent** collecting from 15+ system log sources
 - **Real-time ingestion** processing 15 events per batch with 0% error rate
-- **TimescaleDB** time-series optimization for log storage
+- **TimescaleDB** time-series optimization for log storage with **extended normalized schema**
+- **100+ security fields** supporting 50+ enterprise use cases (threat intelligence, UEBA, compliance)
 - **Full-text search** with advanced indexing and aggregation
 - **KQL engine** for powerful log query capabilities
 
@@ -356,6 +357,56 @@ This project is configured for automatic deployment on Vercel:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+## 🗄️ Extended Normalized Schema
+
+SecureWatch features a comprehensive **100+ field normalized schema** designed to support **50+ enterprise security use cases**:
+
+### 🎯 Core Security Domains Covered
+
+| Domain | Fields | Use Cases |
+|--------|--------|-----------|
+| **Threat Intelligence** | `threat_indicator`, `threat_confidence`, `threat_category` | IOC correlation, threat hunting, attribution |
+| **Identity & Access** | `principal_id`, `credential_type`, `privilege_escalation` | User behavior analysis, access control |
+| **Device & Asset Management** | `device_id`, `device_compliance`, `asset_criticality` | Asset inventory, compliance tracking |
+| **Network Security** | `network_zone`, `traffic_direction`, `dns_query` | Network monitoring, lateral movement detection |
+| **Endpoint Security** | `process_command_line`, `file_operation`, `registry_key` | Endpoint detection and response |
+| **Email Security** | `email_sender`, `email_phishing_score`, `email_attachments` | Email threat detection, phishing analysis |
+| **Web Security** | `url_domain`, `web_reputation`, `ssl_validation` | Web filtering, SSL inspection |
+| **Cloud Security** | `cloud_provider`, `cloud_api_call`, `cloud_resource_id` | Multi-cloud monitoring, API security |
+| **Application Security** | `vulnerability_id`, `exploit_detected`, `app_version` | Vulnerability management, exploit detection |
+| **Data Loss Prevention** | `data_classification`, `sensitive_data_detected` | Data protection, compliance monitoring |
+| **Compliance & Audit** | `compliance_framework`, `policy_violation` | SOX, HIPAA, PCI-DSS, GDPR compliance |
+| **Incident Response** | `incident_id`, `evidence_collected`, `chain_of_custody` | Case management, forensics |
+| **Machine Learning** | `anomaly_score`, `confidence_score`, `feature_vector` | ML-driven threat detection |
+| **Behavioral Analytics** | `user_risk_score`, `behavior_anomaly`, `peer_group` | UEBA, insider threat detection |
+| **Geolocation** | `geo_country`, `geo_latitude`, `geo_isp` | Geographic threat analysis |
+| **Advanced Threats** | `attack_technique`, `kill_chain_phase`, `c2_communication` | MITRE ATT&CK correlation |
+
+### 📊 Specialized Database Views
+
+Pre-built views for common security operations:
+- **`authentication_events`**: Login analysis, failed authentication tracking
+- **`network_security_events`**: Traffic analysis, DNS monitoring, threat correlation
+- **`file_system_events`**: File activity, hash analysis, DLP integration
+- **`threat_detection_events`**: IOC matches, ML anomalies, attack techniques
+- **`compliance_events`**: Policy violations, audit trails, data classification
+
+### ⚡ Performance Optimizations
+
+- **30+ Strategic Indexes**: Optimized for common security query patterns
+- **Materialized Views**: Real-time threat intelligence correlation
+- **Time-Series Partitioning**: Efficient storage and query performance
+- **Full-Text Search**: Enhanced search vector including threat indicators
+- **Array Support**: Group memberships, email recipients, custom tags
+
+### 🔄 Migration System
+
+Versioned database migrations with:
+- **Automatic schema detection**: Prevents duplicate migrations
+- **Data preservation**: Migrates existing logs to extended schema
+- **Rollback support**: Safe schema evolution
+- **Validation checks**: Post-migration verification
+
 ## 📁 Project Structure
 
 ```
@@ -451,7 +502,15 @@ TimescaleDB is configured via `docker-compose.yml`:
 
 ## 📊 Recent Updates
 
-### Latest Features (v1.7.0) - June 2025
+### Latest Features (v1.8.0) - January 2025
+- ✅ **Extended Normalized Schema**: 100+ security fields supporting 50+ enterprise use cases
+- ✅ **Comprehensive Security Coverage**: Threat intelligence, UEBA, compliance, incident response, ML analytics
+- ✅ **Advanced Threat Detection**: MITRE ATT&CK mapping, kill chain analysis, behavioral anomaly detection
+- ✅ **Enterprise Data Model**: Multi-tenancy, asset management, geolocation, custom fields
+- ✅ **Specialized Views**: Authentication, network security, file system, threat detection, compliance events
+- ✅ **Performance Optimization**: 30+ strategic indexes, materialized views, time-series partitioning
+
+### Previous Features (v1.7.0) - June 2025
 - ✅ **Correlation & Rules Engine**: Real-time event correlation with automated threat detection
 - ✅ **Pattern Recognition**: Advanced attack chain detection and behavioral analysis
 - ✅ **Incident Management**: Automated incident creation, tracking, and response workflows
