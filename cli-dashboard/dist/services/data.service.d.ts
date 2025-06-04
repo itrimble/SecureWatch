@@ -15,5 +15,17 @@ export declare class DataService {
         message: string;
     }>;
     getLogTail(serviceName: string, lines?: number): Promise<LogEntry[]>;
+    /**
+     * Calculate overall system health based on service statuses and alerts
+     */
+    private calculateSystemHealth;
+    /**
+     * Enhanced service status detection with contextual information
+     */
+    private enhanceServiceStatus;
+    private calculateStatusDuration;
+    private generateServiceKPIs;
+    private getServiceThresholds;
+    private generateTroubleshootingInfo;
 }
 //# sourceMappingURL=data.service.d.ts.map

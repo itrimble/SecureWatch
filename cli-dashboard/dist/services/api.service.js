@@ -32,7 +32,7 @@ class ApiService {
                     status = data.status;
                 }
                 else if (response.status === 200) {
-                    status = 'healthy';
+                    status = 'operational';
                 }
                 uptime = data.uptime || data.service?.uptime;
                 details = data;
@@ -50,7 +50,7 @@ class ApiService {
             const responseTime = Date.now() - startTime;
             return {
                 name: service.name,
-                status: 'unhealthy',
+                status: 'critical',
                 responseTime,
                 lastChecked: new Date(),
                 error: error instanceof Error ? error.message : 'Unknown error'

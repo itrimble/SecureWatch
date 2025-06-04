@@ -4,7 +4,9 @@ import { Command } from 'commander';
 import { DataService } from './services/data.service';
 import { DashboardUI } from './ui/dashboard.ui';
 import { EnhancedDashboardUI } from './ui/enhanced-dashboard.ui';
+import { EnhancedStatusDisplayUI } from './ui/enhanced-status-display.ui';
 import { ServiceControlService } from './services/control.service';
+import { StatusFormatter } from './utils/status-formatter';
 import { defaultConfig } from './config/dashboard.config';
 import chalk from 'chalk';
 import Table from 'cli-table3';
@@ -23,6 +25,7 @@ program
   .option('-r, --refresh <seconds>', 'Refresh interval in seconds', '5')
   .option('-c, --config <path>', 'Path to configuration file')
   .option('-e, --enhanced', 'Use enhanced dashboard with service controls')
+  .option('-s, --status-view', 'Use enhanced status display view')
   .action(async (options) => {
     try {
       const config = { ...defaultConfig };
@@ -35,10 +38,15 @@ program
 
       const dataService = new DataService(config);
       
-      // Use enhanced dashboard if flag is set
-      const ui = options.enhanced 
-        ? new EnhancedDashboardUI(config) 
-        : new DashboardUI(config);
+      // Use appropriate dashboard UI based on options
+      let ui: any;
+      if (options.statusView) {
+        ui = new EnhancedStatusDisplayUI();
+      } else if (options.enhanced) {
+        ui = new EnhancedDashboardUI(config);
+      } else {
+        ui = new DashboardUI(config);
+      }
 
       // Initial data load
       const initialData = await dataService.collectDashboardData();
@@ -220,7 +228,7 @@ program
       if (options.detailed) {
         // Show microservices
         data.services.forEach(service => {
-          const statusColor = service.status === 'healthy' ? chalk.green : 
+          const statusColor = service.status === 'operational' ? chalk.green : 
                              service.status === 'degraded' ? chalk.yellow : chalk.red;
           
           servicesTable.push([
@@ -247,7 +255,7 @@ program
       } else {
         // Show only microservices
         data.services.forEach(service => {
-          const statusColor = service.status === 'healthy' ? chalk.green : 
+          const statusColor = service.status === 'operational' ? chalk.green : 
                              service.status === 'degraded' ? chalk.yellow : chalk.red;
           
           servicesTable.push([
@@ -295,19 +303,19 @@ program
       }
 
       // Quick summary
-      const healthyMicroservices = data.services.filter(s => s.status === 'healthy').length;
+      const operationalMicroservices = data.services.filter(s => s.status === 'operational').length;
       const totalMicroservices = data.services.length;
-      const healthyInfrastructure = data.dockerServices.filter(s => s.status.includes('Up')).length;
+      const operationalInfrastructure = data.dockerServices.filter(s => s.status.includes('Up')).length;
       const totalInfrastructure = data.dockerServices.length;
       
       if (options.detailed) {
-        const totalHealthy = healthyMicroservices + healthyInfrastructure;
+        const totalHealthy = operationalMicroservices + operationalInfrastructure;
         const total = totalMicroservices + totalInfrastructure;
         const healthPercentage = (totalHealthy / total) * 100;
-        console.log(`\nOverall Health: ${getHealthColor(healthPercentage)(healthPercentage.toFixed(0) + '%')} (${totalHealthy}/${total} services healthy)`);
+        console.log(`\nOverall Health: ${getHealthColor(healthPercentage)(healthPercentage.toFixed(0) + '%')} (${totalHealthy}/${total} services operational)`);
       } else {
-        const healthPercentage = (healthyMicroservices / totalMicroservices) * 100;
-        console.log(`\nOverall Health: ${getHealthColor(healthPercentage)(healthPercentage.toFixed(0) + '%')} (${healthyMicroservices}/${totalMicroservices} services healthy)`);
+        const healthPercentage = (operationalMicroservices / totalMicroservices) * 100;
+        console.log(`\nOverall Health: ${getHealthColor(healthPercentage)(healthPercentage.toFixed(0) + '%')} (${operationalMicroservices}/${totalMicroservices} services operational)`);
       }
 
     } catch (error) {
@@ -400,7 +408,7 @@ program
         dockerHealth.forEach((isHealthy, serviceName) => {
           if (!allServices.has(serviceName)) {
             allServices.set(serviceName, {
-              status: isHealthy ? 'healthy' : 'unhealthy',
+              status: isHealthy ? 'operational' : 'unoperational',
               error: isHealthy ? null : 'Service not running'
             });
           }
@@ -409,12 +417,12 @@ program
       
       let allHealthy = true;
       allServices.forEach((service, name) => {
-        const statusIcon = service.status === 'healthy' ? '✅' :
+        const statusIcon = service.status === 'operational' ? '✅' :
                           service.status === 'degraded' ? '⚠️' : '❌';
         
         console.log(`${statusIcon} ${name}: ${service.status}`);
         
-        if (options.verbose && service.status === 'healthy') {
+        if (options.verbose && service.status === 'operational') {
           if (service.responseTime) {
             console.log(`   Response time: ${service.responseTime}ms`);
           }
@@ -423,7 +431,7 @@ program
           }
         }
         
-        if (service.status !== 'healthy') {
+        if (service.status !== 'operational') {
           allHealthy = false;
           if (service.error) {
             console.log(`   Error: ${service.error}`);
@@ -436,6 +444,60 @@ program
       process.exit(allHealthy ? 0 : 1);
     } catch (error) {
       console.error(chalk.red('Health check failed:'), error);
+      process.exit(1);
+    }
+  });
+
+// Enhanced Status Display Command
+program
+  .command('status-enhanced')
+  .alias('status-ext')
+  .description('Show enhanced status display with detailed context and troubleshooting')
+  .option('-r, --refresh <seconds>', 'Auto-refresh interval in seconds (0 to disable)', '0')
+  .option('-e, --example', 'Show example enhanced status display')
+  .action(async (options) => {
+    try {
+      if (options.example) {
+        console.log(EnhancedStatusDisplayUI.generateExampleDisplay());
+        return;
+      }
+
+      const config = { ...defaultConfig };
+      const dataService = new DataService(config);
+      const ui = new EnhancedStatusDisplayUI();
+
+      if (parseInt(options.refresh) > 0) {
+        // Auto-refresh mode
+        console.log(chalk.blue.bold('🛡️  SecureWatch Enhanced Status - Auto Refresh Mode'));
+        console.log(chalk.gray(`Refresh interval: ${options.refresh} seconds\n`));
+
+        // Initial load
+        const initialData = await dataService.collectDashboardData();
+        ui.update(initialData);
+
+        // Set up periodic updates
+        const refreshInterval = setInterval(async () => {
+          try {
+            const data = await dataService.collectDashboardData();
+            ui.update(data);
+          } catch (error) {
+            console.error(chalk.red('Error updating data:'), error);
+          }
+        }, parseInt(options.refresh) * 1000);
+
+        // Clean up on exit
+        process.on('SIGINT', () => {
+          clearInterval(refreshInterval);
+          ui.destroy();
+          process.exit(0);
+        });
+      } else {
+        // Single update mode
+        const data = await dataService.collectDashboardData();
+        ui.update(data);
+      }
+    } catch (error) {
+      console.error(chalk.red('Enhanced status display failed:'), error);
       process.exit(1);
     }
   });

@@ -595,13 +595,13 @@ ${service.dependencies?.join('\n') || 'None'}
   }
 
   private updateTopBar(data: DashboardData) {
-    const healthyServices = data.services.filter(s => s.status === 'healthy').length;
+    const operationalServices = data.services.filter(s => s.status === 'operational').length;
     const totalServices = data.services.length;
-    const overallHealth = (healthyServices / totalServices) * 100;
+    const overallHealth = (operationalServices / totalServices) * 100;
     
     const topBarContent = `
 {center}{bold}SecureWatch SIEM Platform Monitor{/bold}{/center}
-{center}Services: {green-fg}${healthyServices}{/green-fg}/${totalServices} | Health: ${this.getHealthColor(overallHealth)}${overallHealth.toFixed(0)}%{/} | Alerts: {red-fg}${data.recentAlerts.filter(a => a.severity === 'critical').length}{/red-fg} Critical | Mode: ${this.activePanel}{/center}
+{center}Services: {green-fg}${operationalServices}{/green-fg}/${totalServices} | Health: ${this.getHealthColor(overallHealth)}${overallHealth.toFixed(0)}%{/} | Alerts: {red-fg}${data.recentAlerts.filter(a => a.severity === 'critical').length}{/red-fg} Critical | Mode: ${this.activePanel}{/center}
 `;
     
     this.widgets.topBar.setContent(topBarContent);
@@ -692,9 +692,9 @@ ${service.dependencies?.join('\n') || 'None'}
 
   private formatServiceStatus(status: string): string {
     switch (status) {
-      case 'healthy': return '{green-fg}● Healthy{/green-fg}';
+      case 'operational': return '{green-fg}● Healthy{/green-fg}';
       case 'degraded': return '{yellow-fg}● Degraded{/yellow-fg}';
-      case 'unhealthy': return '{red-fg}● Unhealthy{/red-fg}';
+      case 'unoperational': return '{red-fg}● Unoperational{/red-fg}';
       default: return '{gray-fg}● Unknown{/gray-fg}';
     }
   }
@@ -800,7 +800,7 @@ ${service.dependencies?.join('\n') || 'None'}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   {green-fg}● Healthy{/green-fg}           Service running normally
   {yellow-fg}● Degraded{/yellow-fg}          Service experiencing issues
-  {red-fg}● Unhealthy{/red-fg}         Service down or critical
+  {red-fg}● Unoperational{/red-fg}         Service down or critical
   {gray-fg}● Unknown{/gray-fg}           Status cannot be determined
 
 {bold}Alert Severities:{/bold}

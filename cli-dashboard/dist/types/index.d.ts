@@ -1,6 +1,6 @@
 export interface ServiceStatus {
     name: string;
-    status: 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
+    status: 'operational' | 'degraded' | 'critical' | 'maintenance' | 'warning' | 'unknown';
     uptime?: number;
     responseTime?: number;
     lastChecked: Date;
@@ -14,6 +14,30 @@ export interface ServiceStatus {
     environment?: string;
     dependencies?: string[];
     memory?: number;
+    statusDuration?: number;
+    kpis?: {
+        [key: string]: string | number;
+    };
+    errorCount?: number;
+    alertCount?: number;
+    thresholds?: {
+        [metric: string]: {
+            current: number;
+            threshold: number;
+            unit: string;
+        };
+    };
+    impact?: string;
+    troubleshooting?: {
+        commands?: string[];
+        logFiles?: string[];
+        dashboardLinks?: string[];
+    };
+    recentEvents?: {
+        timestamp: Date;
+        level: 'error' | 'warn' | 'info';
+        message: string;
+    }[];
 }
 export interface ServiceMetrics {
     name: string;
@@ -81,12 +105,24 @@ export interface AlertInfo {
     timestamp: Date;
     source: string;
     status: 'active' | 'acknowledged' | 'resolved';
+    duration?: number;
+    affectedUsers?: number;
+    affectedSystems?: string[];
+    category?: string;
 }
 export interface LogEntry {
     timestamp: Date;
     level: 'error' | 'warn' | 'info' | 'debug';
     service: string;
     message: string;
+}
+export interface SystemHealth {
+    overall: 'operational' | 'degraded' | 'critical' | 'maintenance';
+    score: number;
+    summary: string;
+    criticalIssues: number;
+    degradedServices: number;
+    totalServices: number;
 }
 export interface DashboardData {
     services: ServiceStatus[];
@@ -96,5 +132,6 @@ export interface DashboardData {
     recentAlerts: AlertInfo[];
     recentLogs: LogEntry[];
     lastUpdated: Date;
+    systemHealth: SystemHealth;
 }
 //# sourceMappingURL=index.d.ts.map

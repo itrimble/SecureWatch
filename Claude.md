@@ -1,11 +1,12 @@
 # Claude.md
 
 ## 1. Project Overview
-- **Brief description:** A comprehensive SIEM (Security Information and Event Management) platform with real-time log collection, processing, and analysis capabilities. Built with Next.js 15, this production-ready system features live Mac agent data collection, TimescaleDB storage with **extended normalized schema (100+ fields)**, KQL-powered search and visualization pipeline, real-time correlation & rules engine with automated threat detection, customizable drag-drop dashboards, interactive analytics (heatmaps, network graphs, geolocation maps), and a professional enterprise-grade UI with 25+ specialized security modules supporting **50+ enterprise security use cases** for comprehensive cybersecurity monitoring and threat detection.
+- **Brief description:** A comprehensive SIEM (Security Information and Event Management) platform with real-time log collection, processing, and analysis capabilities. Built with Next.js 15, this production-ready system features live Mac agent data collection, TimescaleDB storage with **extended normalized schema (100+ fields)**, KQL-powered search and visualization pipeline, real-time correlation & rules engine with automated threat detection, customizable drag-drop dashboards, interactive analytics (heatmaps, network graphs, geolocation maps), **enhanced CLI dashboard v2.0 with granular service monitoring and control**, and a professional enterprise-grade UI with 25+ specialized security modules supporting **50+ enterprise security use cases** for comprehensive cybersecurity monitoring and threat detection.
 - **Tech stack:**
     - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS + Professional Dark Theme, Lucide React Icons, Recharts, Interactive Visualizations (Heatmaps, Network Graphs, Geolocation Maps), Customizable Dashboards
     - **Backend**: Express.js microservices, KQL Engine, Correlation & Rules Engine, PostgreSQL/TimescaleDB
     - **Agent**: Python 3.12+ with macOS Unified Logging integration
+    - **CLI Dashboard**: Enhanced TypeScript-based terminal UI with blessed.js, granular service monitoring, collapsible panels, service control capabilities
     - **Infrastructure**: Docker Compose, Redis, Elasticsearch, Kafka
     - **Database**: TimescaleDB (PostgreSQL) with time-series optimization + Extended Normalized Schema (100+ security fields)
     - **Build**: Turbopack (development), pnpm workspaces
@@ -160,6 +161,8 @@
     - **Mac Agent:** Real-time log collection from macOS Unified Logging
     - **TimescaleDB:** Time-series database for log storage and analytics
     - **KQL Engine:** Kusto Query Language for log search and analysis
+    - **Enhanced CLI Dashboard:** TypeScript-based terminal UI with service monitoring, control, and management capabilities (`cli-dashboard/`)
+    - **Service Control System:** Automated service start/stop/restart with Docker and Node.js integration
     - **Bug Tracking System:** Python-based bug tracking with JSON persistence (`scripts/bug-tracker.py`)
     - **Test Management System:** Comprehensive testing framework with unit and E2E test tracking (`scripts/test-tracker.py`)
 - **Permissions and safety:**
@@ -216,6 +219,15 @@
       pnpm run test          # Unit tests
       pnpm run test:e2e      # E2E tests
       pnpm run test:all      # All tests
+      ```
+    - **Enhanced CLI Dashboard operations:**
+      ```bash
+      ./cli-dashboard.sh enhanced                    # Start enhanced dashboard
+      ./cli-dashboard.sh status --detailed           # All services status
+      ./cli-dashboard.sh health --verbose            # Detailed health check
+      ./cli-dashboard.sh control start Frontend      # Start specific service
+      ./cli-dashboard.sh start-all                   # Start all services
+      ./cli-dashboard.sh logs --service "Search API" --lines 100  # Service logs
       ```
 
 ## 6. Code Style and Contribution Guidelines

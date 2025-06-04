@@ -8,6 +8,7 @@ const commander_1 = require("commander");
 const data_service_1 = require("./services/data.service");
 const dashboard_ui_1 = require("./ui/dashboard.ui");
 const enhanced_dashboard_ui_1 = require("./ui/enhanced-dashboard.ui");
+const enhanced_status_display_ui_1 = require("./ui/enhanced-status-display.ui");
 const control_service_1 = require("./services/control.service");
 const dashboard_config_1 = require("./config/dashboard.config");
 const chalk_1 = __importDefault(require("chalk"));
@@ -24,6 +25,7 @@ program
     .option('-r, --refresh <seconds>', 'Refresh interval in seconds', '5')
     .option('-c, --config <path>', 'Path to configuration file')
     .option('-e, --enhanced', 'Use enhanced dashboard with service controls')
+    .option('-s, --status-view', 'Use enhanced status display view')
     .action(async (options) => {
     try {
         const config = { ...dashboard_config_1.defaultConfig };
@@ -33,10 +35,17 @@ program
         console.log(chalk_1.default.blue.bold('🛡️  SecureWatch SIEM Dashboard'));
         console.log(chalk_1.default.gray('Starting dashboard...'));
         const dataService = new data_service_1.DataService(config);
-        // Use enhanced dashboard if flag is set
-        const ui = options.enhanced
-            ? new enhanced_dashboard_ui_1.EnhancedDashboardUI(config)
-            : new dashboard_ui_1.DashboardUI(config);
+        // Use appropriate dashboard UI based on options
+        let ui;
+        if (options.statusView) {
+            ui = new enhanced_status_display_ui_1.EnhancedStatusDisplayUI();
+        }
+        else if (options.enhanced) {
+            ui = new enhanced_dashboard_ui_1.EnhancedDashboardUI(config);
+        }
+        else {
+            ui = new dashboard_ui_1.DashboardUI(config);
+        }
         // Initial data load
         const initialData = await dataService.collectDashboardData();
         ui.update(initialData);
@@ -203,7 +212,7 @@ program
         if (options.detailed) {
             // Show microservices
             data.services.forEach(service => {
-                const statusColor = service.status === 'healthy' ? chalk_1.default.green :
+                const statusColor = service.status === 'operational' ? chalk_1.default.green :
                     service.status === 'degraded' ? chalk_1.default.yellow : chalk_1.default.red;
                 servicesTable.push([
                     service.name,
@@ -228,7 +237,7 @@ program
         else {
             // Show only microservices
             data.services.forEach(service => {
-                const statusColor = service.status === 'healthy' ? chalk_1.default.green :
+                const statusColor = service.status === 'operational' ? chalk_1.default.green :
                     service.status === 'degraded' ? chalk_1.default.yellow : chalk_1.default.red;
                 servicesTable.push([
                     service.name,
@@ -263,19 +272,19 @@ program
             });
         }
         // Quick summary
-        const healthyMicroservices = data.services.filter(s => s.status === 'healthy').length;
+        const operationalMicroservices = data.services.filter(s => s.status === 'operational').length;
         const totalMicroservices = data.services.length;
-        const healthyInfrastructure = data.dockerServices.filter(s => s.status.includes('Up')).length;
+        const operationalInfrastructure = data.dockerServices.filter(s => s.status.includes('Up')).length;
         const totalInfrastructure = data.dockerServices.length;
         if (options.detailed) {
-            const totalHealthy = healthyMicroservices + healthyInfrastructure;
+            const totalHealthy = operationalMicroservices + operationalInfrastructure;
             const total = totalMicroservices + totalInfrastructure;
             const healthPercentage = (totalHealthy / total) * 100;
-            console.log(`\nOverall Health: ${getHealthColor(healthPercentage)(healthPercentage.toFixed(0) + '%')} (${totalHealthy}/${total} services healthy)`);
+            console.log(`\nOverall Health: ${getHealthColor(healthPercentage)(healthPercentage.toFixed(0) + '%')} (${totalHealthy}/${total} services operational)`);
         }
         else {
-            const healthPercentage = (healthyMicroservices / totalMicroservices) * 100;
-            console.log(`\nOverall Health: ${getHealthColor(healthPercentage)(healthPercentage.toFixed(0) + '%')} (${healthyMicroservices}/${totalMicroservices} services healthy)`);
+            const healthPercentage = (operationalMicroservices / totalMicroservices) * 100;
+            console.log(`\nOverall Health: ${getHealthColor(healthPercentage)(healthPercentage.toFixed(0) + '%')} (${operationalMicroservices}/${totalMicroservices} services operational)`);
         }
     }
     catch (error) {
@@ -358,7 +367,7 @@ program
             dockerHealth.forEach((isHealthy, serviceName) => {
                 if (!allServices.has(serviceName)) {
                     allServices.set(serviceName, {
-                        status: isHealthy ? 'healthy' : 'unhealthy',
+                        status: isHealthy ? 'operational' : 'unoperational',
                         error: isHealthy ? null : 'Service not running'
                     });
                 }
@@ -366,10 +375,10 @@ program
         }
         let allHealthy = true;
         allServices.forEach((service, name) => {
-            const statusIcon = service.status === 'healthy' ? '✅' :
+            const statusIcon = service.status === 'operational' ? '✅' :
                 service.status === 'degraded' ? '⚠️' : '❌';
             console.log(`${statusIcon} ${name}: ${service.status}`);
-            if (options.verbose && service.status === 'healthy') {
+            if (options.verbose && service.status === 'operational') {
                 if (service.responseTime) {
                     console.log(`   Response time: ${service.responseTime}ms`);
                 }
@@ -377,7 +386,7 @@ program
                     console.log(`   Uptime: ${formatUptime(service.uptime)}`);
                 }
             }
-            if (service.status !== 'healthy') {
+            if (service.status !== 'operational') {
                 allHealthy = false;
                 if (service.error) {
                     console.log(`   Error: ${service.error}`);
@@ -389,6 +398,57 @@ program
     }
     catch (error) {
         console.error(chalk_1.default.red('Health check failed:'), error);
+        process.exit(1);
+    }
+});
+// Enhanced Status Display Command
+program
+    .command('status-enhanced')
+    .alias('status-ext')
+    .description('Show enhanced status display with detailed context and troubleshooting')
+    .option('-r, --refresh <seconds>', 'Auto-refresh interval in seconds (0 to disable)', '0')
+    .option('-e, --example', 'Show example enhanced status display')
+    .action(async (options) => {
+    try {
+        if (options.example) {
+            console.log(enhanced_status_display_ui_1.EnhancedStatusDisplayUI.generateExampleDisplay());
+            return;
+        }
+        const config = { ...dashboard_config_1.defaultConfig };
+        const dataService = new data_service_1.DataService(config);
+        const ui = new enhanced_status_display_ui_1.EnhancedStatusDisplayUI();
+        if (parseInt(options.refresh) > 0) {
+            // Auto-refresh mode
+            console.log(chalk_1.default.blue.bold('🛡️  SecureWatch Enhanced Status - Auto Refresh Mode'));
+            console.log(chalk_1.default.gray(`Refresh interval: ${options.refresh} seconds\n`));
+            // Initial load
+            const initialData = await dataService.collectDashboardData();
+            ui.update(initialData);
+            // Set up periodic updates
+            const refreshInterval = setInterval(async () => {
+                try {
+                    const data = await dataService.collectDashboardData();
+                    ui.update(data);
+                }
+                catch (error) {
+                    console.error(chalk_1.default.red('Error updating data:'), error);
+                }
+            }, parseInt(options.refresh) * 1000);
+            // Clean up on exit
+            process.on('SIGINT', () => {
+                clearInterval(refreshInterval);
+                ui.destroy();
+                process.exit(0);
+            });
+        }
+        else {
+            // Single update mode
+            const data = await dataService.collectDashboardData();
+            ui.update(data);
+        }
+    }
+    catch (error) {
+        console.error(chalk_1.default.red('Enhanced status display failed:'), error);
         process.exit(1);
     }
 });
