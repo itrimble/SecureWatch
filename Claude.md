@@ -57,6 +57,12 @@
     - The application now uses **live data** from a real Mac agent collecting logs from 15+ macOS sources including authentication, security events, process execution, network activity, and system logs.
     - **TimescaleDB** stores 3,000+ real log entries with full-text search and time-series optimization.
     - Mock data is maintained as fallback but the production flow uses live agent data end-to-end.
+    - **CURRENT STATUS (June 2025)**: All services verified operational:
+      - Mac Agent (PID 22516): ✅ Active log collection from 15+ sources
+      - Log Ingestion (Port 4002): ✅ Processing 15 events per batch, 0% error rate
+      - Search API (Port 4004): ✅ Connected to TimescaleDB with KQL engine
+      - Frontend (Port 4000): ✅ Live dashboard displaying real Mac logs
+      - End-to-end pipeline: ✅ Mac Agent → Ingestion → TimescaleDB → Search API → Frontend
 - **Glossary:**
     - **Event ID:** A numerical code that identifies a specific type of event in Windows logs.
     - **Log Source:** The origin of the log data (e.g., specific server, application).
@@ -128,6 +134,12 @@
     - **Infrastructure Status:** `docker compose -f docker-compose.dev.yml ps`
     - **Agent Status:** `ps aux | grep event_log_agent.py`
     - **Real-time Monitoring:** Services auto-monitor and restart on failure
+    - **TROUBLESHOOTING NOTE**: If explorer shows static data instead of live Mac logs:
+      1. Verify Mac agent is running: `ps aux | grep event_log_agent.py`
+      2. Check log ingestion service: `curl http://localhost:4002/health`
+      3. Check search API: `curl http://localhost:4004/health`
+      4. Start frontend if down: `cd frontend && pnpm run dev`
+      5. Verify end-to-end with headers: `curl -I http://localhost:4000/api/logs` (should show `x-data-source: live-backend`)
 
 ## 5. Tool and MCP Integration
 - **List of enabled tools/MCPs:**

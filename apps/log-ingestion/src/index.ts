@@ -160,6 +160,56 @@ async function startProcessingPipeline() {
 // API endpoints
 app.use(express.json());
 
+// Agent ingest endpoint for receiving logs from agents
+app.post('/api/ingest', async (req, res) => {
+  try {
+    const logEntries = Array.isArray(req.body) ? req.body : [req.body];
+    
+    logger.info(`Received ${logEntries.length} log entries from agent`, {
+      source: req.headers['user-agent'] || 'unknown',
+      timestamp: new Date().toISOString()
+    });
+    
+    // Process each log entry
+    for (const entry of logEntries) {
+      try {
+        // Normalize the log entry
+        const normalizedEntry = await normalizer.normalize(entry);
+        
+        // TODO: Send to Kafka topic or store in database
+        logger.debug('Processed log entry', {
+          sourceIdentifier: entry.source_identifier,
+          timestamp: entry.timestamp,
+          messageLength: entry.message?.length || 0
+        });
+        
+        // For now, just log successful processing
+        metricsCollector.incrementCounter('ingest.events_received');
+      } catch (processError) {
+        logger.error('Error processing log entry', {
+          error: processError instanceof Error ? processError.message : 'Unknown error',
+          entry: entry
+        });
+        metricsCollector.incrementCounter('ingest.processing_errors');
+      }
+    }
+    
+    res.json({
+      status: 'success',
+      processed: logEntries.length,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    logger.error('Error in ingest endpoint', error);
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/health', async (req, res) => {
   const health = await healthChecker.check();

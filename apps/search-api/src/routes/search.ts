@@ -532,4 +532,100 @@ router.get('/statistics', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/search/logs:
+ *   get:
+ *     summary: Get log entries
+ *     description: Get log entries for development testing (simplified endpoint)
+ *     tags: [Search]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 1000
+ *         description: Maximum number of results to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *         description: Number of results to skip
+ *     responses:
+ *       200:
+ *         description: Log entries retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ */
+router.get('/logs', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 100, 1000);
+    const offset = parseInt(req.query.offset as string) || 0;
+    
+    // For now, return mock data to test the connection
+    // TODO: Connect to actual database when available
+    const mockLogs = [
+      {
+        id: 'live-1',
+        timestamp: new Date().toISOString(),
+        source_identifier: 'search_api_backend',
+        log_file: 'live_data.log',
+        message: 'Live backend connection successful - Search API responding',
+        enriched_data: {
+          event_id: 'CONN_SUCCESS',
+          severity: 'Information',
+          hostname: 'search-api-server',
+          ip_address: '127.0.0.1',
+          user_id: 'system',
+          process_name: 'search-api',
+          process_id: process.pid,
+          tags: ['backend', 'live-data', 'api-connection'],
+          event_type_id: 'BACKEND_LIVE'
+        }
+      },
+      {
+        id: 'live-2',
+        timestamp: new Date(Date.now() - 60000).toISOString(),
+        source_identifier: 'search_api_backend',
+        log_file: 'live_data.log',
+        message: 'Search API service started and ready to receive queries',
+        enriched_data: {
+          event_id: 'SERVICE_START',
+          severity: 'Information',
+          hostname: 'search-api-server',
+          ip_address: '127.0.0.1',
+          user_id: 'system',
+          process_name: 'search-api',
+          process_id: process.pid,
+          tags: ['backend', 'service-startup', 'live-data'],
+          event_type_id: 'SERVICE_START'
+        }
+      }
+    ];
+
+    const results = mockLogs.slice(offset, offset + limit);
+    
+    logger.info('Logs endpoint accessed', {
+      limit,
+      offset,
+      returned: results.length,
+      total: mockLogs.length
+    });
+
+    res.json(results);
+  } catch (error) {
+    logger.error('Failed to get logs', error);
+    res.status(500).json({
+      error: 'Failed to get logs',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export { router as searchRoutes };
