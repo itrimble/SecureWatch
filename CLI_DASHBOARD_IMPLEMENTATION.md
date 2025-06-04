@@ -1,23 +1,28 @@
-# SecureWatch CLI Dashboard - Implementation Summary
+# SecureWatch CLI Dashboard v2.0 - Enhanced Implementation Summary
 
 ## 📋 Overview
 
-Successfully implemented a comprehensive Command Line Interface (CLI) Dashboard for SecureWatch SIEM, providing administrators and engineers with powerful monitoring and diagnostic capabilities.
+Successfully implemented a comprehensive Enhanced Command Line Interface (CLI) Dashboard for SecureWatch SIEM, providing administrators and engineers with powerful monitoring, diagnostic, and service control capabilities with granular service monitoring and collapsible panels.
 
 ## ✅ Completed Features
 
-### 1. Core Service Monitoring ✓
-- **Real-time health checks** for all 5 SecureWatch services
+### 1. Enhanced Service Monitoring ✓
+- **Granular monitoring** for all 15+ SecureWatch services (microservices, infrastructure, agents)
+- **Real-time health checks** with health score percentages  
 - **Response time monitoring** with millisecond precision
-- **Uptime tracking** and service availability metrics
-- **Error detection and reporting** with detailed diagnostics
+- **Memory usage tracking** and resource consumption
+- **Service dependencies** mapping and version tracking
+- **Port information** and endpoint monitoring
 
-### 2. Interactive Dashboard UI ✓
-- **6-panel layout** with specialized information displays
-- **Terminal-based interface** using blessed.js framework
-- **Keyboard navigation** with intuitive controls (Tab, arrows, etc.)
+### 2. Enhanced Dashboard UI ✓
+- **Collapsible panel system** with space-optimized layout (press 'c' or Space)
+- **Dynamic resizing** based on panel collapse states
+- **Service selection navigation** with arrow keys and service highlighting
+- **Multi-panel layout** with service details, control panels, and metrics
+- **Terminal-based interface** using blessed.js framework with enhanced typography
+- **Keyboard navigation** with comprehensive controls and shortcuts
 - **Real-time updates** with configurable refresh intervals
-- **Color-coded status indicators** for quick visual assessment
+- **Color-coded status indicators** and health percentage displays
 
 ### 3. System Resource Monitoring ✓
 - **CPU utilization** with load average tracking
@@ -43,22 +48,32 @@ Successfully implemented a comprehensive Command Line Interface (CLI) Dashboard 
 - **Service-specific log filtering** and viewing
 - **Configurable log tail** functionality
 
-### 7. Command-line Tools ✓
-- **Health check command** with exit codes for automation
-- **Status overview** with formatted tables
-- **Log viewing utilities** with service filtering
-- **JSON output support** for script integration
+### 7. Service Control System ✓
+- **Interactive service control** with keyboard shortcuts (s=start, S=stop, r=restart)
+- **Command-line service control** for automation scripts
+- **Bulk operations** (start-all, stop-all) with proper sequencing
+- **Docker service management** with container lifecycle control
+- **Node.js service management** with process monitoring
+- **Python agent control** for log collection services
+
+### 8. Enhanced Command-line Tools ✓
+- **Health check command** with verbose output and exit codes
+- **Detailed status overview** including infrastructure services
+- **Enhanced log viewing** with service filtering and follow mode
+- **Service-specific operations** with granular control
+- **JSON output support** for script integration and automation
 
 ## 🏗️ Architecture
 
 ### Technology Stack
-- **TypeScript**: Type-safe development with strict typing
-- **Node.js**: Runtime environment with 18+ compatibility
-- **Blessed**: Terminal UI framework for interactive dashboards
-- **Axios**: HTTP client for API communication
-- **Commander**: CLI argument parsing and command structure
-- **Chalk**: Terminal color output and formatting
+- **TypeScript**: Type-safe development with enhanced interfaces for service control
+- **Node.js**: Runtime environment with 18+ compatibility and child process management
+- **Blessed**: Terminal UI framework for interactive dashboards with collapsible panels
+- **Axios**: HTTP client for API communication and health checks
+- **Commander**: CLI argument parsing and enhanced command structure
+- **Chalk**: Terminal color output and formatting with status indicators
 - **Moment**: Date/time formatting and manipulation
+- **Service Control**: Docker, Node.js process management, and Python agent control
 
 ### Project Structure
 ```
@@ -66,17 +81,21 @@ cli-dashboard/
 ├── src/
 │   ├── config/           # Configuration management
 │   ├── services/         # Core service layers
-│   │   ├── api.service.ts      # API communication
-│   │   ├── system.service.ts   # System monitoring
-│   │   └── data.service.ts     # Data aggregation
-│   ├── types/            # TypeScript type definitions
+│   │   ├── api.service.ts         # API communication
+│   │   ├── system.service.ts      # System monitoring
+│   │   ├── data.service.ts        # Data aggregation
+│   │   └── control.service.ts     # Service control & management
+│   ├── types/            # Enhanced TypeScript type definitions
 │   ├── ui/               # User interface components
-│   └── index.ts          # Main CLI entry point
+│   │   ├── dashboard.ui.ts        # Standard dashboard
+│   │   └── enhanced-dashboard.ui.ts  # Enhanced dashboard with controls
+│   └── index.ts          # Main CLI entry point with enhanced commands
 ├── dist/                 # Compiled JavaScript output
 ├── package.json          # Dependencies and scripts
 ├── tsconfig.json         # TypeScript configuration
 ├── README.md             # Comprehensive documentation
-└── USAGE_EXAMPLES.md     # Detailed usage examples
+├── USAGE_EXAMPLES.md     # Detailed usage examples
+└── ENHANCED_FEATURES.md  # Enhanced features documentation
 ```
 
 ### Service Integration

@@ -160,54 +160,105 @@ curl http://localhost:4002/health      # Log Ingestion
 | **Correlation Engine** | http://localhost:4005 | Rules & correlation engine |
 | **API Documentation** | http://localhost:4004/api-docs | OpenAPI/Swagger docs |
 
-## 🖥️ CLI Dashboard
+## 🖥️ Enhanced CLI Dashboard v2.0
 
-SecureWatch includes a comprehensive command-line dashboard for administrators and engineers:
+SecureWatch includes a comprehensive command-line dashboard with **granular service monitoring** and **service control capabilities**:
+
+### 🚀 Enhanced Dashboard Features
+- **Granular Service Monitoring**: All 15+ services (microservices, infrastructure, agents)
+- **Collapsible Panels**: Space-optimized layout with toggle controls (press `c` or `Space`)
+- **Service Control**: Start/stop/restart services directly from the dashboard
+- **Real-time Metrics**: Health scores, response times, memory usage, dependencies
+- **Advanced Navigation**: Keyboard shortcuts and service selection
 
 ### Quick Commands
 ```bash
-# Health check all services
-./cli-dashboard.sh health
+# Enhanced dashboard with service controls
+./cli-dashboard.sh enhanced
 
-# System status overview
-./cli-dashboard.sh status
-
-# Interactive real-time dashboard
+# Standard interactive dashboard
 ./cli-dashboard.sh dashboard
 
-# Recent logs from all services
-./cli-dashboard.sh logs
+# Service control operations
+./cli-dashboard.sh control start Frontend
+./cli-dashboard.sh control stop "Search API"
+./cli-dashboard.sh control restart "Log Ingestion"
 
-# Service-specific logs
-./cli-dashboard.sh logs --service search-api --lines 50
+# Bulk service operations
+./cli-dashboard.sh start-all
+./cli-dashboard.sh stop-all
+
+# System status with all services
+./cli-dashboard.sh status --detailed
+
+# Health check with verbose output
+./cli-dashboard.sh health --verbose
+
+# Service-specific logs with filtering
+./cli-dashboard.sh logs --service "Analytics Engine" --lines 100
 ```
 
-### Interactive Dashboard Features
-- **Real-time monitoring** with 6 information panels
-- **Service status tracking** with health indicators
-- **System resource monitoring** (CPU, memory, disk)
-- **Docker infrastructure status** with container monitoring
-- **Recent alerts panel** showing security events
-- **Live log streaming** from all services
-- **Keyboard navigation** with intuitive controls
+### Enhanced Dashboard Features
+- **Granular Service Monitoring**: Complete coverage of microservices, infrastructure, and agents
+- **Collapsible Panels**: Dynamic layout optimization for space constraints
+- **Service Control**: Interactive start/stop/restart with keyboard shortcuts
+- **Real-time Metrics**: Health scores, response times, memory usage tracking
+- **System Resource Monitoring**: CPU, memory, disk with color-coded alerts
+- **Live Log Streaming**: Real-time logs with service filtering and search
+- **Advanced Navigation**: Service selection, panel navigation, view modes
 
-### CLI Dashboard Layout
+### Service Categories
+#### Microservices
+- Frontend (Port 4000), Search API (Port 4004), Log Ingestion (Port 4002)
+- Correlation Engine (Port 4005), Analytics Engine (Port 4006)
+- Auth Service (Port 4001), API Gateway (Port 4003)
+
+#### Infrastructure  
+- PostgreSQL (Port 5432), Redis (Port 6379), Kafka (Port 9092)
+- Zookeeper (Port 2181), Elasticsearch (Port 9200), Kibana (Port 5601)
+
+#### Agents
+- Mac Agent, Windows Agent, Linux Agent
+
+### Enhanced Dashboard Layout
 ```
-┌─────────────────────┬─────────────────────┐
-│   Service Status    │  System Resources   │
-│ ✅ Frontend         │ CPU:     45.2%      │
-│ ✅ Search API       │ Memory:  12.4GB     │
-│ ✅ Log Ingestion    │ Disk:    8% used    │
-├─────────────────────┼─────────────────────┤
-│  Platform Metrics   │  Docker Services    │
-│ Cache Hit: 92.3%    │ ✅ PostgreSQL       │
-│ Avg Latency: 45ms   │ ✅ Redis            │
-├─────────────────────┼─────────────────────┤
-│   Recent Alerts     │   Live Log Stream   │
-│ 🔴 Failed logins    │ [INFO] Processing   │
-│ 🟡 High CPU usage   │ [DEBUG] Cache hit   │
-└─────────────────────┴─────────────────────┘
+┌─────────────────────┬─────────────────────┬─────────────────────┐
+│   Microservices     │  System Resources   │   Service Details   │
+│ → Frontend          │ CPU:     10.4%      │ Frontend            │
+│   Search API        │ Memory:  99%        │ ━━━━━━━━━━━━━━━━━━━ │
+│   Log Ingestion     │ Disk:    4%         │ Status: ● Healthy   │
+│   Correlation Eng   │                     │ Health: 95%         │
+├─────────────────────┼─────────────────────┤ Response: 22ms      │
+│   Infrastructure    │  Docker Services    │ Port: 4000          │
+│ ✅ PostgreSQL       │ ✅ postgres         │                     │
+│ ✅ Redis            │ ✅ redis            │ Service Controls    │
+│ ✅ Kafka            │ ✅ kafka            │ ━━━━━━━━━━━━━━━━━━━ │
+├─────────────────────┼─────────────────────┤ [s] Start Service   │
+│   Recent Alerts     │   Live Log Stream   │ [S] Stop Service    │
+│ 🔴 Failed logins    │ [INFO] Processing   │ [r] Restart Service │
+│ 🟡 Network activity │ [DEBUG] Cache hit   │ [l] View Logs       │
+└─────────────────────┴─────────────────────┴─────────────────────┘
 ```
+
+### Enhanced Keyboard Controls
+#### Navigation
+- **Tab/Shift+Tab**: Navigate between panels
+- **↑/↓ or k/j**: Navigate services within panel
+- **c or Space**: Collapse/expand current panel
+
+#### Service Control
+- **s**: Start selected service
+- **S**: Stop selected service (Shift+s)
+- **r**: Restart selected service
+- **l**: View service logs
+- **m**: View service metrics
+
+#### Quick Actions
+- **F1**: Start all services
+- **F2**: Stop all services  
+- **F3**: Restart all services
+- **F4**: Health check all services
+- **1/2/3**: Switch view modes (all/critical/compact)
 
 ### 🏥 Health Monitoring
 
