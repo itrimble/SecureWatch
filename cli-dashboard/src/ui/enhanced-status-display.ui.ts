@@ -17,7 +17,11 @@ export class EnhancedStatusDisplayUI {
     this.screen = blessed.screen({
       smartCSR: true,
       title: 'SecureWatch SIEM Status - Enhanced View',
-      fullUnicode: true
+      fullUnicode: false,
+      autoPadding: true,
+      warnings: false,
+      terminal: 'ansi',
+      resizeTimeout: 300
     });
 
     this.setupLayout();

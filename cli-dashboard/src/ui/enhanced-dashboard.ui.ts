@@ -44,7 +44,11 @@ export class EnhancedDashboardUI {
     this.screen = blessed.screen({
       smartCSR: true,
       title: 'SecureWatch SIEM Dashboard - Enhanced',
-      fullUnicode: true
+      fullUnicode: false,
+      autoPadding: true,
+      warnings: false,
+      terminal: 'ansi',
+      resizeTimeout: 300
     });
 
     this.controlService = new ServiceControlService();
@@ -122,19 +126,19 @@ export class EnhancedDashboardUI {
   }
 
   private createMicroservicesPanel() {
-    this.widgets.microservicesPanel = this.grid.set(3, 0, 6, 8, contrib.table, {
+    this.widgets.microservicesPanel = this.grid.set(3, 0, 5, 8, contrib.table, {
       keys: true,
       vi: true,
       mouse: true,
-      label: ' Microservices [Tab to collapse] ',
+      label: ' Microservices [Space to collapse] ',
       columnSpacing: 2,
       columnWidth: [20, 12, 10, 15, 15, 10],
       style: {
-        border: { fg: 'cyan' },
+        border: { fg: 'white' },
         header: { fg: 'white', bold: true },
         cell: { 
-          selected: { bg: 'blue', fg: 'white' },
-          hover: { bg: 'magenta' }
+          selected: { bg: 'white', fg: 'black' },
+          hover: { bg: 'gray' }
         }
       },
       scrollbar: {
@@ -146,51 +150,58 @@ export class EnhancedDashboardUI {
   }
 
   private createInfrastructurePanel() {
-    this.widgets.infrastructurePanel = this.grid.set(9, 0, 4, 8, contrib.table, {
+    this.widgets.infrastructurePanel = this.grid.set(8, 0, 4, 8, contrib.table, {
       keys: true,
       vi: true,
       mouse: true,
-      label: ' Infrastructure Services [Tab to collapse] ',
+      label: ' Infrastructure Services [Space to collapse] ',
       columnSpacing: 2,
       columnWidth: [20, 12, 15, 15, 10],
       style: {
-        border: { fg: 'green' },
+        border: { fg: 'white' },
         header: { fg: 'white', bold: true },
-        cell: { selected: { bg: 'blue' } }
+        cell: { 
+          selected: { bg: 'white', fg: 'black' },
+          hover: { bg: 'gray' }
+        }
       }
     });
   }
 
   private createSystemResourcesPanel() {
-    this.widgets.systemResourcesPanel = this.grid.set(13, 0, 3, 8, contrib.gauge, {
-      label: ' System Resources [Tab to collapse] ',
+    this.widgets.systemResourcesPanel = this.grid.set(12, 0, 3, 8, contrib.gauge, {
+      label: ' System Resources [Space to collapse] ',
       gaugeSpacing: 1,
       gaugeHeight: 1,
       style: {
-        border: { fg: 'yellow' }
+        border: { fg: 'white' }
       }
     });
   }
 
   private createAlertsPanel() {
-    this.widgets.alertsPanel = this.grid.set(16, 0, 4, 8, contrib.table, {
+    this.widgets.alertsPanel = this.grid.set(15, 0, 4, 8, contrib.table, {
       keys: true,
       vi: true,
-      label: ' Recent Alerts [Tab to collapse] ',
+      label: ' Recent Alerts [Space to collapse] ',
       columnSpacing: 1,
       columnWidth: [15, 10, 30, 10],
       style: {
-        border: { fg: 'red' },
-        header: { fg: 'white', bold: true }
+        border: { fg: 'white' },
+        header: { fg: 'white', bold: true },
+        cell: { 
+          selected: { bg: 'white', fg: 'black' },
+          hover: { bg: 'gray' }
+        }
       }
     });
   }
 
   private createLogsPanel() {
-    this.widgets.logsPanel = this.grid.set(20, 0, 4, 8, contrib.log, {
+    this.widgets.logsPanel = this.grid.set(19, 0, 3, 8, contrib.log, {
       keys: true,
       vi: true,
-      label: ' Live Logs [Tab to collapse] ',
+      label: ' Live Logs [Space to collapse] ',
       style: {
         border: { fg: 'white' },
         text: { fg: 'white' }
@@ -208,28 +219,28 @@ export class EnhancedDashboardUI {
       content: 'Select a service to view details',
       tags: true,
       style: {
-        border: { fg: 'magenta' }
+        border: { fg: 'white' }
       },
       scrollable: true
     });
 
     // Service controls
-    this.widgets.serviceControls = this.grid.set(11, 8, 5, 4, blessed.box, {
+    this.widgets.serviceControls = this.grid.set(11, 8, 4, 4, blessed.box, {
       label: ' Service Controls ',
       content: '',
       tags: true,
       style: {
-        border: { fg: 'cyan' }
+        border: { fg: 'white' }
       }
     });
 
     // Quick actions
-    this.widgets.quickActions = this.grid.set(16, 8, 4, 4, blessed.box, {
+    this.widgets.quickActions = this.grid.set(15, 8, 4, 4, blessed.box, {
       label: ' Quick Actions ',
       content: '',
       tags: true,
       style: {
-        border: { fg: 'yellow' }
+        border: { fg: 'white' }
       }
     });
 
@@ -336,19 +347,86 @@ export class EnhancedDashboardUI {
   }
 
   private highlightActivePanel() {
-    // Update panel borders to show active state
-    Object.keys(this.widgets).forEach(key => {
-      if (this.widgets[key].style && this.widgets[key].style.border) {
-        this.widgets[key].style.border.bold = false;
+    try {
+      // Reset all panel borders and labels to normal state
+      const panelInfo = {
+        'microservicesPanel': ' Microservices [Space to collapse] ',
+        'infrastructurePanel': ' Infrastructure Services [Space to collapse] ',
+        'systemResourcesPanel': ' System Resources [Space to collapse] ',
+        'alertsPanel': ' Recent Alerts [Space to collapse] ',
+        'logsPanel': ' Live Logs [Space to collapse] '
+      };
+
+      Object.keys(this.widgets).forEach(key => {
+        try {
+          if (this.widgets[key]?.style?.border) {
+            this.widgets[key].style.border.bold = false;
+            this.widgets[key].style.border.fg = 'white';
+            this.widgets[key].style.border.bg = 'black';
+            this.widgets[key].style.border.type = 'line';
+          }
+          
+          // Reset labels
+          if (panelInfo[key as keyof typeof panelInfo] && this.widgets[key]?.setLabel) {
+            this.widgets[key].setLabel(panelInfo[key as keyof typeof panelInfo]);
+          }
+        } catch (error) {
+          // Skip this widget if there's an error
+          console.debug(`Skipping widget ${key}:`, error);
+        }
+      });
+
+    // Highlight active panel with distinct visual markers
+    const panelMap: { [key: string]: string } = {
+      'microservices': 'microservicesPanel',
+      'infrastructure': 'infrastructurePanel', 
+      'system': 'systemResourcesPanel',
+      'alerts': 'alertsPanel',
+      'logs': 'logsPanel'
+    };
+
+      const activeWidget = this.widgets[panelMap[this.activePanel]];
+      if (activeWidget) {
+        try {
+          if (activeWidget.style?.border) {
+            // Make active panel very visible with thick border and bright color
+            activeWidget.style.border.bold = true;
+            activeWidget.style.border.fg = 'black';
+            activeWidget.style.border.bg = 'white';
+            activeWidget.style.border.type = 'heavy';
+          }
+          
+          // Update the label to show it's active
+          const panelLabels = {
+            'microservicesPanel': ' Microservices [Space to collapse] ',
+            'infrastructurePanel': ' Infrastructure Services [Space to collapse] ',
+            'systemResourcesPanel': ' System Resources [Space to collapse] ',
+            'alertsPanel': ' Recent Alerts [Space to collapse] ',
+            'logsPanel': ' Live Logs [Space to collapse] '
+          };
+          
+          const originalLabel = panelLabels[panelMap[this.activePanel] as keyof typeof panelLabels];
+          if (originalLabel && activeWidget.setLabel) {
+            activeWidget.setLabel(`*** ACTIVE *** ${originalLabel} *** ACTIVE ***`);
+          }
+          
+          if (activeWidget.focus) {
+            activeWidget.focus();
+          }
+        } catch (error) {
+          console.debug('Error highlighting active panel:', error);
+        }
       }
-    });
 
-    const activeWidget = this.widgets[`${this.activePanel}Panel`];
-    if (activeWidget && activeWidget.style) {
-      activeWidget.style.border.bold = true;
+      // Update bottom bar with clear navigation instructions
+      this.updateBottomBar(`🔍 ACTIVE: ${this.activePanel.toUpperCase()} | Tab: Next Panel | Space: Toggle Collapse | ↑↓: Navigate | q: Quit`);
+      this.screen.render();
+    } catch (error) {
+      console.error('Error in highlightActivePanel:', error);
+      // Fallback: just update bottom bar
+      this.updateBottomBar(`Navigation: Tab=Next Panel | Space=Collapse | q=Quit`);
+      this.screen.render();
     }
-
-    this.screen.render();
   }
 
   private reorganizeLayout() {
@@ -692,35 +770,35 @@ ${service.dependencies?.join('\n') || 'None'}
 
   private formatServiceStatus(status: string): string {
     switch (status) {
-      case 'operational': return '{green-fg}● Healthy{/green-fg}';
-      case 'degraded': return '{yellow-fg}● Degraded{/yellow-fg}';
-      case 'unoperational': return '{red-fg}● Unoperational{/red-fg}';
-      default: return '{gray-fg}● Unknown{/gray-fg}';
+      case 'operational': return '{white-fg}✓ Healthy{/white-fg}';
+      case 'degraded': return '{gray-fg}! Degraded{/gray-fg}';
+      case 'unoperational': return '{white-bg}{black-fg} ✗ Failed {/black-fg}{/white-bg}';
+      default: return '{gray-fg}? Unknown{/gray-fg}';
     }
   }
 
   private formatDockerStatus(status: string): string {
-    if (status.includes('Up')) return '{green-fg}● Running{/green-fg}';
-    if (status.includes('Exit')) return '{red-fg}● Stopped{/red-fg}';
-    if (status.includes('Paused')) return '{yellow-fg}● Paused{/yellow-fg}';
-    return `{gray-fg}● ${status}{/gray-fg}`;
+    if (status.includes('Up')) return '{white-fg}▶ Running{/white-fg}';
+    if (status.includes('Exit')) return '{white-bg}{black-fg} ■ Stopped {/black-fg}{/white-bg}';
+    if (status.includes('Paused')) return '{gray-fg}⏸ Paused{/gray-fg}';
+    return `{gray-fg}? ${status}{/gray-fg}`;
   }
 
   private formatSeverity(severity: string): string {
     switch (severity) {
-      case 'critical': return '{red-fg}█ CRIT{/red-fg}';
-      case 'high': return '{red-fg}▓ HIGH{/red-fg}';
-      case 'medium': return '{yellow-fg}▒ MED{/yellow-fg}';
-      case 'low': return '{blue-fg}░ LOW{/blue-fg}';
+      case 'critical': return '{white-bg}{black-fg} !!! CRITICAL !!! {/black-fg}{/white-bg}';
+      case 'high': return '{white-fg}▓ HIGH{/white-fg}';
+      case 'medium': return '{gray-fg}▒ MEDIUM{/gray-fg}';
+      case 'low': return '{gray-fg}░ LOW{/gray-fg}';
       default: return severity.toUpperCase();
     }
   }
 
   private formatLogLevel(level: string): string {
     switch (level.toLowerCase()) {
-      case 'error': return '{red-fg}[ERROR]{/red-fg}';
-      case 'warn': return '{yellow-fg}[WARN ]{/yellow-fg}';
-      case 'info': return '{green-fg}[INFO ]{/green-fg}';
+      case 'error': return '{white-bg}{black-fg}[ERROR]{/black-fg}{/white-bg}';
+      case 'warn': return '{white-fg}[WARN ]{/white-fg}';
+      case 'info': return '{gray-fg}[INFO ]{/gray-fg}';
       case 'debug': return '{gray-fg}[DEBUG]{/gray-fg}';
       default: return `[${level.toUpperCase().padEnd(5)}]`;
     }
@@ -754,61 +832,61 @@ ${service.dependencies?.join('\n') || 'None'}
 
 {bold}Navigation & Controls:{/bold}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  {cyan-fg}Tab / Shift+Tab{/cyan-fg}     Navigate between panels
-  {cyan-fg}↑/↓ or k/j{/cyan-fg}          Navigate services within panel
-  {cyan-fg}←/→{/cyan-fg}                 Scroll horizontally in tables
-  {cyan-fg}PgUp/PgDn{/cyan-fg}           Page through long lists
-  {cyan-fg}Home/End{/cyan-fg}            Jump to start/end of list
-  {cyan-fg}c or Space{/cyan-fg}          Collapse/Expand current panel
+  {white-fg}Tab / Shift+Tab{/white-fg}     Navigate between panels
+  {white-fg}↑/↓ or k/j{/white-fg}          Navigate services within panel
+  {white-fg}←/→{/white-fg}                 Scroll horizontally in tables
+  {white-fg}PgUp/PgDn{/white-fg}           Page through long lists
+  {white-fg}Home/End{/white-fg}            Jump to start/end of list
+  {white-fg}Space{/white-fg}               Collapse/Expand current panel
 
 {bold}Service Management:{/bold}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  {green-fg}s{/green-fg}                   Start selected service
-  {red-fg}S (Shift+s){/red-fg}         Stop selected service
-  {yellow-fg}r{/yellow-fg}                   Restart selected service
-  {blue-fg}l{/blue-fg}                   View service logs
-  {cyan-fg}m{/cyan-fg}                   View service metrics
-  {magenta-fg}d{/magenta-fg}                   View detailed service info
+  {white-fg}s{/white-fg}                   Start selected service
+  {white-fg}S (Shift+s){/white-fg}         Stop selected service
+  {white-fg}r{/white-fg}                   Restart selected service
+  {white-fg}l{/white-fg}                   View service logs
+  {white-fg}m{/white-fg}                   View service metrics
+  {white-fg}d{/white-fg}                   View detailed service info
 
 {bold}Quick Actions:{/bold}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  {green-fg}F1{/green-fg}                  Start all services
-  {red-fg}F2{/red-fg}                  Stop all services
-  {yellow-fg}F3{/yellow-fg}                  Restart all services
-  {blue-fg}F4{/blue-fg}                  Run health check on all services
-  {cyan-fg}F5 or R{/cyan-fg}             Refresh dashboard data
+  {white-fg}F1{/white-fg}                  Start all services
+  {white-fg}F2{/white-fg}                  Stop all services
+  {white-fg}F3{/white-fg}                  Restart all services
+  {white-fg}F4{/white-fg}                  Run health check on all services
+  {white-fg}F5 or R{/white-fg}             Refresh dashboard data
 
 {bold}View Modes:{/bold}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   {white-fg}1{/white-fg}                   All services view
-  {red-fg}2{/red-fg}                   Critical services only
-  {blue-fg}3{/blue-fg}                   Compact view
+  {white-fg}2{/white-fg}                   Critical services only
+  {white-fg}3{/white-fg}                   Compact view
 
 {bold}Other Commands:{/bold}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  {yellow-fg}h or ?{/yellow-fg}              Show this help
-  {red-fg}q or ESC or Ctrl+C{/red-fg}  Quit dashboard
+  {white-fg}h or ?{/white-fg}              Show this help
+  {white-fg}q or ESC or Ctrl+C{/white-fg}  Quit dashboard
 
 {bold}Service Categories:{/bold}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  {cyan-fg}Microservices:{/cyan-fg}      Frontend, APIs, Engines
-  {green-fg}Infrastructure:{/green-fg}     Database, Cache, Queue, Search
-  {yellow-fg}Monitoring:{/yellow-fg}         Prometheus, Grafana, Jaeger
-  {magenta-fg}Agents:{/magenta-fg}             Platform-specific collectors
+  {white-fg}Microservices:{/white-fg}      Frontend, APIs, Engines
+  {white-fg}Infrastructure:{/white-fg}     Database, Cache, Queue, Search
+  {white-fg}Monitoring:{/white-fg}         Prometheus, Grafana, Jaeger
+  {white-fg}Agents:{/white-fg}             Platform-specific collectors
 
 {bold}Status Indicators:{/bold}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  {green-fg}● Healthy{/green-fg}           Service running normally
-  {yellow-fg}● Degraded{/yellow-fg}          Service experiencing issues
-  {red-fg}● Unoperational{/red-fg}         Service down or critical
-  {gray-fg}● Unknown{/gray-fg}           Status cannot be determined
+  {white-fg}✓ Healthy{/white-fg}           Service running normally
+  {gray-fg}! Degraded{/gray-fg}          Service experiencing issues
+  {white-bg}{black-fg} ✗ Failed {/black-fg}{/white-bg}         Service down or critical
+  {gray-fg}? Unknown{/gray-fg}           Status cannot be determined
 
 {bold}Alert Severities:{/bold}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  {red-fg}█ CRITICAL{/red-fg}          Immediate action required
-  {red-fg}▓ HIGH{/red-fg}              High priority issue
-  {yellow-fg}▒ MEDIUM{/yellow-fg}            Moderate priority
-  {blue-fg}░ LOW{/blue-fg}               Informational
+  {white-bg}{black-fg} !!! CRITICAL !!! {/black-fg}{/white-bg}  Immediate action required
+  {white-fg}▓ HIGH{/white-fg}              High priority issue
+  {gray-fg}▒ MEDIUM{/gray-fg}            Moderate priority
+  {gray-fg}░ LOW{/gray-fg}               Informational
 
 Press any key to close this help...
 `;
@@ -847,7 +925,15 @@ Press any key to close this help...
   }
 
   render() {
-    this.screen.render();
+    try {
+      // Initialize active panel highlighting on first render
+      this.highlightActivePanel();
+      this.screen.render();
+    } catch (error) {
+      console.error('Error rendering dashboard:', error);
+      // Fallback: render without highlighting
+      this.screen.render();
+    }
   }
 
   destroy() {

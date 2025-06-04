@@ -80,12 +80,25 @@ case "$COMMAND" in
         cd "$CLI_DIR"
         node dist/index.js logs "$@"
         ;;
+    "status-enhanced"|"status-ext")
+        echo -e "${GREEN}Starting enhanced status display...${NC}"
+        echo -e "${CYAN}Enhanced status includes troubleshooting and detailed context${NC}"
+        cd "$CLI_DIR"
+        node dist/index.js status-enhanced "$@"
+        ;;
+    "example-status")
+        echo -e "${GREEN}Showing example enhanced status display...${NC}"
+        cd "$CLI_DIR"
+        node dist/index.js status-enhanced --example
+        ;;
     "help"|"-h"|"--help")
         echo "Usage: $0 [command] [options]"
         echo ""
         echo "Commands:"
         echo "  dashboard, dash         Start interactive dashboard (default)"
         echo "  enhanced, edash         Start enhanced dashboard with service controls"
+        echo "  status-enhanced         Enhanced status display with troubleshooting"
+        echo "  example-status          Show example enhanced status output"
         echo "  control <action> <svc>  Control services (start/stop/restart)"
         echo "  start-all               Start all SecureWatch services"
         echo "  stop-all                Stop all SecureWatch services"

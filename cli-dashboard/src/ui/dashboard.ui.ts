@@ -13,7 +13,12 @@ export class DashboardUI {
   constructor(private config: DashboardConfig) {
     this.screen = blessed.screen({
       smartCSR: true,
-      title: 'SecureWatch SIEM Dashboard'
+      title: 'SecureWatch SIEM Dashboard',
+      fullUnicode: false,
+      autoPadding: true,
+      warnings: false,
+      terminal: 'ansi',
+      resizeTimeout: 300
     });
 
     this.setupLayout();
