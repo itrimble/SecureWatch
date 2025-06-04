@@ -1,31 +1,55 @@
 {
   "name": "@securewatch/analytics-engine",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "KQL Analytics Engine for SecureWatch SIEM - Ad-hoc analysis, threat hunting, and historical investigations",
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@securewatch/data-models": "workspace:*",
     "@securewatch/shared-utils": "workspace:*",
     "@securewatch/kql-engine": "workspace:*",
-    "bull": "^4.16.5",
     "express": "^4.21.2",
-    "ioredis": "^5.4.2",
-    "ml-matrix": "^6.12.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "dotenv": "^16.3.1",
     "pg": "^8.16.0",
-    "tensorflow": "^0.7.0",
-    "winston": "^3.17.0"
+    "ioredis": "^5.4.2",
+    "node-cron": "^3.0.3",
+    "apache-arrow": "^14.0.2",
+    "antlr4": "^4.13.1",
+    "winston": "^3.17.0",
+    "express-rate-limit": "^7.1.5",
+    "express-validator": "^7.0.1",
+    "bull": "^4.16.5",
+    "ml-matrix": "^6.12.1",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",
+    "@types/cors": "^2.8.17",
+    "@types/compression": "^1.7.5",
     "@types/node": "^20",
     "@types/pg": "^8.15.2",
+    "@types/node-cron": "^3.0.11",
+    "@types/uuid": "^9.0.7",
     "tsx": "^4.19.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.8",
+    "eslint": "^8.53.0",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
