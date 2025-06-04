@@ -10,6 +10,7 @@ import InsiderThreatDashboard from '@/components/visualization/InsiderThreatDash
 import MalwareDefenseDashboard from '@/components/visualization/MalwareDefenseDashboard';
 import SupplyChainRiskDashboard from '@/components/visualization/SupplyChainRiskDashboard';
 import CASBDashboard from '@/components/visualization/CASBDashboard';
+import ThreatGeolocationMap from '@/components/visualization/ThreatGeolocationMap';
 
 type TabName =
   | 'Timeline'
@@ -20,7 +21,8 @@ type TabName =
   | 'Supply Chain Risk'
   | 'CASB'
   | 'Correlation Graph'
-  | 'Heatmaps';
+  | 'Heatmaps'
+  | 'Threat Map';
 
 const VisualizationsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabName>('Timeline');
@@ -34,7 +36,8 @@ const VisualizationsPage: React.FC = () => {
     'Supply Chain Risk',
     'CASB',
     'Correlation Graph',
-    'Heatmaps'
+    'Heatmaps',
+    'Threat Map'
   ];
 
   const renderTabContent = () => {
@@ -57,6 +60,8 @@ const VisualizationsPage: React.FC = () => {
         return <CorrelationGraphPlaceholder />;
       case 'Heatmaps':
         return <HeatmapsPlaceholder />;
+      case 'Threat Map':
+        return <ThreatGeolocationMap />;
       default:
         return null;
     }

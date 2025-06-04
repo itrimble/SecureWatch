@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdvancedFilterPanel from '@/components/explorer/AdvancedFilterPanel';
 import EventsTable from '@/components/explorer/EventsTable';
+import KQLSearchVisualization from '@/components/kql-search-visualization';
 import type { LogEntry } from '@/lib/types/log_entry';
 // import EventDetailsModal from '@/components/explorer/EventDetailsModal'; // Will be used later
 
@@ -62,14 +64,27 @@ const ExplorerPage: React.FC = () => {
         <p className="text-muted-foreground mt-2">Search and analyze security events from your systems</p>
       </div>
       
-      <AdvancedFilterPanel onFiltersApplied={handleFiltersApplied} />
-      <EventsTable 
-        logEntries={logEntries}
-        isLoading={isLoading}
-        error={error}
-        appliedFilters={appliedFilters}
-        // onOpenModal={handleOpenModal} // Pass this if modal is enabled
-      />
+      <Tabs defaultValue="explorer" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="explorer">Event Explorer</TabsTrigger>
+          <TabsTrigger value="kql">KQL Search & Visualization</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="explorer" className="space-y-6 mt-6">
+          <AdvancedFilterPanel onFiltersApplied={handleFiltersApplied} />
+          <EventsTable 
+            logEntries={logEntries}
+            isLoading={isLoading}
+            error={error}
+            appliedFilters={appliedFilters}
+            // onOpenModal={handleOpenModal} // Pass this if modal is enabled
+          />
+        </TabsContent>
+        
+        <TabsContent value="kql" className="mt-6">
+          <KQLSearchVisualization />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -1,9 +1,9 @@
 # Claude.md
 
 ## 1. Project Overview
-- **Brief description:** A comprehensive SIEM (Security Information and Event Management) platform with real-time log collection, processing, and analysis capabilities. Built with Next.js 15, this production-ready system features live Mac agent data collection, TimescaleDB storage, KQL-powered search, and a professional enterprise-grade UI with 25+ specialized security modules for comprehensive cybersecurity monitoring and threat detection.
+- **Brief description:** A comprehensive SIEM (Security Information and Event Management) platform with real-time log collection, processing, and analysis capabilities. Built with Next.js 15, this production-ready system features live Mac agent data collection, TimescaleDB storage, KQL-powered search and visualization pipeline, customizable drag-drop dashboards, interactive analytics (heatmaps, network graphs, geolocation maps), and a professional enterprise-grade UI with 25+ specialized security modules for comprehensive cybersecurity monitoring and threat detection.
 - **Tech stack:**
-    - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS + Professional Dark Theme, Lucide React Icons, Recharts
+    - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS + Professional Dark Theme, Lucide React Icons, Recharts, Interactive Visualizations (Heatmaps, Network Graphs, Geolocation Maps), Customizable Dashboards
     - **Backend**: Express.js microservices, KQL Engine, PostgreSQL/TimescaleDB
     - **Agent**: Python 3.12+ with macOS Unified Logging integration
     - **Infrastructure**: Docker Compose, Redis, Elasticsearch, Kafka
@@ -28,7 +28,9 @@
   │   │   ├── layout/            # Navigation and layout
   │   │   ├── reporting/         # Report components
   │   │   ├── settings/          # Settings forms
-  │   │   └── visualization/     # Chart components
+  │   │   ├── visualization/     # Advanced visualizations (heatmaps, network graphs, geo maps)
+  │   │   ├── kql-search-visualization.tsx  # KQL search & visualization pipeline
+  │   │   └── customizable-dashboard.tsx    # Drag-drop dashboard system
   │   └── lib/
   │       └── data/              # Mock data and configurations
   ├── public/                    # Static assets
