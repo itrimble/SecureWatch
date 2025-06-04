@@ -272,23 +272,118 @@ app.get('/db/health', async (req, res) => {
   }
 });
 
-// Start the service
-app.listen(PORT, () => {
+// Health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    // Test database connection
+    const client = await pool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'log-ingestion',
+      version: '1.0.0',
+      uptime: process.uptime(),
+      database: 'connected'
+    });
+  } catch (error) {
+    logger.error('Health check failed', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      service: 'log-ingestion',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Database health endpoint
+app.get('/db/health', async (req, res) => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT COUNT(*) as total_logs FROM logs');
+    client.release();
+    
+    res.status(200).json({
+      status: 'healthy',
+      database: 'connected',
+      total_logs: parseInt(result.rows[0].total_logs),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Database health check failed', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      database: 'disconnected',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Start the service with error handling
+const server = app.listen(PORT, () => {
   logger.info(`🚀 Log Ingestion Service running on port ${PORT}`);
   logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info('📡 Ready to receive logs from agents');
   logger.info('🗄️ Database connection configured');
+}).on('error', (error: any) => {
+  if (error.code === 'EADDRINUSE') {
+    logger.error(`Port ${PORT} is already in use`);
+  } else if (error.code === 'EACCES') {
+    logger.error(`Permission denied to bind to port ${PORT}`);
+  } else {
+    logger.error('Server startup error', error);
+  }
+  process.exit(1);
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   logger.info('🛑 SIGTERM received, shutting down gracefully');
-  process.exit(0);
+  
+  server.close(() => {
+    logger.info('HTTP server closed');
+  });
+  
+  try {
+    await pool.end();
+    logger.info('Database connection pool closed');
+    process.exit(0);
+  } catch (error) {
+    logger.error('Error during shutdown', error);
+    process.exit(1);
+  }
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   logger.info('🛑 SIGINT received, shutting down gracefully');
-  process.exit(0);
+  
+  server.close(() => {
+    logger.info('HTTP server closed');
+  });
+  
+  try {
+    await pool.end();
+    logger.info('Database connection pool closed');
+    process.exit(0);
+  } catch (error) {
+    logger.error('Error during shutdown', error);
+    process.exit(1);
+  }
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
 
 export default app;

@@ -306,11 +306,97 @@ process.on('SIGINT', async () => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
+// Health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    // Test database connection
+    await db.query('SELECT 1');
+    
+    // Test Redis connection
+    await redis.ping();
+    
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'search-api',
+      version: '1.0.0',
+      uptime: process.uptime(),
+      database: 'connected',
+      redis: 'connected'
+    });
+  } catch (error) {
+    logger.error('Health check failed', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      service: 'search-api',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Start server with error handling
+const server = app.listen(PORT, () => {
   logger.info(`Search API server running on port ${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`API Documentation: http://localhost:${PORT}/api-docs`);
+}).on('error', (error: any) => {
+  if (error.code === 'EADDRINUSE') {
+    logger.error(`Port ${PORT} is already in use`);
+  } else if (error.code === 'EACCES') {
+    logger.error(`Permission denied to bind to port ${PORT}`);
+  } else {
+    logger.error('Server startup error', error);
+  }
+  process.exit(1);
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  
+  server.close(() => {
+    logger.info('HTTP server closed');
+  });
+  
+  try {
+    await db.end();
+    await redis.disconnect();
+    logger.info('Database and Redis connections closed');
+    process.exit(0);
+  } catch (error) {
+    logger.error('Error during shutdown', error);
+    process.exit(1);
+  }
+});
+
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  
+  server.close(() => {
+    logger.info('HTTP server closed');
+  });
+  
+  try {
+    await db.end();
+    await redis.disconnect();
+    logger.info('Database and Redis connections closed');
+    process.exit(0);
+  } catch (error) {
+    logger.error('Error during shutdown', error);
+    process.exit(1);
+  }
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
 
 export default app;
