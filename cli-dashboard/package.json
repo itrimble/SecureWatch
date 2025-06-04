@@ -1,0 +1,38 @@
+{
+  "name": "securewatch-cli-dashboard",
+  "version": "1.0.0",
+  "description": "SecureWatch SIEM CLI Dashboard for administrators and engineers",
+  "main": "dist/index.js",
+  "bin": {
+    "securewatch-cli": "dist/index.js",
+    "sw-cli": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "watch": "tsx watch src/index.ts"
+  },
+  "keywords": ["siem", "cli", "dashboard", "monitoring", "securewatch"],
+  "author": "SecureWatch Team",
+  "license": "MIT",
+  "dependencies": {
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.11.0",
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "axios": "^1.6.2",
+    "moment": "^2.29.4",
+    "node-os-utils": "^1.3.7",
+    "cli-table3": "^0.6.3"
+  },
+  "devDependencies": {
+    "@types/blessed": "^0.1.25",
+    "@types/node": "^20.10.4",
+    "tsx": "^4.6.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

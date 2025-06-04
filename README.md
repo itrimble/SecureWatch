@@ -45,6 +45,14 @@ SecureWatch is a **fully operational SIEM platform** with complete end-to-end da
 - **Export functionality** for compliance and reporting (CSV, JSON, Visual)
 - **Threat Intelligence** integration with global geolocation mapping
 
+### 🖥️ Command Line Interface
+- **Full-featured CLI Dashboard** for administrators and engineers
+- **Real-time service monitoring** with interactive terminal UI
+- **Health checks and system diagnostics** with automated status reporting
+- **Log aggregation and filtering** across all services
+- **Resource monitoring** (CPU, memory, disk) with visual indicators
+- **Docker infrastructure monitoring** with container status tracking
+
 ### 🚀 Developer Experience
 - **Enterprise startup scripts** with dependency management
 - **Comprehensive logging** with structured JSON output
@@ -102,6 +110,10 @@ pnpm install
 curl http://localhost:4000/api/health  # Frontend
 curl http://localhost:4004/health      # Search API
 curl http://localhost:4002/health      # Log Ingestion
+
+# 4. Use CLI Dashboard for monitoring
+./cli-dashboard.sh status              # Quick status overview
+./cli-dashboard.sh dashboard           # Interactive real-time dashboard
 ```
 
 **The enterprise startup script will:**
@@ -148,19 +160,69 @@ curl http://localhost:4002/health      # Log Ingestion
 | **Correlation Engine** | http://localhost:4005 | Rules & correlation engine |
 | **API Documentation** | http://localhost:4004/api-docs | OpenAPI/Swagger docs |
 
+## 🖥️ CLI Dashboard
+
+SecureWatch includes a comprehensive command-line dashboard for administrators and engineers:
+
+### Quick Commands
+```bash
+# Health check all services
+./cli-dashboard.sh health
+
+# System status overview
+./cli-dashboard.sh status
+
+# Interactive real-time dashboard
+./cli-dashboard.sh dashboard
+
+# Recent logs from all services
+./cli-dashboard.sh logs
+
+# Service-specific logs
+./cli-dashboard.sh logs --service search-api --lines 50
+```
+
+### Interactive Dashboard Features
+- **Real-time monitoring** with 6 information panels
+- **Service status tracking** with health indicators
+- **System resource monitoring** (CPU, memory, disk)
+- **Docker infrastructure status** with container monitoring
+- **Recent alerts panel** showing security events
+- **Live log streaming** from all services
+- **Keyboard navigation** with intuitive controls
+
+### CLI Dashboard Layout
+```
+┌─────────────────────┬─────────────────────┐
+│   Service Status    │  System Resources   │
+│ ✅ Frontend         │ CPU:     45.2%      │
+│ ✅ Search API       │ Memory:  12.4GB     │
+│ ✅ Log Ingestion    │ Disk:    8% used    │
+├─────────────────────┼─────────────────────┤
+│  Platform Metrics   │  Docker Services    │
+│ Cache Hit: 92.3%    │ ✅ PostgreSQL       │
+│ Avg Latency: 45ms   │ ✅ Redis            │
+├─────────────────────┼─────────────────────┤
+│   Recent Alerts     │   Live Log Stream   │
+│ 🔴 Failed logins    │ [INFO] Processing   │
+│ 🟡 High CPU usage   │ [DEBUG] Cache hit   │
+└─────────────────────┴─────────────────────┘
+```
+
 ### 🏥 Health Monitoring
 
 All services include comprehensive health monitoring:
 
 ```bash
-# Check overall platform health
-curl http://localhost:4000/api/health
+# Use CLI dashboard for health checks
+./cli-dashboard.sh health
 
-# Check individual service health
-curl http://localhost:4004/health  # Search API
-curl http://localhost:4002/health  # Log Ingestion
-curl http://localhost:4005/health  # Correlation Engine
-curl http://localhost:4002/db/health  # Database connectivity
+# Manual API health checks
+curl http://localhost:4000/api/health  # Overall platform
+curl http://localhost:4004/health      # Search API
+curl http://localhost:4002/health      # Log Ingestion
+curl http://localhost:4005/health      # Correlation Engine
+curl http://localhost:4002/db/health   # Database connectivity
 ```
 
 ### 🛑 Stopping Services
