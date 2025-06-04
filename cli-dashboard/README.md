@@ -1,6 +1,6 @@
 # SecureWatch SIEM CLI Dashboard
 
-A comprehensive command-line dashboard for monitoring and managing the SecureWatch SIEM platform. This tool provides real-time monitoring, health checks, and system insights for administrators and engineers.
+A comprehensive command-line dashboard for monitoring and managing the SecureWatch SIEM platform. This tool provides real-time monitoring, health checks, and system insights for administrators and engineers, featuring both standard monitoring dashboards and an enterprise-grade **blessed-contrib rich dashboard** with advanced visualizations.
 
 ## Features
 
@@ -17,6 +17,15 @@ A comprehensive command-line dashboard for monitoring and managing the SecureWat
 - **Color-coded Status**: Visual indicators for service health and resource usage
 - **Real-time Updates**: Configurable refresh intervals (default: 5 seconds)
 - **Keyboard Controls**: Intuitive navigation and actions
+
+### 🎨 Blessed-Contrib Rich Dashboard (NEW)
+- **Enterprise-grade Visualizations**: Line charts, gauges, sparklines, LCD displays, bar charts
+- **Nerd Font Support**: Enhanced Unicode icons with automatic detection and graceful fallback
+- **Responsive Design**: Adaptive grid layouts scaling from 1080p to 4K terminals
+- **Rich Widget Library**: 20+ specialized widgets using blessed-contrib framework
+- **Interactive Controls**: F-key shortcuts, panel navigation, service management
+- **Real-time Data Visualization**: CPU trends, network traffic, events per second monitoring
+- **Four Comprehensive Panels**: Service Status, Platform Metrics, System Resources, Recent Activity
 
 ### 🔧 Command-line Tools
 - **Quick Status**: Instant overview of system health
@@ -52,13 +61,40 @@ npm link
 Launch the full-featured dashboard with real-time monitoring:
 
 ```bash
-# Start dashboard with default settings
+# Start standard dashboard with default settings
 npm run dev
 # or if globally installed:
 securewatch-cli dashboard
 
-# Start with custom refresh interval (10 seconds)
-securewatch-cli dashboard --refresh 10
+# Start enhanced dashboard with service controls
+securewatch-cli enhanced
+
+# Start blessed-contrib rich dashboard (NEW)
+securewatch-cli blessed-contrib
+# or short alias:
+securewatch-cli bc
+
+# With custom refresh interval (3 seconds)
+securewatch-cli bc --refresh 3
+```
+
+### Blessed-Contrib Rich Dashboard
+The new blessed-contrib dashboard provides enterprise-grade visualizations:
+
+```bash
+# Launch rich widgets dashboard
+securewatch-cli blessed-contrib
+
+# Features available:
+# - Line charts for CPU, network traffic, events/second
+# - Gauges for memory, database connections, cache hit rates
+# - Sparklines for disk I/O and alert trends
+# - LCD displays for active rules and error counts
+# - Interactive tables for service status and alerts
+# - Live log streaming with color coding
+# - F1-F5 shortcuts for service management
+# - Tab navigation between panels
+# - Nerd Font enhanced icons (auto-detected)
 ```
 
 ### Quick Commands

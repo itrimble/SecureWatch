@@ -46,8 +46,12 @@ SecureWatch is a **fully operational SIEM platform** with complete end-to-end da
 - **Threat Intelligence** integration with global geolocation mapping
 
 ### 🖥️ Command Line Interface
-- **Full-featured CLI Dashboard** for administrators and engineers
-- **Real-time service monitoring** with interactive terminal UI
+- **Full-featured CLI Dashboard** for administrators and engineers with multiple dashboard modes
+- **Enhanced Terminal UI** with real-time service monitoring and interactive controls
+- **Blessed-Contrib Dashboard** with rich widgets, Nerd Font support, and enterprise-grade visualizations
+- **Line Charts, Gauges, Sparklines** for comprehensive system monitoring
+- **Interactive Service Control** with F-key shortcuts and multi-panel navigation
+- **Responsive Design** scaling from 1080p to 4K terminals with adaptive grid layouts
 - **Health checks and system diagnostics** with automated status reporting
 - **Log aggregation and filtering** across all services
 - **Resource monitoring** (CPU, memory, disk) with visual indicators
@@ -238,6 +242,78 @@ SecureWatch includes a comprehensive command-line dashboard with **granular serv
 │ 🔴 Failed logins    │ [INFO] Processing   │ [r] Restart Service │
 │ 🟡 Network activity │ [DEBUG] Cache hit   │ [l] View Logs       │
 └─────────────────────┴─────────────────────┴─────────────────────┘
+```
+
+## 🎨 Blessed-Contrib Rich Dashboard
+
+SecureWatch now includes an **enterprise-grade blessed-contrib dashboard** with rich visualizations and Nerd Font support:
+
+### ✨ Rich Visual Components
+- **Line Charts**: Real-time CPU, network traffic, and events per second trends
+- **Gauges**: Memory usage, database connections, and cache hit rates  
+- **Sparklines**: Disk I/O and alert trend indicators
+- **Bar Charts**: Query performance metrics across SQL operations
+- **LCD Displays**: Active correlation rules and hourly error counts
+- **Tables**: Enhanced service status with health scores and container resources
+- **Log Stream**: Live scrolling system logs with severity color coding
+
+### 🔤 Font Enhancement System
+- **Automatic Nerd Font Detection**: Detects Meslo LGS NF and compatible fonts
+- **Rich Unicode Icons**: 20+ specialized icons for different service types
+- **Graceful ASCII Fallback**: Maintains full functionality without Nerd Fonts
+- **Font Installation Guide**: Built-in notifications and setup instructions
+
+### 📐 Responsive Design
+- **Multi-Resolution Support**: Optimized layouts for 1080p to 4K displays
+- **Adaptive Grid System**: 12-16 column responsive grid based on terminal size
+- **Dynamic Information Density**: Content adapts to available screen real estate
+
+### 🚀 Launch Blessed-Contrib Dashboard
+```bash
+# Start rich widgets dashboard with Nerd Font support
+./cli-dashboard.sh blessed-contrib
+
+# Short alias version
+./cli-dashboard.sh bc
+
+# With custom refresh rate
+./cli-dashboard.sh bc --refresh 3
+
+# Direct command line
+./cli-dashboard.sh dashboard --blessed-contrib
+```
+
+### 🎯 Interactive Features
+- **Panel Navigation**: Tab/Shift+Tab for seamless panel switching
+- **Service Management**: Direct start/stop/restart control (s/S/r keys)
+- **View Modes**: All services, critical only, or compact layouts (1/2/3 keys)
+- **F-Key Shortcuts**: F1-F5 for start all, stop all, restart all, health check, refresh
+- **Help System**: Comprehensive interactive help (press 'h' or '?')
+
+### 📊 Dashboard Layout
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ SecureWatch SIEM Platform Monitor | Health: 95% | Services: 12/15 | Mode: Enhanced │
+├─────────────────────┬─────────────────────┬─────────────────────┬─────────────────┤
+│ 📊 Service Status   │ 📈 Events/Sec       │ 💾 Cache Hit Rate   │ 🔧 Service      │
+│ ┌─ Name ─ Status ─┐ │     ╭─╮             │      ┌───────────┐  │ Control         │
+│ │Frontend   ✅    │ │    ╱   ╲            │      │    89%    │  │ ──────────────  │
+│ │Search API ✅    │ │   ╱     ╲           │      │  ███████  │  │ Selected:       │
+│ │Log Ingest ✅    │ │  ╱       ╲          │      │  █████    │  │ Frontend        │
+│ │Correlate  ⚠️    │ │ ╱         ╲         │      └───────────┘  │ Status: Healthy │
+│ └─────────────────┘ │╱           ╲        │                     │ Port: 4000      │
+├─────────────────────┼─────────────────────┼─────────────────────┤ [s] Start       │
+│ 🖥️ CPU Usage        │ 💿 Storage Usage    │ 🌐 Network Traffic  │ [S] Stop        │
+│   ┌─────────────┐   │  ┌─ Logs ──────┐    │    Inbound ╱╲      │ [r] Restart     │
+│   │ ████████    │   │  │ ██████████  │    │   Outbound ╱  ╲    │ [l] View Logs   │
+│   │ 67%         │   │  │ 78%         │    │           ╱    ╲   │ [h] Help        │
+│   └─────────────┘   │  └─────────────┘    │          ╱      ╲  │                 │
+├─────────────────────┴─────────────────────┴─────────────────────┼─────────────────┤
+│ 🚨 Critical Alerts                        │ 📋 Live Log Stream                  │
+│ 12:34:56 🔴 Failed login attempts: 23    │ 12:34:58 [INFO] Processing batch... │
+│ 12:33:41 🟡 High CPU usage detected      │ 12:34:57 [WARN] Cache miss rate up  │
+│ 12:32:15 🔵 Network anomaly in subnet    │ 12:34:56 [DEBUG] Health check OK    │
+└───────────────────────────────────────────┴──────────────────────────────────────┘
 ```
 
 ### Enhanced Keyboard Controls
