@@ -5,6 +5,7 @@ import { DataService } from './services/data.service';
 import { DashboardUI } from './ui/dashboard.ui';
 import { EnhancedDashboardUI } from './ui/enhanced-dashboard.ui';
 import { EnhancedStatusDisplayUI } from './ui/enhanced-status-display.ui';
+import { BlessedContribDashboardUI } from './ui/blessed-contrib-dashboard.ui';
 import { ServiceControlService } from './services/control.service';
 import { StatusFormatter } from './utils/status-formatter';
 import { defaultConfig } from './config/dashboard.config';
@@ -26,6 +27,7 @@ program
   .option('-c, --config <path>', 'Path to configuration file')
   .option('-e, --enhanced', 'Use enhanced dashboard with service controls')
   .option('-s, --status-view', 'Use enhanced status display view')
+  .option('-b, --blessed-contrib', 'Use blessed-contrib enhanced dashboard with rich widgets')
   .action(async (options) => {
     try {
       const config = { ...defaultConfig };
@@ -40,7 +42,9 @@ program
       
       // Use appropriate dashboard UI based on options
       let ui: any;
-      if (options.statusView) {
+      if (options.blessedContrib) {
+        ui = new BlessedContribDashboardUI(config);
+      } else if (options.statusView) {
         ui = new EnhancedStatusDisplayUI();
       } else if (options.enhanced) {
         ui = new EnhancedDashboardUI(config);
@@ -91,6 +95,19 @@ program
     const dashCommand = program.commands.find(cmd => cmd.name() === 'dashboard');
     if (dashCommand) {
       await dashCommand.parseAsync(['', '', '--enhanced', '--refresh', options.refresh || '5'], { from: 'user' });
+    }
+  });
+
+program
+  .command('blessed-contrib')
+  .alias('bc')
+  .description('Start the blessed-contrib dashboard with rich widgets and Nerd Font support')
+  .option('-r, --refresh <seconds>', 'Refresh interval in seconds', '5')
+  .action(async (options) => {
+    // Shortcut to launch blessed-contrib dashboard directly
+    const dashCommand = program.commands.find(cmd => cmd.name() === 'dashboard');
+    if (dashCommand) {
+      await dashCommand.parseAsync(['', '', '--blessed-contrib', '--refresh', options.refresh || '5'], { from: 'user' });
     }
   });
 

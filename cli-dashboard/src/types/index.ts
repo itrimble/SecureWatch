@@ -15,6 +15,7 @@ export interface ServiceStatus {
   environment?: string;
   dependencies?: string[];
   memory?: number;
+  cpu?: number;
   // Enhanced status representation
   statusDuration?: number; // How long in current state (seconds)
   kpis?: {

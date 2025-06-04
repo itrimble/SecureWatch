@@ -346,6 +346,41 @@ export class ServiceControlService {
 
     return healthStatus;
   }
+
+  async restartAllServices(): Promise<ServiceControlResult[]> {
+    const results: ServiceControlResult[] = [];
+    
+    // Restart all services in order
+    const allServices = Array.from(this.servicesConfig.keys());
+    for (const service of allServices) {
+      results.push(await this.restartService(service));
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    return results;
+  }
+
+  async runHealthCheck(): Promise<ServiceControlResult> {
+    try {
+      const healthStatus = await this.healthCheckAll();
+      const totalServices = healthStatus.size;
+      const healthyServices = Array.from(healthStatus.values()).filter(healthy => healthy).length;
+      
+      return {
+        success: healthyServices === totalServices,
+        message: `Health check completed: ${healthyServices}/${totalServices} services healthy`,
+        output: Array.from(healthStatus.entries())
+          .map(([service, healthy]) => `${service}: ${healthy ? 'HEALTHY' : 'UNHEALTHY'}`)
+          .join('\n')
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Health check failed: ${error.message}`,
+        output: error.toString()
+      };
+    }
+  }
 }
 
 interface ServiceConfig {

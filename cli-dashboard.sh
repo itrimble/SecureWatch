@@ -45,6 +45,12 @@ case "$COMMAND" in
         cd "$CLI_DIR"
         node dist/index.js enhanced "$@"
         ;;
+    "blessed-contrib"|"bc"|"rich")
+        echo -e "${GREEN}Starting blessed-contrib dashboard with rich widgets...${NC}"
+        echo -e "${CYAN}Enhanced with Nerd Font support, Line Charts, Gauges, and interactive controls${NC}"
+        cd "$CLI_DIR"
+        node dist/index.js blessed-contrib "$@"
+        ;;
     "control")
         if [ $# -lt 2 ]; then
             echo -e "${RED}Usage: $0 control <action> <service>${NC}"
@@ -97,6 +103,7 @@ case "$COMMAND" in
         echo "Commands:"
         echo "  dashboard, dash         Start interactive dashboard (default)"
         echo "  enhanced, edash         Start enhanced dashboard with service controls"
+        echo "  blessed-contrib, bc     Start blessed-contrib dashboard with rich widgets"
         echo "  status-enhanced         Enhanced status display with troubleshooting"
         echo "  example-status          Show example enhanced status output"
         echo "  control <action> <svc>  Control services (start/stop/restart)"
@@ -110,6 +117,7 @@ case "$COMMAND" in
         echo "Dashboard Options:"
         echo "  --refresh N             Refresh interval in seconds (default: 5)"
         echo "  --enhanced              Use enhanced dashboard with controls"
+        echo "  --blessed-contrib       Use blessed-contrib rich widgets dashboard"
         echo ""
         echo "Status Options:"
         echo "  --json                  Output in JSON format"
@@ -138,6 +146,7 @@ case "$COMMAND" in
         echo "Examples:"
         echo "  $0                              # Start standard dashboard"
         echo "  $0 enhanced                     # Start enhanced dashboard"
+        echo "  $0 blessed-contrib              # Start rich widgets dashboard with Nerd Fonts"
         echo "  $0 dashboard --refresh 10       # Dashboard with 10s refresh"
         echo "  $0 status --detailed --json     # Detailed status in JSON"
         echo "  $0 logs --service 'Search API' --lines 50"
