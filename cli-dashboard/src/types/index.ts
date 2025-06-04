@@ -6,6 +6,15 @@ export interface ServiceStatus {
   lastChecked: Date;
   error?: string;
   details?: any;
+  // Enhanced properties for enhanced dashboard
+  healthScore?: number;
+  healthEndpoint?: string;
+  metricsEndpoint?: string;
+  port?: number;
+  version?: string;
+  environment?: string;
+  dependencies?: string[];
+  memory?: number;
 }
 
 export interface ServiceMetrics {
@@ -41,8 +50,10 @@ export interface ServiceMetrics {
 export interface DockerServiceStatus {
   name: string;
   status: string;
-  ports: string;
+  ports?: string;
   health?: string;
+  uptime?: number;
+  port?: number;
 }
 
 export interface SystemResourceUsage {
