@@ -1,6 +1,6 @@
 "use client"; // Required for Recharts components
 
-import React from 'react';
+import React, { memo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const data = [
@@ -41,4 +41,4 @@ const TopEventIdsBarChart: React.FC = () => {
   );
 };
 
-export default TopEventIdsBarChart;
+export default memo(TopEventIdsBarChart);

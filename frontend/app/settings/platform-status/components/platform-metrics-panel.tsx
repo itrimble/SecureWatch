@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,7 @@ import {
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { usePlatformStatus } from "../platform-status-provider";
 
-export function PlatformMetricsPanel() {
+function PlatformMetricsPanel() {
   const { data } = usePlatformStatus();
 
   if (!data?.platformMetrics) {
@@ -440,3 +440,6 @@ export function PlatformMetricsPanel() {
     </div>
   );
 }
+
+export default memo(PlatformMetricsPanel);
+export { PlatformMetricsPanel };

@@ -20,16 +20,37 @@ const config = {
     },
     extend: {
       fontFamily: {
-        // Removed custom mono as default, can be applied specifically if needed
+        // Splunk-inspired font stack - prioritizes system fonts used by Splunk
         sans: [
-          "var(--font-sans)",
-          "system-ui",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "Segoe UI",
-          "Roboto",
+          "Splunk Platform Sans", // Splunk's proprietary font if available
+          "Helvetica Neue",       // Primary Splunk font
+          "Helvetica",            // Fallback
+          "Arial",                // Standard fallback
+          "system-ui",            // System default
+          "-apple-system",        // macOS system font
+          "BlinkMacSystemFont",   // Windows system font
+          "Segoe UI",             // Modern Windows
+          "Roboto",               // Android/Chrome OS
+          "sans-serif",           // Ultimate fallback
+        ],
+        // Splunk uses specific fonts for code/data display
+        mono: [
+          "Splunk Platform Mono", // Splunk's monospace if available
+          "SF Mono",              // macOS monospace
+          "Monaco",               // macOS fallback
+          "Cascadia Code",        // Windows modern mono
+          "Roboto Mono",          // Google's mono
+          "Menlo",                // macOS terminal
+          "Consolas",             // Windows console
+          "Liberation Mono",      // Linux
+          "Courier New",          // Universal fallback
+          "monospace",            // Ultimate fallback
+        ],
+        // Splunk UI specific font stack
+        ui: [
+          "Splunk Platform UI",   // If available
           "Helvetica Neue",
-          "Arial",
+          "system-ui",
           "sans-serif",
         ],
       },
@@ -66,6 +87,29 @@ const config = {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        // Splunk-specific colors
+        splunk: {
+          navy: "hsl(var(--splunk-navy))",
+          "light-blue": "hsl(var(--splunk-light-blue))",
+          green: "hsl(var(--splunk-green))",
+          red: "hsl(var(--splunk-red))",
+          amber: "hsl(var(--splunk-amber))",
+        },
+        // SIEM Alert colors
+        alert: {
+          critical: "hsl(var(--alert-critical))",
+          "critical-bg": "hsl(var(--alert-critical-bg))",
+          high: "hsl(var(--alert-high))",
+          "high-bg": "hsl(var(--alert-high-bg))",
+          medium: "hsl(var(--alert-medium))",
+          "medium-bg": "hsl(var(--alert-medium-bg))",
+          low: "hsl(var(--alert-low))",
+          "low-bg": "hsl(var(--alert-low-bg))",
+          success: "hsl(var(--alert-success))",
+          "success-bg": "hsl(var(--alert-success-bg))",
+          investigation: "hsl(var(--alert-investigation))",
+          "investigation-bg": "hsl(var(--alert-investigation-bg))",
         },
       },
       borderRadius: {

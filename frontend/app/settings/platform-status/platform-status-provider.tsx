@@ -171,7 +171,7 @@ export function PlatformStatusProvider({ children }: { children: React.ReactNode
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [setData, setLastUpdated, setIsLoading, setError]);
 
   const refreshData = useCallback(async () => {
     await fetchPlatformStatus();
@@ -182,15 +182,33 @@ export function PlatformStatusProvider({ children }: { children: React.ReactNode
     fetchPlatformStatus();
   }, [fetchPlatformStatus]);
 
-  // Auto-refresh
+  // Auto-refresh with improved performance
   useEffect(() => {
     if (!autoRefresh) return;
 
-    const interval = setInterval(() => {
-      fetchPlatformStatus();
-    }, 15000); // Refresh every 15 seconds
+    let isActive = true;
+    let timeoutId: NodeJS.Timeout;
 
-    return () => clearInterval(interval);
+    const scheduleNextRefresh = () => {
+      if (isActive) {
+        timeoutId = setTimeout(async () => {
+          if (isActive) {
+            await fetchPlatformStatus();
+            scheduleNextRefresh();
+          }
+        }, 30000); // Increased to 30 seconds to reduce load
+      }
+    };
+
+    // Start the refresh cycle
+    scheduleNextRefresh();
+
+    return () => {
+      isActive = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [autoRefresh, fetchPlatformStatus]);
 
   return (

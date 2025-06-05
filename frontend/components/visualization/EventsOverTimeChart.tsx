@@ -1,6 +1,6 @@
 "use client"; // Required for Recharts components
 
-import React from 'react';
+import React, { memo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const data = [
@@ -42,4 +42,4 @@ const EventsOverTimeChart: React.FC = () => {
   );
 };
 
-export default EventsOverTimeChart;
+export default memo(EventsOverTimeChart);

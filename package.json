@@ -21,7 +21,10 @@
     "test": "turbo test",
     "clean": "turbo clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "typecheck": "turbo type-check"
+    "typecheck": "turbo type-check",
+    "mcp-marketplace": "cd apps/mcp-marketplace && pnpm run dev",
+    "build:mcp-client": "cd packages/mcp-client && pnpm run build",
+    "install:deps": "pnpm install --frozen-lockfile"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -37,8 +40,10 @@
     "@supabase/supabase-js": "^2.49.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cors": "^2.8.5",
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",
+    "express": "^5.1.0",
     "jose": "^6.0.11",
     "lucide-react": "^0.511.0",
     "next": "15.3.2",
