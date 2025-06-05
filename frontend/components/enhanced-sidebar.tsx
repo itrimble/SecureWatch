@@ -42,6 +42,7 @@ import {
   Router,
   Monitor,
   Layers,
+  AlertCircle,
 } from "lucide-react"
 
 interface EnhancedSidebarProps {
@@ -62,11 +63,13 @@ export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
     { id: "explorer", label: "Event Explorer", icon: Search, tooltip: "Log Search & Analysis (⌘E)", href: "/explorer", hotkey: "⌘E" },
     { id: "reporting", label: "Reports", icon: FileText, tooltip: "Security Reports & Compliance", href: "/reporting" },
     { id: "visualizations", label: "Analytics", icon: Eye, tooltip: "Data Visualizations & Dashboards", href: "/visualizations" },
+    { id: "kql-analytics", label: "KQL Analytics", icon: Brain, tooltip: "Advanced KQL Query Engine & Analytics", href: "/kql-analytics", hotkey: "⌘K" },
   ]
 
   // Advanced Security Features  
   const advancedMenuItems = [
     { id: "correlation", label: "Correlation", icon: GitBranch, tooltip: "Rules Engine & Patterns", badge: 7, badgeType: "medium", href: "/correlation" },
+    { id: "alert-fatigue", label: "Alert Fatigue", icon: AlertCircle, tooltip: "Alert Fatigue Reduction & ML Thresholds", href: "/alert-fatigue" },
     { id: "threat-intel", label: "Threat Intelligence", icon: Target, tooltip: "Threat Intelligence & IOCs" },
     { id: "incidents", label: "Incident Response", icon: Zap, tooltip: "Incident Management & Response", badge: 5, badgeType: "high" },
     { id: "case-management", label: "Case Management", icon: Briefcase, tooltip: "Investigation Cases", badge: 8, badgeType: "medium" },
@@ -329,10 +332,10 @@ export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-body font-semibold truncate">Admin User</p>
-                <p className="text-caption truncate flex items-center gap-1">
+                <div className="text-caption truncate flex items-center gap-1">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  Active Session
-                </p>
+                  <span>Active Session</span>
+                </div>
               </div>
             </div>
           </div>

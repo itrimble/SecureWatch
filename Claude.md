@@ -6,7 +6,7 @@
     - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS + Professional Dark Theme, Lucide React Icons, Recharts, Interactive Visualizations (Heatmaps, Network Graphs, Geolocation Maps), Customizable Dashboards
     - **Backend**: Express.js microservices, KQL Engine, Correlation & Rules Engine, PostgreSQL/TimescaleDB
     - **Agent**: Python 3.12+ with macOS Unified Logging integration
-    - **CLI Dashboard**: Enhanced TypeScript-based terminal UI with blessed.js, granular service monitoring, collapsible panels, service control capabilities
+    - **CLI Dashboard**: Enhanced TypeScript-based terminal UI with blessed.js, granular service monitoring, collapsible panels, service control capabilities, **blessed-contrib rich dashboard with line charts, gauges, sparklines, Nerd Font support, and responsive 4K layouts**
     - **Infrastructure**: Docker Compose, Redis, Elasticsearch, Kafka
     - **Database**: TimescaleDB (PostgreSQL) with time-series optimization + Extended Normalized Schema (100+ security fields)
     - **Build**: Turbopack (development), pnpm workspaces
@@ -223,12 +223,21 @@
     - **Enhanced CLI Dashboard operations:**
       ```bash
       ./cli-dashboard.sh enhanced                    # Start enhanced dashboard
+      ./cli-dashboard.sh blessed-contrib             # Start rich widgets dashboard (NEW)
+      ./cli-dashboard.sh bc --refresh 3              # Short alias with custom refresh
       ./cli-dashboard.sh status --detailed           # All services status
       ./cli-dashboard.sh health --verbose            # Detailed health check
       ./cli-dashboard.sh control start Frontend      # Start specific service
       ./cli-dashboard.sh start-all                   # Start all services
       ./cli-dashboard.sh logs --service "Search API" --lines 100  # Service logs
       ```
+    - **Blessed-Contrib Rich Dashboard Features (NEW):**
+      - **Rich Widgets**: Line charts, gauges, sparklines, LCD displays, bar charts, tables, log streams
+      - **Nerd Font Support**: Enhanced Unicode icons with graceful ASCII fallback
+      - **Responsive Design**: Adaptive grid layouts scaling from 1080p to 4K terminals
+      - **Interactive Controls**: F-key shortcuts, panel navigation, service management
+      - **Real-time Visualizations**: CPU trends, network traffic, events per second, alerts
+      - **Comprehensive Documentation**: `cli-dashboard/BLESSED_CONTRIB_DASHBOARD.md`
 
 ## 6. Code Style and Contribution Guidelines
 - **Formatting conventions:**
