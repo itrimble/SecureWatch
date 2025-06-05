@@ -31,16 +31,46 @@ services:
     container_name: securewatch_redis
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-    networks:
-      - securewatch_network
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - securewatch_network
+
+  # MCP Marketplace Service
+  mcp-marketplace:
+    build:
+      context: .
+      dockerfile: apps/mcp-marketplace/Dockerfile
+    container_name: securewatch_mcp_marketplace
+    ports:
+      - "4006:4006"
+    environment:
+      - NODE_ENV=development
+      - MCP_MARKETPLACE_PORT=4006
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=securewatch
+      - DB_USER=securewatch
+      - DB_PASSWORD=securewatch
+      - REDIS_URL=redis://redis:6379
+      - MCP_AGGREGATOR_URL=https://mcpmarket.com/server/rss-buhe
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - securewatch_network
 
   # Kafka for log ingestion
   zookeeper:

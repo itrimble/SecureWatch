@@ -1,0 +1,45 @@
+# EVTX Parser Requirements for SecureWatch SIEM
+# Install with: pip install -r requirements-evtx.txt
+
+# Core EVTX parsing
+python-evtx==0.7.4
+
+# HTTP client for API communication
+aiohttp==3.9.1
+requests==2.31.0
+
+# Data manipulation and validation
+dataclasses-json==0.6.3
+pydantic==2.5.2
+
+# Logging and configuration
+structlog==23.2.0
+python-dotenv==1.0.0
+
+# CLI argument parsing
+click==8.1.7
+
+# Date/time handling
+python-dateutil==2.8.2
+
+# XML parsing (fallback for complex event data)
+lxml==4.9.4
+
+# Performance and optimization
+ujson==5.9.0
+msgpack==1.0.7
+
+# Security and hashing
+cryptography==41.0.8
+hashlib-compat==1.0.1
+
+# Testing (optional)
+pytest==7.4.4
+pytest-asyncio==0.23.2
+pytest-mock==3.12.0
+
+# Development tools (optional)
+black==23.12.1
+isort==5.13.2
+mypy==1.8.0
+flake8==7.0.0

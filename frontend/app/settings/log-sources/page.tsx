@@ -29,6 +29,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { AddLogSourceWizard } from "@/components/log-sources/add-log-source-wizard";
+import EVTXFileUpload from "@/components/log-sources/evtx-file-upload";
 
 interface LogSource {
   id: string;
@@ -336,6 +337,9 @@ export default function LogSourceManagementPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* EVTX File Upload */}
+        <EVTXFileUpload />
 
         {/* Log Sources Table */}
         <Card>

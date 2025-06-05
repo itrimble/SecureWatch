@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,7 +65,7 @@ interface RecentAlert {
   status: 'new' | 'investigating' | 'resolved';
 }
 
-export function CorrelationDashboard() {
+function CorrelationDashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalEvents: 0,
     correlatedEvents: 0,
@@ -195,7 +195,7 @@ export function CorrelationDashboard() {
     }, 1000);
   }, []);
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = useCallback((severity: string) => {
     switch (severity) {
       case 'critical': return 'bg-red-500';
       case 'high': return 'bg-orange-500';
@@ -203,25 +203,25 @@ export function CorrelationDashboard() {
       case 'low': return 'bg-blue-500';
       default: return 'bg-gray-500';
     }
-  };
+  }, []);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case 'active': return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'paused': return <Pause className="h-4 w-4 text-yellow-500" />;
       case 'error': return <AlertCircle className="h-4 w-4 text-red-500" />;
       default: return <Clock className="h-4 w-4 text-gray-500" />;
     }
-  };
+  }, []);
 
-  const getAlertStatusColor = (status: string) => {
+  const getAlertStatusColor = useCallback((status: string) => {
     switch (status) {
       case 'new': return 'text-red-600 bg-red-50 border-red-200';
       case 'investigating': return 'text-orange-600 bg-orange-50 border-orange-200';
       case 'resolved': return 'text-green-600 bg-green-50 border-green-200';
       default: return 'text-gray-600 bg-gray-50 border-gray-200';
     }
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -446,3 +446,6 @@ export function CorrelationDashboard() {
     </div>
   );
 }
+
+export { CorrelationDashboard };
+export default memo(CorrelationDashboard);

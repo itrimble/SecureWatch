@@ -173,7 +173,173 @@ async function startProcessingPipeline() {
 }
 
 // API endpoints
-app.use(express.json());
+app.use(express.json({ limit: '100mb' })); // Increase limit for EVTX uploads
+app.use(express.raw({ type: 'application/octet-stream', limit: '100mb' }));
+
+// EVTX file processing endpoint
+app.post('/api/evtx/process', async (req, res) => {
+  try {
+    const { events } = req.body;
+    
+    if (!events || !Array.isArray(events)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid request: events array required'
+      });
+    }
+    
+    logger.info(`Processing ${events.length} EVTX events`);
+    
+    const processed = [];
+    const failed = [];
+    
+    // Process each EVTX event
+    for (const event of events) {
+      try {
+        // Normalize the EVTX event to SecureWatch format
+        const normalizedEvent = await normalizer.normalize({
+          timestamp: event.timestamp,
+          source: 'windows_evtx',
+          level: event.level?.toLowerCase() || 'info',
+          message: event.message || `Windows Event ${event.event_id}`,
+          event_id: event.event_id?.toString(),
+          channel: event.channel,
+          computer: event.computer,
+          record_id: event.record_id,
+          correlation_id: event.correlation_id,
+          user_id: event.user_id,
+          process_id: event.process_id,
+          thread_id: event.thread_id,
+          activity_id: event.activity_id,
+          keywords: event.keywords,
+          task: event.task,
+          opcode: event.opcode,
+          source_file: event.source_file,
+          parsed_at: event.parsed_timestamp,
+          event_data: event.event_data,
+          system_data: event.system_data,
+          raw_xml: event.raw_xml,
+          metadata: event.metadata || {
+            parser: 'evtx_parser',
+            version: '1.0',
+            source_type: 'windows_evtx'
+          }
+        });
+        
+        // Send to correlation engine for analysis
+        try {
+          await axios.post(`${CORRELATION_ENGINE_URL}/api/events`, normalizedEvent, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 5000
+          });
+        } catch (correlationError) {
+          logger.warn('Failed to send EVTX event to correlation engine', {
+            error: correlationError instanceof Error ? correlationError.message : 'Unknown error',
+            event_id: event.event_id
+          });
+        }
+        
+        processed.push(normalizedEvent);
+        metricsCollector.incrementCounter('evtx.events_processed');
+        
+      } catch (processError) {
+        logger.error('Error processing EVTX event', {
+          error: processError instanceof Error ? processError.message : 'Unknown error',
+          event_id: event.event_id
+        });
+        failed.push({
+          event_id: event.event_id,
+          error: processError instanceof Error ? processError.message : 'Unknown error'
+        });
+        metricsCollector.incrementCounter('evtx.processing_errors');
+      }
+    }
+    
+    res.json({
+      status: 'success',
+      total_events: events.length,
+      processed_events: processed.length,
+      failed_events: failed.length,
+      failed_details: failed,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    logger.error('Error in EVTX processing endpoint', error);
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Batch EVTX processing endpoint (for large files)
+app.post('/api/logs/batch', async (req, res) => {
+  try {
+    const { events } = req.body;
+    
+    if (!events || !Array.isArray(events)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid request: events array required'
+      });
+    }
+    
+    logger.info(`Processing batch of ${events.length} events`);
+    
+    const processed = [];
+    const failed = [];
+    
+    // Process each event in the batch
+    for (const event of events) {
+      try {
+        // Normalize the event
+        const normalizedEvent = await normalizer.normalize(event);
+        
+        // Send to correlation engine
+        try {
+          await axios.post(`${CORRELATION_ENGINE_URL}/api/events`, normalizedEvent, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 5000
+          });
+        } catch (correlationError) {
+          logger.warn('Failed to send batch event to correlation engine', {
+            error: correlationError instanceof Error ? correlationError.message : 'Unknown error'
+          });
+        }
+        
+        processed.push(normalizedEvent);
+        metricsCollector.incrementCounter('batch.events_processed');
+        
+      } catch (processError) {
+        logger.error('Error processing batch event', {
+          error: processError instanceof Error ? processError.message : 'Unknown error'
+        });
+        failed.push({
+          error: processError instanceof Error ? processError.message : 'Unknown error'
+        });
+        metricsCollector.incrementCounter('batch.processing_errors');
+      }
+    }
+    
+    res.json({
+      status: 'success',
+      total_events: events.length,
+      processed_events: processed.length,
+      failed_events: failed.length,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    logger.error('Error in batch processing endpoint', error);
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
 // Agent ingest endpoint for receiving logs from agents
 app.post('/api/ingest', async (req, res) => {
