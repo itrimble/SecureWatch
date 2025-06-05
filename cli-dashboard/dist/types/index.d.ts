@@ -14,6 +14,7 @@ export interface ServiceStatus {
     environment?: string;
     dependencies?: string[];
     memory?: number;
+    cpu?: number;
     statusDuration?: number;
     kpis?: {
         [key: string]: string | number;

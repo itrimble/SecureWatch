@@ -9,6 +9,7 @@ const data_service_1 = require("./services/data.service");
 const dashboard_ui_1 = require("./ui/dashboard.ui");
 const enhanced_dashboard_ui_1 = require("./ui/enhanced-dashboard.ui");
 const enhanced_status_display_ui_1 = require("./ui/enhanced-status-display.ui");
+const blessed_contrib_dashboard_ui_1 = require("./ui/blessed-contrib-dashboard.ui");
 const control_service_1 = require("./services/control.service");
 const dashboard_config_1 = require("./config/dashboard.config");
 const chalk_1 = __importDefault(require("chalk"));
@@ -26,6 +27,7 @@ program
     .option('-c, --config <path>', 'Path to configuration file')
     .option('-e, --enhanced', 'Use enhanced dashboard with service controls')
     .option('-s, --status-view', 'Use enhanced status display view')
+    .option('-b, --blessed-contrib', 'Use blessed-contrib enhanced dashboard with rich widgets')
     .action(async (options) => {
     try {
         const config = { ...dashboard_config_1.defaultConfig };
@@ -37,7 +39,10 @@ program
         const dataService = new data_service_1.DataService(config);
         // Use appropriate dashboard UI based on options
         let ui;
-        if (options.statusView) {
+        if (options.blessedContrib) {
+            ui = new blessed_contrib_dashboard_ui_1.BlessedContribDashboardUI(config);
+        }
+        else if (options.statusView) {
             ui = new enhanced_status_display_ui_1.EnhancedStatusDisplayUI();
         }
         else if (options.enhanced) {
@@ -86,6 +91,18 @@ program
     const dashCommand = program.commands.find(cmd => cmd.name() === 'dashboard');
     if (dashCommand) {
         await dashCommand.parseAsync(['', '', '--enhanced', '--refresh', options.refresh || '5'], { from: 'user' });
+    }
+});
+program
+    .command('blessed-contrib')
+    .alias('bc')
+    .description('Start the blessed-contrib dashboard with rich widgets and Nerd Font support')
+    .option('-r, --refresh <seconds>', 'Refresh interval in seconds', '5')
+    .action(async (options) => {
+    // Shortcut to launch blessed-contrib dashboard directly
+    const dashCommand = program.commands.find(cmd => cmd.name() === 'dashboard');
+    if (dashCommand) {
+        await dashCommand.parseAsync(['', '', '--blessed-contrib', '--refresh', options.refresh || '5'], { from: 'user' });
     }
 });
 program

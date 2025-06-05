@@ -16,5 +16,7 @@ export declare class ServiceControlService {
     startAllServices(): Promise<ServiceControlResult[]>;
     stopAllServices(): Promise<ServiceControlResult[]>;
     healthCheckAll(): Promise<Map<string, boolean>>;
+    restartAllServices(): Promise<ServiceControlResult[]>;
+    runHealthCheck(): Promise<ServiceControlResult>;
 }
 //# sourceMappingURL=control.service.d.ts.map
