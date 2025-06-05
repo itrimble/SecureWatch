@@ -106,8 +106,8 @@ export default function NotificationsPage() {
 
   const filteredNotifications = displayedNotifications.filter((n) => {
     if (activeFilter === "All") return true
-    if (activeFilter === "Security Alerts") return n.type.includes("_alert")
-    if (activeFilter === "System") return n.type.includes("_update") || n.type.includes("system")
+    if (activeFilter === "Security Alerts") return n.type?.includes("_alert") || false
+    if (activeFilter === "System") return n.type?.includes("_update") || n.type?.includes("system") || false
     // Add more filter logic as needed
     return true
   })
@@ -153,13 +153,13 @@ export default function NotificationsPage() {
           />
           <NotificationFilter
             label="Security Alerts"
-            count={filteredNotifications.filter((n) => n.type.includes("_alert")).length}
+            count={filteredNotifications.filter((n) => n.type?.includes("_alert") || false).length}
             active={activeFilter === "Security Alerts"}
             onClick={() => setActiveFilter("Security Alerts")}
           />
           <NotificationFilter
             label="System"
-            count={filteredNotifications.filter((n) => n.type.includes("_update")).length}
+            count={filteredNotifications.filter((n) => n.type?.includes("_update") || false).length}
             active={activeFilter === "System"}
             onClick={() => setActiveFilter("System")}
           />

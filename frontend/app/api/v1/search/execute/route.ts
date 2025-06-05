@@ -64,14 +64,20 @@ async function executeKQLSearch(queryRequest: KQLQueryRequest): Promise<any> {
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
   
   try {
-    const response = await fetch(`${SEARCH_API_URL}/api/v1/search/kql`, {
+    const response = await fetch(`${SEARCH_API_URL}/api/v1/search/execute`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Client': 'frontend-kql',
         'X-Organization-ID': queryRequest.organizationId || 'default'
       },
-      body: JSON.stringify(queryRequest),
+      body: JSON.stringify({
+        query: queryRequest.query,
+        timeRange: queryRequest.timeRange,
+        maxRows: queryRequest.limit || 1000,
+        timeout: 30000,
+        cache: true
+      }),
       signal: controller.signal,
     });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -128,6 +128,15 @@ const WIDGET_TYPES = [
     component: () => <SystemHealthWidget />,
     defaultSize: 'small' as const,
     category: 'System'
+  },
+  {
+    id: 'query-results',
+    name: 'Query Results',
+    description: 'Live KQL query results table',
+    icon: Database,
+    component: (props: any) => <QueryResultsWidget query={props.query} />,
+    defaultSize: 'large' as const,
+    category: 'Analytics'
   }
 ];
 
@@ -217,7 +226,63 @@ const SystemHealthWidget = () => (
   </div>
 );
 
-export default function CustomizableDashboard() {
+// Query results widget component
+const QueryResultsWidget = ({ query }: { query?: string }) => {
+  const [results, setResults] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (query) {
+      setLoading(true);
+      // Simulate API call - in real implementation, this would call the search API
+      setTimeout(() => {
+        setResults([
+          { timestamp: '2025-06-05 04:00:00', event_id: '4625', host: 'DC01', message: 'Failed login attempt' },
+          { timestamp: '2025-06-05 03:59:45', event_id: '4624', host: 'WS001', message: 'Successful login' },
+          { timestamp: '2025-06-05 03:59:30', event_id: '4688', host: 'SRV02', message: 'Process created' }
+        ]);
+        setLoading(false);
+      }, 1000);
+    }
+  }, [query]);
+
+  if (!query) {
+    return (
+      <div className="p-4 text-center text-gray-400">
+        <Database className="w-8 h-8 mx-auto mb-2" />
+        <p className="text-sm">No query configured</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="p-4 text-center text-gray-400">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400 mx-auto mb-2"></div>
+        <p className="text-sm">Loading results...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 space-y-3">
+      <div className="text-xs text-gray-400 font-mono mb-2">{query}</div>
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {results.map((result: any, index) => (
+          <div key={index} className="text-xs bg-gray-700 p-2 rounded">
+            <div className="flex justify-between items-start">
+              <span className="text-blue-400">{result.timestamp}</span>
+              <Badge variant="outline" className="text-xs">{result.event_id}</Badge>
+            </div>
+            <div className="text-gray-300 mt-1">{result.host}: {result.message}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+function CustomizableDashboard() {
   const [currentLayout, setCurrentLayout] = useState<DashboardLayout>({
     id: 'default',
     name: 'Default Security Dashboard',
@@ -513,3 +578,5 @@ export default function CustomizableDashboard() {
     </TooltipProvider>
   );
 }
+
+export default memo(CustomizableDashboard);

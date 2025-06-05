@@ -43,6 +43,9 @@ import {
   Monitor,
   Layers,
   AlertCircle,
+  LayoutDashboard,
+  BookOpen,
+  Package,
 } from "lucide-react"
 
 interface EnhancedSidebarProps {
@@ -55,57 +58,52 @@ interface EnhancedSidebarProps {
 export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }: EnhancedSidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
-  // Primary Security Operations
-  const securityMenuItems = [
-    { id: "dashboard", label: "Dashboard", icon: BarChart3, tooltip: "Security Overview Dashboard (⌘1)", href: "/", hotkey: "⌘1" },
-    { id: "alerts", label: "Alerts", icon: AlertTriangle, tooltip: "Security Alerts & Incidents (⌘2)", badge: 23, badgeType: "critical", href: "/alerts", hotkey: "⌘2" },
-    { id: "notifications", label: "Notifications", icon: Bell, tooltip: "System Notifications (⌘3)", badge: 12, badgeType: "info", href: "/notifications", hotkey: "⌘3" },
-    { id: "explorer", label: "Event Explorer", icon: Search, tooltip: "Log Search & Analysis (⌘E)", href: "/explorer", hotkey: "⌘E" },
-    { id: "reporting", label: "Reports", icon: FileText, tooltip: "Security Reports & Compliance", href: "/reporting" },
-    { id: "visualizations", label: "Analytics", icon: Eye, tooltip: "Data Visualizations & Dashboards", href: "/visualizations" },
-    { id: "kql-analytics", label: "KQL Analytics", icon: Brain, tooltip: "Advanced KQL Query Engine & Analytics", href: "/kql-analytics", hotkey: "⌘K" },
+  // Splunk-style App Navigation Structure
+  
+  // Core Splunk Apps
+  const coreApps = [
+    { id: "search", label: "Search & Reporting", icon: Search, tooltip: "Search, analyze, and investigate data (⌘S)", href: "/explorer", hotkey: "⌘S" },
+    { id: "alerting", label: "Alerting", icon: AlertTriangle, tooltip: "Security alerts and monitoring", badge: 23, badgeType: "critical", href: "/alerts" },
+    { id: "dashboards", label: "Dashboards & Views", icon: LayoutDashboard, tooltip: "Interactive dashboards and visualizations", href: "/dashboard" },
+    { id: "reports", label: "Reports", icon: FileText, tooltip: "Scheduled reports and analytics", href: "/reporting" },
   ]
 
-  // Advanced Security Features  
-  const advancedMenuItems = [
-    { id: "correlation", label: "Correlation", icon: GitBranch, tooltip: "Rules Engine & Patterns", badge: 7, badgeType: "medium", href: "/correlation" },
-    { id: "alert-fatigue", label: "Alert Fatigue", icon: AlertCircle, tooltip: "Alert Fatigue Reduction & ML Thresholds", href: "/alert-fatigue" },
-    { id: "threat-intel", label: "Threat Intelligence", icon: Target, tooltip: "Threat Intelligence & IOCs" },
-    { id: "incidents", label: "Incident Response", icon: Zap, tooltip: "Incident Management & Response", badge: 5, badgeType: "high" },
-    { id: "case-management", label: "Case Management", icon: Briefcase, tooltip: "Investigation Cases", badge: 8, badgeType: "medium" },
-    { id: "vulnerability", label: "Vulnerabilities", icon: Bug, tooltip: "Vulnerability Management" },
-    { id: "compliance", label: "Compliance", icon: Lock, tooltip: "Compliance Monitoring" },
+  // Security Solutions (Splunk Security Apps equivalent)
+  const securitySolutions = [
+    { id: "incident-response", label: "Incident Investigation", icon: Zap, tooltip: "Security incident management", badge: 5, badgeType: "high" },
+    { id: "threat-hunting", label: "Threat Hunting", icon: Radar, tooltip: "Proactive threat detection" },
+    { id: "ueba", label: "User Behavior Analytics", icon: Brain, tooltip: "UEBA and insider threat detection" },
+    { id: "compliance", label: "Compliance", icon: Lock, tooltip: "Regulatory compliance monitoring" },
+    { id: "vulnerability", label: "Vulnerability Management", icon: Bug, tooltip: "Security vulnerability tracking" },
+    { id: "correlation", label: "Correlation Search", icon: GitBranch, tooltip: "Event correlation and rules", badge: 7, badgeType: "medium", href: "/correlation" },
   ]
 
-  // Intelligence & Analysis
-  const analysisMenuItems = [
-    { id: "ueba", label: "User Analytics", icon: Brain, tooltip: "User & Entity Behavior Analytics" },
-    { id: "insider-risk", label: "Insider Risk", icon: Users, tooltip: "Insider Threat Detection" },
-    { id: "threat-hunting", label: "Threat Hunting", icon: Radar, tooltip: "Proactive Threat Hunting" },
-    { id: "forensics", label: "Digital Forensics", icon: FileSearch, tooltip: "Digital Forensics & Investigation" },
-    { id: "network-analysis", label: "Network Analysis", icon: Network, tooltip: "Network Traffic Analysis" },
+  // Knowledge Objects (Splunk Knowledge Management)
+  const knowledgeObjects = [
+    { id: "saved-searches", label: "Saved Searches", icon: BookOpen, tooltip: "Saved KQL queries and searches" },
+    { id: "event-types", label: "Event Types", icon: Database, tooltip: "Event categorization and tagging" },
+    { id: "lookups", label: "Lookups", icon: FileSearch, tooltip: "Lookup tables and enrichment data" },
+    { id: "field-extractions", label: "Field Extractions", icon: Eye, tooltip: "Field extraction rules" },
+    { id: "macros", label: "Search Macros", icon: Workflow, tooltip: "Reusable search components" },
   ]
 
-  // Infrastructure & Assets
-  const infrastructureMenuItems = [
-    { id: "assets", label: "Asset Discovery", icon: Database, tooltip: "Asset Inventory & Discovery" },
-    { id: "network-map", label: "Network Topology", icon: Map, tooltip: "Network Topology & Mapping" },
-    { id: "endpoints", label: "Endpoints", icon: Monitor, tooltip: "Endpoint Security Management" },
-    { id: "cloud-security", label: "Cloud Security", icon: Cloud, tooltip: "Cloud Security Posture" },
-    { id: "infrastructure", label: "Infrastructure", icon: Layers, tooltip: "Infrastructure Monitoring" },
+  // Data Management (Splunk Data Management)
+  const dataManagement = [
+    { id: "data-inputs", label: "Data Inputs", icon: Router, tooltip: "Log sources and data ingestion", href: "/settings/log-sources" },
+    { id: "indexes", label: "Indexes", icon: Database, tooltip: "Data storage and indexing" },
+    { id: "data-models", label: "Data Models", icon: Layers, tooltip: "Normalized data structures" },
+    { id: "retention", label: "Data Retention", icon: Clock, tooltip: "Data lifecycle management" },
   ]
 
-  // System & Administration
-  const systemMenuItems = [
-    { id: "system-health", label: "System Health", icon: Gauge, tooltip: "System Performance & Health" },
-    { id: "log-sources", label: "Log Sources", icon: Router, tooltip: "Log Sources & Connectors", href: "/settings/log-sources" },
-    { id: "workflows", label: "Automation", icon: Workflow, tooltip: "Security Automation & Playbooks" },
-    { id: "integrations", label: "Integrations", icon: GitBranch, tooltip: "Third-party Integrations", href: "/settings/integrations" },
-  ]
-
-  const settingsItems = [
-    { id: "admin-users", label: "User Management", icon: UserCog, tooltip: "User Administration & RBAC", href: "/settings/admin-users" },
-    { id: "general-settings", label: "System Settings", icon: Settings, tooltip: "Platform Configuration", href: "/settings" },
+  // System Administration (Splunk Settings)
+  const systemAdmin = [
+    { id: "marketplace", label: "Solutions Marketplace", icon: Package, tooltip: "Browse and install security content packs", href: "/marketplace" },
+    { id: "user-management", label: "Users & Roles", icon: UserCog, tooltip: "User administration and RBAC", href: "/settings/admin-users" },
+    { id: "authentication", label: "Authentication", icon: Lock, tooltip: "SSO and authentication settings" },
+    { id: "distributed-search", label: "Distributed Environment", icon: Network, tooltip: "Multi-instance configuration" },
+    { id: "monitoring", label: "Monitoring Console", icon: Gauge, tooltip: "System health and performance", href: "/settings/platform-status" },
+    { id: "integrations", label: "Add-ons", icon: GitBranch, tooltip: "Third-party integrations", href: "/settings/integrations" },
+    { id: "general-settings", label: "Server Settings", icon: Settings, tooltip: "Platform configuration", href: "/settings" },
   ]
 
   const handleNavigation = (item: any) => {
@@ -234,85 +232,71 @@ export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
         </TooltipProvider>
       </div>
 
-      {/* Main Navigation */}
+      {/* Main Navigation - Splunk-style App Organization */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {/* Security Operations */}
+        {/* Core Apps */}
         {!isCollapsed && (
           <div className="px-4 pt-4 pb-2">
-            <h4 className="text-caption font-bold text-muted-foreground tracking-wider uppercase">Security Operations</h4>
+            <h4 className="text-caption font-bold text-muted-foreground tracking-wider uppercase">Core Apps</h4>
           </div>
         )}
         <nav className="px-2 pb-6 space-y-1">
-          {securityMenuItems.map((item) => (
+          {coreApps.map((item) => (
             <MenuItem key={item.id} item={item} />
           ))}
         </nav>
 
-        {/* Advanced Security */}
+        {/* Security Solutions */}
         <div className="border-t border-border/50">
           {!isCollapsed && (
             <div className="p-4 pb-2">
-              <h4 className="text-caption font-bold text-muted-foreground tracking-wider uppercase">Security Analysis</h4>
+              <h4 className="text-caption font-bold text-muted-foreground tracking-wider uppercase">Security Solutions</h4>
             </div>
           )}
           <div className="px-2 pb-4 space-y-1">
-            {advancedMenuItems.map((item) => (
+            {securitySolutions.map((item) => (
               <MenuItem key={item.id} item={item} />
             ))}
           </div>
         </div>
 
-        {/* Intelligence & Analysis */}
+        {/* Knowledge Objects */}
         <div className="border-t border-border/50">
           {!isCollapsed && (
             <div className="p-4 pb-2">
-              <h4 className="text-caption font-bold text-muted-foreground tracking-wider uppercase">Intelligence</h4>
+              <h4 className="text-caption font-bold text-muted-foreground tracking-wider uppercase">Knowledge Objects</h4>
             </div>
           )}
           <div className="px-2 pb-4 space-y-1">
-            {analysisMenuItems.map((item) => (
+            {knowledgeObjects.map((item) => (
               <MenuItem key={item.id} item={item} />
             ))}
           </div>
         </div>
 
-        {/* Infrastructure */}
+        {/* Data Management */}
         <div className="border-t border-border/50">
           {!isCollapsed && (
             <div className="p-4 pb-2">
-              <h4 className="text-caption font-bold text-muted-foreground tracking-wider uppercase">Infrastructure</h4>
+              <h4 className="text-caption font-bold text-muted-foreground tracking-wider uppercase">Data</h4>
             </div>
           )}
           <div className="px-2 pb-4 space-y-1">
-            {infrastructureMenuItems.map((item) => (
+            {dataManagement.map((item) => (
               <MenuItem key={item.id} item={item} />
             ))}
           </div>
         </div>
 
-        {/* System & Administration */}
-        <div className="border-t border-border/50">
-          {!isCollapsed && (
-            <div className="p-4 pb-2">
-              <h4 className="text-caption font-bold text-muted-foreground tracking-wider uppercase">System</h4>
-            </div>
-          )}
-          <div className="px-2 pb-4 space-y-1">
-            {systemMenuItems.map((item) => (
-              <MenuItem key={item.id} item={item} />
-            ))}
-          </div>
-        </div>
-
-        {/* Configuration */}
+        {/* System Administration */}
         <div className="border-t border-border">
           {!isCollapsed && (
             <div className="p-4 pb-2">
-              <h4 className="text-caption font-bold text-muted-foreground tracking-wider uppercase">Configuration</h4>
+              <h4 className="text-caption font-bold text-muted-foreground tracking-wider uppercase">Settings</h4>
             </div>
           )}
           <div className="px-2 pb-4 space-y-1">
-            {settingsItems.map((item) => (
+            {systemAdmin.map((item) => (
               <MenuItem key={item.id} item={item} />
             ))}
           </div>
