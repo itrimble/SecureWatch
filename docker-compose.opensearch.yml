@@ -1,0 +1,153 @@
+version: '3.8'
+
+# This file extends the main docker-compose.dev.yml with OpenSearch services
+# Usage: docker-compose -f docker-compose.dev.yml -f docker-compose.opensearch.yml up -d
+
+services:
+  # OpenSearch Node 1
+  opensearch-node1:
+    image: opensearchproject/opensearch:3.0.0
+    container_name: securewatch_opensearch_node1
+    environment:
+      - cluster.name=securewatch-cluster
+      - node.name=opensearch-node1
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - plugins.security.ssl.transport.pemcert_filepath=certs/node.pem
+      - plugins.security.ssl.transport.pemkey_filepath=certs/node-key.pem
+      - plugins.security.ssl.transport.pemtrustedcas_filepath=certs/root-ca.pem
+      - plugins.security.ssl.transport.enforce_hostname_verification=false
+      - plugins.security.ssl.http.enabled=true
+      - plugins.security.ssl.http.pemcert_filepath=certs/node.pem
+      - plugins.security.ssl.http.pemkey_filepath=certs/node-key.pem
+      - plugins.security.ssl.http.pemtrustedcas_filepath=certs/root-ca.pem
+      - plugins.security.allow_unsafe_democertificates=true
+      - plugins.security.allow_default_init_securityindex=true
+      - plugins.security.audit.type=internal_opensearch
+      - plugins.security.enable_snapshot_restore_privilege=true
+      - plugins.security.check_snapshot_restore_write_privileges=true
+      - plugins.security.restapi.roles_enabled=["all_access", "security_rest_api_access"]
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch_data1:/usr/share/opensearch/data
+      - ./infrastructure/opensearch/config/opensearch.yml:/usr/share/opensearch/config/opensearch.yml
+      - ./infrastructure/opensearch/config/certs:/usr/share/opensearch/config/certs
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    networks:
+      - securewatch_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -k -u admin:admin https://localhost:9200/_cluster/health?pretty | grep -q '\"status\" : \"green\\|yellow\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # OpenSearch Node 2
+  opensearch-node2:
+    image: opensearchproject/opensearch:3.0.0
+    container_name: securewatch_opensearch_node2
+    environment:
+      - cluster.name=securewatch-cluster
+      - node.name=opensearch-node2
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - plugins.security.ssl.transport.pemcert_filepath=certs/node.pem
+      - plugins.security.ssl.transport.pemkey_filepath=certs/node-key.pem
+      - plugins.security.ssl.transport.pemtrustedcas_filepath=certs/root-ca.pem
+      - plugins.security.ssl.transport.enforce_hostname_verification=false
+      - plugins.security.ssl.http.enabled=true
+      - plugins.security.ssl.http.pemcert_filepath=certs/node.pem
+      - plugins.security.ssl.http.pemkey_filepath=certs/node-key.pem
+      - plugins.security.ssl.http.pemtrustedcas_filepath=certs/root-ca.pem
+      - plugins.security.allow_unsafe_democertificates=true
+      - plugins.security.allow_default_init_securityindex=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch_data2:/usr/share/opensearch/data
+      - ./infrastructure/opensearch/config/opensearch.yml:/usr/share/opensearch/config/opensearch.yml
+      - ./infrastructure/opensearch/config/certs:/usr/share/opensearch/config/certs
+    networks:
+      - securewatch_network
+
+  # OpenSearch Dashboards
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:3.0.0
+    container_name: securewatch_opensearch_dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      - 'OPENSEARCH_HOSTS=["https://opensearch-node1:9200","https://opensearch-node2:9200"]'
+      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=false"
+      - "SERVER_BASEPATH="
+      - "SERVER_REWRITEBASEPATH=true"
+    volumes:
+      - ./infrastructure/opensearch/dashboards/opensearch_dashboards.yml:/usr/share/opensearch-dashboards/config/opensearch_dashboards.yml
+    networks:
+      - securewatch_network
+    depends_on:
+      opensearch-node1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:5601/api/status | grep -q '\"state\":\"green\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Update log-ingestion service to support dual writes
+  log-ingestion:
+    extends:
+      file: docker-compose.dev.yml
+      service: log-ingestion
+    environment:
+      - OPENSEARCH_NODE=https://opensearch-node1:9200
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=admin
+      - USE_OPENSEARCH=true
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - opensearch-node1
+      - opensearch-node2
+
+  # Update search-api to support OpenSearch queries
+  search-api:
+    extends:
+      file: docker-compose.dev.yml
+      service: search-api
+    environment:
+      - OPENSEARCH_NODE=https://opensearch-node1:9200
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=admin
+      - USE_OPENSEARCH=true
+    depends_on:
+      - postgres
+      - opensearch-node1
+      - opensearch-node2
+
+volumes:
+  opensearch_data1:
+  opensearch_data2:
+
+networks:
+  securewatch_network:
+    external: true

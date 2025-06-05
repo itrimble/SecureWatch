@@ -1,0 +1,61 @@
+server.name: opensearch-dashboards
+server.host: 0.0.0.0
+server.port: 5601
+opensearch.hosts: ["https://opensearch-node1:9200", "https://opensearch-node2:9200"]
+opensearch.ssl.verificationMode: none
+opensearch.username: admin
+opensearch.password: admin
+opensearch.requestHeadersAllowlist: ["securitytenant","authorization"]
+
+# Enable security features
+opensearch_security.multitenancy.enabled: true
+opensearch_security.multitenancy.tenants.enable_global: true
+opensearch_security.multitenancy.tenants.enable_private: true
+opensearch_security.readonly_mode.roles: ["kibana_read_only"]
+opensearch_security.cookie.secure: true
+
+# CORS settings for iframe embedding
+server.cors.enabled: true
+server.cors.allowOrigin: ["http://localhost:3000", "http://localhost:4000", "https://your-domain.com"]
+server.cors.allowCredentials: true
+server.cors.allowHeaders: ["authorization", "content-type", "x-elastic-product"]
+
+# CSP settings for iframe embedding
+csp.strict: false
+csp.warnLegacyBrowsers: false
+csp.rules:
+  - "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+  - "worker-src 'self' blob:"
+  - "child-src 'self' blob:"
+  - "style-src 'self' 'unsafe-inline'"
+  - "frame-ancestors 'self' http://localhost:* https://localhost:* https://your-domain.com"
+
+# UI settings
+uiSettings.overrides:
+  defaultRoute: "/app/dashboards"
+  theme:darkMode: true
+  
+# Logging
+logging.dest: stdout
+logging.verbose: false
+
+# Performance settings
+elasticsearch.requestTimeout: 300000
+elasticsearch.shardTimeout: 120000
+
+# Map settings for threat visualization
+map.includeOpenSearchMapsService: true
+map.tilemap.url: "https://tiles.maps.elastic.co/v8/default/{z}/{x}/{y}.png"
+map.tilemap.options.minZoom: 1
+map.tilemap.options.maxZoom: 18
+
+# Custom branding for SecureWatch
+opensearchDashboards.branding:
+  logo:
+    defaultUrl: "/ui/logos/securewatch_logo.svg"
+    darkModeUrl: "/ui/logos/securewatch_logo_dark.svg"
+  mark:
+    defaultUrl: "/ui/logos/securewatch_mark.svg"
+    darkModeUrl: "/ui/logos/securewatch_mark_dark.svg"
+  applicationTitle: "SecureWatch Analytics"
+  faviconUrl: "/ui/favicons/favicon.ico"

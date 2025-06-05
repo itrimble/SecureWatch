@@ -1,0 +1,33 @@
+cluster.name: securewatch-cluster
+network.host: 0.0.0.0
+
+# Security settings
+plugins.security.ssl.transport.pemcert_filepath: certs/node.pem
+plugins.security.ssl.transport.pemkey_filepath: certs/node-key.pem
+plugins.security.ssl.transport.pemtrustedcas_filepath: certs/root-ca.pem
+plugins.security.ssl.transport.enforce_hostname_verification: false
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.http.pemcert_filepath: certs/node.pem
+plugins.security.ssl.http.pemkey_filepath: certs/node-key.pem
+plugins.security.ssl.http.pemtrustedcas_filepath: certs/root-ca.pem
+plugins.security.allow_unsafe_democertificates: true
+plugins.security.allow_default_init_securityindex: true
+plugins.security.authcz.admin_dn:
+  - CN=kirk,OU=client,O=client,L=test,C=de
+plugins.security.nodes_dn:
+  - CN=node,OU=node,O=node,L=test,C=de
+plugins.security.audit.type: internal_opensearch
+plugins.security.enable_snapshot_restore_privilege: true
+plugins.security.check_snapshot_restore_write_privileges: true
+plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]
+
+# Performance settings for SIEM workload
+indices.query.bool.max_clause_count: 10000
+search.max_buckets: 100000
+thread_pool.write.queue_size: 10000
+
+# Index settings
+action.auto_create_index: .plugins-ml-config,.plugins-ml-connector,.plugins-ml-model-group,.plugins-ml-model,.plugins-ml-task,.plugins-ml-conversation-meta,.plugins-ml-conversation-interactions,.opendistro-alerting-config,.opendistro-alerting-alert*,.opendistro-anomaly-results*,.opendistro-anomaly-detector*,.opendistro-anomaly-checkpoints,.opendistro-anomaly-detection-state,.opendistro-reports-*,.opensearch-notifications-*,.opensearch-notebooks,.opensearch-observability,.ql-datasources,.kibana*,.securewatch-*
+
+# Snapshot repository
+path.repo: ["/usr/share/opensearch/data/snapshots"]

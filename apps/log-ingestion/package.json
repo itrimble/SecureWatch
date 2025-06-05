@@ -13,6 +13,7 @@
   "dependencies": {
     "@securewatch/data-models": "workspace:*",
     "@securewatch/shared-utils": "workspace:*",
+    "@opensearch-project/opensearch": "^3.0.0",
     "amqplib": "^0.10.5",
     "bull": "^4.16.5",
     "express": "^4.21.2",

@@ -1,0 +1,187 @@
+{
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 1,
+    "refresh_interval": "5s",
+    "index": {
+      "mapping": {
+        "total_fields": {
+          "limit": "2000"
+        }
+      }
+    },
+    "analysis": {
+      "analyzer": {
+        "security_log_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "stop",
+            "snowball",
+            "security_synonym"
+          ]
+        }
+      },
+      "filter": {
+        "security_synonym": {
+          "type": "synonym",
+          "synonyms": [
+            "login,logon,authentication",
+            "logout,logoff,signout",
+            "failure,failed,error",
+            "success,successful,ok",
+            "attack,threat,malicious",
+            "privilege,elevation,escalation"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "timestamp": {
+        "type": "date",
+        "format": "date_time||epoch_millis"
+      },
+      "raw_message": {
+        "type": "text",
+        "analyzer": "security_log_analyzer",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 512
+          }
+        }
+      },
+      "source_type": {
+        "type": "keyword"
+      },
+      "source_host": {
+        "type": "keyword"
+      },
+      "event_id": {
+        "type": "keyword"
+      },
+      "severity": {
+        "type": "keyword"
+      },
+      "event_type": {
+        "type": "keyword"
+      },
+      "category": {
+        "type": "keyword"
+      },
+      "subcategory": {
+        "type": "keyword"
+      },
+      "user": {
+        "properties": {
+          "name": {
+            "type": "keyword"
+          },
+          "id": {
+            "type": "keyword"
+          },
+          "domain": {
+            "type": "keyword"
+          },
+          "email": {
+            "type": "keyword"
+          }
+        }
+      },
+      "process": {
+        "properties": {
+          "name": {
+            "type": "keyword"
+          },
+          "pid": {
+            "type": "integer"
+          },
+          "command_line": {
+            "type": "text",
+            "analyzer": "security_log_analyzer",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 1024
+              }
+            }
+          },
+          "executable": {
+            "type": "keyword"
+          },
+          "parent": {
+            "properties": {
+              "name": {
+                "type": "keyword"
+              },
+              "pid": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "network": {
+        "properties": {
+          "source_ip": {
+            "type": "ip"
+          },
+          "source_port": {
+            "type": "integer"
+          },
+          "destination_ip": {
+            "type": "ip"
+          },
+          "destination_port": {
+            "type": "integer"
+          },
+          "protocol": {
+            "type": "keyword"
+          },
+          "bytes_sent": {
+            "type": "long"
+          },
+          "bytes_received": {
+            "type": "long"
+          }
+        }
+      },
+      "security": {
+        "properties": {
+          "action": {
+            "type": "keyword"
+          },
+          "outcome": {
+            "type": "keyword"
+          },
+          "risk_score": {
+            "type": "float"
+          },
+          "mitre_technique": {
+            "type": "keyword"
+          },
+          "threat_indicators": {
+            "type": "keyword"
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "enabled": false
+      },
+      "tags": {
+        "type": "keyword"
+      },
+      "_search_text": {
+        "type": "text",
+        "analyzer": "security_log_analyzer"
+      },
+      "_normalized_timestamp": {
+        "type": "long"
+      }
+    }
+  }
+}
