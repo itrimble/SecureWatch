@@ -98,7 +98,7 @@ export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
   // System & Administration
   const systemMenuItems = [
     { id: "system-health", label: "System Health", icon: Gauge, tooltip: "System Performance & Health" },
-    { id: "data-sources", label: "Data Sources", icon: Router, tooltip: "Log Sources & Connectors" },
+    { id: "log-sources", label: "Log Sources", icon: Router, tooltip: "Log Sources & Connectors", href: "/settings/log-sources" },
     { id: "workflows", label: "Automation", icon: Workflow, tooltip: "Security Automation & Playbooks" },
     { id: "integrations", label: "Integrations", icon: GitBranch, tooltip: "Third-party Integrations", href: "/settings/integrations" },
   ]
