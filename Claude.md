@@ -163,6 +163,9 @@
     - **KQL Engine:** Kusto Query Language for log search and analysis
     - **Enhanced CLI Dashboard:** TypeScript-based terminal UI with service monitoring, control, and management capabilities (`cli-dashboard/`)
     - **Service Control System:** Automated service start/stop/restart with Docker and Node.js integration
+    - **Enhanced EVTX Parser:** Comprehensive Windows Event Log parser with MITRE ATT&CK detection (`scripts/evtx_parser_enhanced.py`)
+    - **EVTX Testing Suite:** Automated testing framework for EVTX-ATTACK-SAMPLES validation (`scripts/test_enhanced_evtx_pipeline.py`)
+    - **EVTX Web Upload:** Frontend component for real-time EVTX file upload and parsing (`frontend/components/log-sources/evtx-file-upload.tsx`)
     - **Bug Tracking System:** Python-based bug tracking with JSON persistence (`scripts/bug-tracker.py`)
     - **Test Management System:** Comprehensive testing framework with unit and E2E test tracking (`scripts/test-tracker.py`)
 - **Permissions and safety:**
@@ -231,6 +234,12 @@
       ./cli-dashboard.sh start-all                   # Start all services
       ./cli-dashboard.sh logs --service "Search API" --lines 100  # Service logs
       ```
+    - **Enhanced EVTX Parser operations:**
+      ```bash
+      python3 scripts/evtx_parser_enhanced.py sample.evtx          # Parse EVTX with attack detection
+      python3 scripts/evtx_parser_enhanced.py sample.evtx --attack-only --output results.json  # Attack-focused analysis
+      python3 scripts/test_enhanced_evtx_pipeline.py --samples-path /path/to/EVTX-ATTACK-SAMPLES  # Test against attack samples
+      ```
     - **Blessed-Contrib Rich Dashboard Features (NEW):**
       - **Rich Widgets**: Line charts, gauges, sparklines, LCD displays, bar charts, tables, log streams
       - **Nerd Font Support**: Enhanced Unicode icons with graceful ASCII fallback
@@ -238,6 +247,13 @@
       - **Interactive Controls**: F-key shortcuts, panel navigation, service management
       - **Real-time Visualizations**: CPU trends, network traffic, events per second, alerts
       - **Comprehensive Documentation**: `cli-dashboard/BLESSED_CONTRIB_DASHBOARD.md`
+    - **Enhanced EVTX Parser Features (NEW):**
+      - **MITRE ATT&CK Detection**: Automatic technique identification from Sysmon RuleName fields
+      - **Attack Pattern Recognition**: 50+ regex patterns for malicious behavior detection  
+      - **Risk Scoring Algorithm**: Intelligent threat prioritization with confidence scoring
+      - **Comprehensive Sysmon Support**: Full coverage of Events 1-29 with enhanced field extraction
+      - **Real-time Processing**: Configurable batch processing with SecureWatch integration
+      - **Web-based Upload**: Frontend component for instant EVTX file parsing and analysis
 
 ## 6. Code Style and Contribution Guidelines
 - **Formatting conventions:**

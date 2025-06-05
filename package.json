@@ -1,7 +1,7 @@
 {
   "name": "securewatch",
-  "version": "1.0.0",
-  "description": "Enterprise SIEM platform with advanced log analysis and threat detection",
+  "version": "1.9.0",
+  "description": "Enterprise SIEM platform with enhanced EVTX parser, MITRE ATT&CK detection, and comprehensive threat analysis",
   "private": true,
   "packageManager": "pnpm@10.11.1",
   "author": "Ian Trimble <itrimble@gmail.com>",
@@ -24,7 +24,10 @@
     "typecheck": "turbo type-check",
     "mcp-marketplace": "cd apps/mcp-marketplace && pnpm run dev",
     "build:mcp-client": "cd packages/mcp-client && pnpm run build",
-    "install:deps": "pnpm install --frozen-lockfile"
+    "install:deps": "pnpm install --frozen-lockfile",
+    "evtx:parse": "python3 scripts/evtx_parser_enhanced.py",
+    "evtx:test": "python3 scripts/test_enhanced_evtx_pipeline.py",
+    "evtx:samples": "python3 scripts/test_enhanced_evtx_pipeline.py --samples-path /Users/ian/Downloads/EVTX-ATTACK-SAMPLES-master"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
