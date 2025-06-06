@@ -1,0 +1,28 @@
+{
+  "name": "@securewatch/lookup-service",
+  "version": "1.0.0",
+  "description": "Lookup table management and enrichment service for SecureWatch SIEM",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "csv-parser": "^3.0.0",
+    "fast-csv": "^4.3.6",
+    "uuid": "^9.0.1",
+    "joi": "^17.11.0",
+    "pg": "^8.11.3",
+    "redis": "^4.6.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.10.7",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.0.0"
+  },
+  "keywords": ["siem", "lookup", "enrichment", "csv", "threat-intelligence"],
+  "license": "MIT"
+}

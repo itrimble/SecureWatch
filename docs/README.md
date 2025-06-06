@@ -20,6 +20,7 @@ This directory contains comprehensive documentation for the SecureWatch SIEM pla
 ### 🔍 Analytics & Visualization
 - **[KQL_API_GUIDE.md](KQL_API_GUIDE.md)** - KQL search engine and query language guide
 - **[VISUALIZATION_USER_GUIDE.md](VISUALIZATION_USER_GUIDE.md)** - Interactive visualizations and dashboard usage
+- **[LOOKUP_TABLES_USER_GUIDE.md](LOOKUP_TABLES_USER_GUIDE.md)** - ⭐ **Lookup Tables** comprehensive guide for CSV uploads and data enrichment
 
 ### 🚀 Deployment & Operations
 - **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Production deployment and configuration
@@ -42,6 +43,35 @@ This directory contains comprehensive documentation for the SecureWatch SIEM pla
 - **[TROUBLESHOOTING_EXPORT_USER_GUIDE.md](TROUBLESHOOTING_EXPORT_USER_GUIDE.md)** - ⭐ **User Guide** for troubleshooting log export feature
 
 ## 🔥 Latest Updates & Key Features
+
+### Lookup Tables & Data Enrichment System (January 2025) 🆕
+Enterprise-grade lookup table system with Splunk-style functionality and modern enhancements:
+
+#### 🎯 Data Enrichment Features
+- **CSV Upload & Management**: Upload CSV files as lookup tables with automatic field detection
+- **Real-time Search Enrichment**: Automatic field enrichment during KQL queries
+- **External API Integration**: Built-in support for VirusTotal, AbuseIPDB, IPStack and custom APIs
+- **Performance Optimization**: Redis caching, batch processing, and optimized database queries
+- **Usage Analytics**: Comprehensive statistics, performance metrics, and query logging
+
+#### 📊 Pre-loaded Sample Data
+- **IP Geolocation Database**: 8+ sample entries for network event enrichment
+- **User Directory**: Corporate user data with departments, titles, and risk scores
+- **Asset Inventory**: Server and workstation data with criticality levels
+- **Threat Intelligence**: Malicious IP database with confidence scoring
+
+#### 🚀 Technical Capabilities
+- **Automatic Field Detection**: Smart type inference (IP, email, URL, date, number, boolean)
+- **Enrichment Rules Engine**: Configurable rules with conditions and transformations
+- **Batch Processing**: Handle large CSV files (up to 50MB) with 1000-record batches
+- **API Rate Limiting**: Built-in rate limiting and retry logic for external services
+- **Cache Management**: Intelligent caching with TTL and manual cache clearing
+
+#### 💼 Enterprise Use Cases
+- **Threat Intelligence Correlation**: Enrich network events with IOC data
+- **User Behavior Analytics**: Add department and risk scores to authentication events
+- **Asset Context**: Enhance host events with criticality and ownership information
+- **Geolocation Analysis**: Map IP addresses to countries, cities, and coordinates
 
 ### Troubleshooting Log Bundle Export (January 2025) 🆕
 Enterprise-grade log export system for SecureWatch support and troubleshooting:

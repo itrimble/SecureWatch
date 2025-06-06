@@ -276,6 +276,177 @@ For detailed API documentation, see [SUPPORT_BUNDLE_API_GUIDE.md](SUPPORT_BUNDLE
 
 ---
 
+## 🔍 Lookup Tables & Data Enrichment
+
+Enterprise-grade lookup table system for automatic data enrichment during search operations.
+
+### Overview
+
+The lookup table system provides Splunk-style data enrichment with modern enhancements:
+
+- **CSV Upload Management**: Upload and manage lookup tables via web interface
+- **Automatic Field Detection**: Smart type inference for IP, email, URL, date fields
+- **Search-Time Enrichment**: Automatic field enrichment during KQL queries
+- **External API Integration**: Built-in support for threat intelligence APIs
+- **Performance Optimization**: Redis caching and optimized database queries
+
+### Configuration
+
+The lookup service is automatically configured but can be customized:
+
+```typescript
+// packages/lookup-service configuration
+const LOOKUP_CONFIG = {
+  database: {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432'),
+    database: process.env.DB_NAME || 'securewatch',
+    user: process.env.DB_USER || 'securewatch',
+    password: process.env.DB_PASSWORD || 'securewatch_dev'
+  },
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD || 'securewatch_dev'
+  },
+  upload: {
+    maxFileSize: 50 * 1024 * 1024, // 50MB
+    allowedFormats: ['.csv'],
+    batchSize: 1000
+  },
+  caching: {
+    defaultTTL: 300, // 5 minutes
+    maxCacheSize: 10000
+  }
+};
+```
+
+### Usage
+
+#### Web Interface
+1. Navigate to **Settings** → **Knowledge Objects** → **Lookups**
+2. Click **Upload CSV** to add new lookup tables
+3. Configure enrichment rules for automatic field enhancement
+4. Monitor performance via statistics dashboard
+
+#### API Usage
+```bash
+# Upload lookup table
+curl -X POST http://localhost:4000/api/lookup-tables \
+  -F "file=@geolocation.csv" \
+  -F "keyField=ip_address" \
+  -F "description=IP geolocation database"
+
+# Query lookup table
+curl "http://localhost:4000/api/lookup-tables/query?table=geolocation&keyField=ip_address&keyValue=8.8.8.8"
+
+# Search with enrichment
+curl -X POST http://localhost:4000/api/v1/search/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Events | where src_ip contains \"192.168\"",
+    "enrichment": {
+      "enabled": true,
+      "externalLookups": true
+    }
+  }'
+```
+
+### Sample Data
+
+The system includes pre-loaded sample data for common use cases:
+
+#### 1. IP Geolocation (`lookup_ip_geolocation`)
+```sql
+-- Sample entries for network event enrichment
+ip_address          | country        | city           | latitude   | longitude
+8.8.8.8            | United States  | Mountain View  | 37.3860517 | -122.0838511
+1.1.1.1            | Australia      | Sydney         | -33.8688197| 151.2092955
+```
+
+#### 2. User Directory (`lookup_user_directory`)
+```sql
+-- Sample entries for authentication event enrichment
+username    | department   | title            | risk_score | manager
+john.doe    | IT Security  | Security Analyst | 25         | jane.smith
+jane.smith  | IT Security  | CISO            | 15         | ceo
+```
+
+#### 3. Asset Inventory (`lookup_asset_inventory`)
+```sql
+-- Sample entries for host-based event enrichment
+hostname        | criticality | owner         | environment | cost_center
+web-server-01   | High        | alice.johnson | Production  | IT-001
+db-server-01    | Critical    | mike.brown    | Production  | IT-001
+```
+
+#### 4. Threat Intelligence (`lookup_threat_intel_ips`)
+```sql
+-- Sample entries for security event enrichment
+ip_address     | threat_type | confidence | severity | source
+203.0.113.1    | C2 Server   | 95         | Critical | Threat Feed A
+198.51.100.50  | Scanning    | 75         | High     | Internal Detection
+```
+
+### External API Integration
+
+Built-in support for popular threat intelligence APIs:
+
+```bash
+# Configure VirusTotal integration
+curl -X POST http://localhost:4000/api/lookup-tables/external-apis \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "VirusTotal_IP",
+    "baseUrl": "https://www.virustotal.com/vtapi/v2/ip-address/report",
+    "apiKey": "your-virustotal-api-key",
+    "queryParams": {"ip": "{value}"},
+    "fieldMapping": {
+      "input": "ip",
+      "output": {
+        "vt_reputation": "response_code",
+        "vt_country": "country"
+      }
+    },
+    "rateLimit": {"requests": 500, "window": 86400},
+    "cacheTTL": 3600
+  }'
+```
+
+### Performance Features
+
+#### Caching Strategy
+- **Redis Integration**: 5-minute TTL with LRU eviction
+- **Batch Processing**: 1000-record batches for large datasets
+- **Query Optimization**: Strategic indexing on key and common fields
+
+#### Monitoring
+- **Usage Statistics**: Query count, cache hit rate, performance metrics
+- **Health Checks**: Service status and database connectivity
+- **Error Tracking**: Failed queries and API integration issues
+
+### Service Health Check
+
+Verify the lookup service is operational:
+
+```bash
+# Check lookup service health
+curl http://localhost:4000/api/lookup-tables?stats=true
+
+# Expected response
+{
+  "totalTables": 4,
+  "totalRecords": 32,
+  "totalQueries": 1247,
+  "cacheHitRate": 87.3,
+  "averageQueryTime": 23.4
+}
+```
+
+For detailed usage instructions, see [LOOKUP_TABLES_USER_GUIDE.md](LOOKUP_TABLES_USER_GUIDE.md).
+
+---
+
 ## ⚙️ Advanced Configuration
 
 ### Environment Variables
@@ -383,11 +554,21 @@ The extended schema is automatically applied during deployment, but can be manua
 # Apply extended schema migration
 docker exec -i securewatch_postgres psql -U securewatch -d securewatch < infrastructure/database/migrations/001_extend_logs_schema.sql
 
+# Apply lookup tables schema
+docker exec -i securewatch_postgres psql -U securewatch -d securewatch < infrastructure/database/lookup_schema.sql
+
+# Apply sample enrichment data (optional)
+docker exec -i securewatch_postgres psql -U securewatch -d securewatch < infrastructure/database/sample_enrichment_data.sql
+
 # Verify schema extension
 docker exec -i securewatch_postgres psql -U securewatch -d securewatch -c "
 SELECT COUNT(*) as total_columns 
 FROM information_schema.columns 
 WHERE table_name = 'logs' AND table_schema = 'public';"
+
+# Check lookup tables
+docker exec -i securewatch_postgres psql -U securewatch -d securewatch -c "
+SELECT name, record_count, is_active FROM lookup_tables;"
 
 # Check specialized views
 docker exec -i securewatch_postgres psql -U securewatch -d securewatch -c "\dv"
@@ -401,6 +582,13 @@ docker exec -i securewatch_postgres psql -U securewatch -d securewatch -c "\dv"
 - `organizations` - Multi-tenancy support
 - `alert_rules` - Configurable alerting
 - `alerts` - Alert instance tracking
+
+**Lookup Tables:**
+- `lookup_tables` - CSV lookup table metadata and configuration
+- `enrichment_rules` - Automatic field enrichment rules
+- `api_lookup_configs` - External API integration configurations
+- `lookup_query_log` - Usage analytics and performance monitoring
+- `lookup_*` - Dynamic tables for uploaded CSV data
 
 **Specialized Views:**
 - `authentication_events` - Login/access analysis

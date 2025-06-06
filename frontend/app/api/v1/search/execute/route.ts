@@ -1,7 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Pool } from 'pg';
+import { LookupService, EnrichmentEngine } from '@securewatch/lookup-service';
+import { Redis } from 'redis';
 
 // Try to use live backend services, fallback to mock results
 const SEARCH_API_URL = process.env.SEARCH_API_URL || 'http://localhost:4004';
+
+// Database connection for enrichment
+const dbPool = new Pool({
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432'),
+  database: process.env.DB_NAME || 'securewatch',
+  user: process.env.DB_USER || 'securewatch',
+  password: process.env.DB_PASSWORD || 'securewatch_dev',
+});
+
+// Redis connection for enrichment
+const redis = new Redis({
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379'),
+  password: process.env.REDIS_PASSWORD || 'securewatch_dev',
+});
+
+const lookupService = new LookupService(dbPool, redis);
+const enrichmentEngine = new EnrichmentEngine(dbPool, lookupService);
 
 interface KQLQueryRequest {
   query: string;
@@ -12,6 +34,11 @@ interface KQLQueryRequest {
   limit?: number;
   offset?: number;
   organizationId?: string;
+  enrichment?: {
+    enabled?: boolean;
+    rules?: string[];
+    externalLookups?: boolean;
+  };
 }
 
 // Mock KQL query results for development
@@ -113,6 +140,111 @@ async function executeKQLSearch(queryRequest: KQLQueryRequest): Promise<any> {
   }
 }
 
+/**
+ * Apply enrichment to search results
+ */
+async function applyEnrichment(
+  searchResults: any,
+  enrichmentConfig?: {
+    enabled?: boolean;
+    rules?: string[];
+    externalLookups?: boolean;
+  }
+): Promise<any> {
+  // Skip enrichment if not enabled
+  if (!enrichmentConfig?.enabled) {
+    return searchResults;
+  }
+
+  try {
+    // Convert column-row format to object format for enrichment
+    const records = searchResults.rows.map((row: any[]) => {
+      const record: Record<string, any> = {};
+      searchResults.columns.forEach((col: any, index: number) => {
+        record[col.name] = row[index];
+      });
+      return record;
+    });
+
+    // Apply enrichment
+    const enrichmentResult = await enrichmentEngine.enrichData({
+      data: records,
+      rules: enrichmentConfig.rules,
+      enableExternalLookups: enrichmentConfig.externalLookups || false
+    });
+
+    // Convert back to column-row format
+    const enrichedColumns = [...searchResults.columns];
+    const enrichedColumnNames = new Set(enrichedColumns.map(c => c.name));
+
+    // Add new columns from enrichment
+    if (enrichmentResult.enrichedData.length > 0) {
+      const sampleRecord = enrichmentResult.enrichedData[0];
+      Object.keys(sampleRecord).forEach(key => {
+        if (!enrichedColumnNames.has(key)) {
+          enrichedColumns.push({
+            name: key,
+            type: inferColumnType(sampleRecord[key]),
+            nullable: true,
+            enriched: true
+          });
+        }
+      });
+    }
+
+    // Convert enriched records back to rows
+    const enrichedRows = enrichmentResult.enrichedData.map(record => {
+      return enrichedColumns.map(col => record[col.name] || null);
+    });
+
+    return {
+      ...searchResults,
+      columns: enrichedColumns,
+      rows: enrichedRows,
+      enrichment: {
+        applied: true,
+        statistics: {
+          appliedRules: enrichmentResult.appliedRules,
+          totalLookups: enrichmentResult.lookupCount,
+          externalLookups: enrichmentResult.externalLookupCount,
+          processingTime: enrichmentResult.processingTime,
+          errorCount: enrichmentResult.errors.length
+        },
+        errors: enrichmentResult.errors.length > 0 ? enrichmentResult.errors : undefined
+      }
+    };
+
+  } catch (error) {
+    console.error('Enrichment failed:', error);
+    
+    // Return original results with error info
+    return {
+      ...searchResults,
+      enrichment: {
+        applied: false,
+        error: error instanceof Error ? error.message : 'Unknown enrichment error'
+      }
+    };
+  }
+}
+
+/**
+ * Infer column type from value
+ */
+function inferColumnType(value: any): string {
+  if (value === null || value === undefined) return 'string';
+  if (typeof value === 'number') return 'number';
+  if (typeof value === 'boolean') return 'boolean';
+  if (value instanceof Date) return 'datetime';
+  if (typeof value === 'string') {
+    // Check for common patterns
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) return 'datetime';
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(value)) return 'ip';
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'email';
+  }
+  return 'string';
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('[API/KQL] Received KQL search request');
@@ -133,11 +265,16 @@ export async function POST(request: NextRequest) {
     try {
       const liveResults = await executeKQLSearch(body);
       console.log(`[API/KQL] Returning ${liveResults.totalCount} results from live backend`);
-      return NextResponse.json(liveResults, {
+      
+      // Apply enrichment if requested
+      const enrichedResults = await applyEnrichment(liveResults, body.enrichment);
+      
+      return NextResponse.json(enrichedResults, {
         headers: {
           'X-Data-Source': 'live-backend',
           'X-Search-API': SEARCH_API_URL,
-          'X-Query-Type': 'kql'
+          'X-Query-Type': 'kql',
+          'X-Enrichment-Applied': body.enrichment?.enabled ? 'true' : 'false'
         }
       });
     } catch (backendError) {
@@ -172,11 +309,15 @@ export async function POST(request: NextRequest) {
     
     console.log(`[API/KQL] Returning ${modifiedResults.metadata.totalRows} mock results`);
     
-    return NextResponse.json(modifiedResults, {
+    // Apply enrichment if requested
+    const enrichedResults = await applyEnrichment(modifiedResults, body.enrichment);
+    
+    return NextResponse.json(enrichedResults, {
       headers: {
         'X-Data-Source': 'mock-data',
         'X-Fallback-Reason': 'live-backend-unavailable',
-        'X-Query-Type': 'kql'
+        'X-Query-Type': 'kql',
+        'X-Enrichment-Applied': body.enrichment?.enabled ? 'true' : 'false'
       }
     });
   } catch (error) {
