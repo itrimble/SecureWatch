@@ -28,10 +28,12 @@ SecureWatch implements a Microsoft Sentinel-style KQL (Kusto Query Language) sea
 
 ## 🔍 KQL Search API
 
-### Base URL
-```
-http://localhost:4004/api/v1/search
-```
+SecureWatch now provides multiple API endpoints optimized for different use cases:
+
+### Base URLs
+- **Search API Service**: `http://localhost:4004/api/v1/search` (Advanced KQL queries)
+- **Analytics API Service**: `http://localhost:4009/api/dashboard` (Fast dashboard endpoints)
+- **Query Processor Service**: `http://localhost:4008/api/jobs` (Long-running async queries)
 
 ### Authentication
 Include the following header in all requests:
@@ -320,6 +322,248 @@ Get performance and usage statistics for the search engine.
   },
   "nodeVersion": "v18.17.0",
   "platform": "darwin"
+}
+```
+
+---
+
+## ⚡ Analytics API Service (High-Performance Dashboard Endpoints)
+
+The Analytics API Service provides specialized endpoints optimized for dashboard performance using TimescaleDB continuous aggregates.
+
+### Base URL
+```
+http://localhost:4009/api
+```
+
+### Real-time Overview
+**GET** `/dashboard/realtime-overview`
+
+Get real-time security overview for the last hour with sub-second response times.
+
+#### Response
+```json
+{
+  "total_events": 15432,
+  "critical_events": 23,
+  "high_events": 156,
+  "medium_events": 892,
+  "total_sources": 45,
+  "active_sources": 42,
+  "alerts_generated": 12,
+  "incidents_created": 3,
+  "top_event_types": [
+    {"event_type": "authentication", "count": 3421},
+    {"event_type": "network_traffic", "count": 2876},
+    {"event_type": "file_access", "count": 1987}
+  ],
+  "cache_info": {
+    "cached": true,
+    "ttl_seconds": 25,
+    "generated_at": "2025-01-06T10:30:00Z"
+  }
+}
+```
+
+### Hourly Trends
+**GET** `/dashboard/hourly-trends?hours=24`
+
+Get hourly security metrics from continuous aggregates for trend analysis.
+
+#### Parameters
+- **hours** (optional): Time period in hours (default: 24, max: 168)
+
+#### Response
+```json
+{
+  "trends": [
+    {
+      "hour_bucket": "2025-01-06T09:00:00Z",
+      "total_events": 2341,
+      "critical_events": 5,
+      "high_events": 34,
+      "average_response_time": 145.6,
+      "source_count": 38
+    }
+  ],
+  "performance": {
+    "query_time_ms": 23,
+    "source": "continuous_aggregate",
+    "rows_scanned": 24
+  }
+}
+```
+
+### Top Security Events
+**GET** `/dashboard/top-events?limit=10&period=1h`
+
+Get the most frequent security events from pre-computed aggregates.
+
+#### Parameters
+- **limit** (optional): Maximum events to return (default: 10, max: 100)
+- **period** (optional): Time period (1h, 6h, 24h, 7d)
+
+### Source Health Status
+**GET** `/dashboard/source-health`
+
+Get comprehensive source health metrics from continuous aggregates.
+
+---
+
+## 🔄 Query Processor Service (Async Job Processing)
+
+The Query Processor Service handles long-running queries asynchronously with real-time progress updates.
+
+### Base URL
+```
+http://localhost:4008/api/jobs
+```
+
+### Submit Async Query Job
+**POST** `/submit`
+
+Submit a KQL query for asynchronous processing with WebSocket notifications.
+
+#### Request Body
+```json
+{
+  "query": "logs | where timestamp >= ago(7d) | summarize count() by source_identifier, bin(timestamp, 1h)",
+  "userId": "user123",
+  "organizationId": "default",
+  "priority": "high",
+  "timeout": 300000,
+  "options": {
+    "enableNotifications": true,
+    "resultFormat": "json",
+    "maxRows": 50000
+  }
+}
+```
+
+#### Response
+```json
+{
+  "jobId": "job_abc123def456",
+  "status": "queued",
+  "estimatedDuration": 45000,
+  "queuePosition": 2,
+  "websocketUrl": "ws://localhost:8080",
+  "submittedAt": "2025-01-06T10:30:00Z"
+}
+```
+
+### Get Job Status
+**GET** `/:jobId`
+
+Get detailed status and progress for a submitted job.
+
+#### Response
+```json
+{
+  "jobId": "job_abc123def456",
+  "status": "running",
+  "progress": 67.5,
+  "startedAt": "2025-01-06T10:30:15Z",
+  "estimatedCompletion": "2025-01-06T10:31:30Z",
+  "rowsProcessed": 135000,
+  "totalRows": 200000,
+  "currentPhase": "data_aggregation",
+  "phases": [
+    {"name": "validation", "completed": true, "duration": 250},
+    {"name": "query_planning", "completed": true, "duration": 180},
+    {"name": "data_scanning", "completed": true, "duration": 15420},
+    {"name": "data_aggregation", "completed": false, "duration": null},
+    {"name": "result_formatting", "completed": false, "duration": null}
+  ]
+}
+```
+
+### Get Job Results
+**GET** `/:jobId/result`
+
+Retrieve the completed results of an async job.
+
+#### Response
+```json
+{
+  "jobId": "job_abc123def456",
+  "status": "completed",
+  "completedAt": "2025-01-06T10:31:25Z",
+  "totalDuration": 70000,
+  "resultSize": 1247,
+  "results": {
+    "columns": [
+      {"name": "source_identifier", "type": "string"},
+      {"name": "time_bucket", "type": "datetime"},
+      {"name": "event_count", "type": "number"}
+    ],
+    "rows": [
+      {
+        "source_identifier": "web_server_logs",
+        "time_bucket": "2025-01-06T10:00:00Z",
+        "event_count": 3456
+      }
+    ]
+  },
+  "metadata": {
+    "rowsScanned": 2500000,
+    "rowsReturned": 1247,
+    "cacheHit": false,
+    "queryPlan": "aggregate_first_scan"
+  }
+}
+```
+
+### WebSocket Real-time Updates
+Connect to WebSocket for real-time job progress notifications:
+
+```javascript
+const ws = new WebSocket('ws://localhost:8080?userId=user123&organizationId=default');
+
+ws.onmessage = (event) => {
+  const update = JSON.parse(event.data);
+  
+  switch (update.type) {
+    case 'job_progress':
+      console.log(`Job ${update.jobId}: ${update.progress}% complete`);
+      break;
+    case 'job_completed':
+      console.log(`Job ${update.jobId} finished successfully`);
+      fetchJobResults(update.jobId);
+      break;
+    case 'job_failed':
+      console.error(`Job ${update.jobId} failed: ${update.error}`);
+      break;
+  }
+};
+```
+
+### Queue Management
+**GET** `/admin/stats`
+
+Get comprehensive queue statistics and performance metrics.
+
+#### Response
+```json
+{
+  "queue": {
+    "active": 3,
+    "waiting": 7,
+    "completed": 1250,
+    "failed": 23,
+    "delayed": 1
+  },
+  "performance": {
+    "averageProcessingTime": 15420,
+    "throughputPerHour": 145,
+    "successRate": 98.2
+  },
+  "workers": {
+    "total": 5,
+    "active": 3,
+    "idle": 2,
+    "memory_usage_mb": 512
+  }
 }
 ```
 

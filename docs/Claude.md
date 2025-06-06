@@ -3,46 +3,52 @@
 ## 1. Project Overview
 - **Brief description:** A comprehensive enterprise-grade SIEM (Security Information and Event Management) platform with Splunk-compatible data ingestion capabilities. Built with Next.js 15, this production-ready system features **HTTP Event Collector (HEC) service for Splunk-compatible REST API ingestion**, **universal syslog support (UDP 514, TCP 514, TCP 601 RFC 5425, TLS 6514)**, **file upload API with drag-and-drop interface for CSV/XML/JSON/EVTX files**, **enhanced agent with persistent SQLite queuing and guaranteed delivery**, live Mac agent data collection, TimescaleDB storage with **extended normalized schema (100+ fields)**, KQL-powered search and visualization pipeline, real-time correlation & rules engine with automated threat detection, customizable drag-drop dashboards, interactive analytics (heatmaps, network graphs, geolocation maps), **enhanced CLI dashboard v2.0 with granular service monitoring and control**, and a professional enterprise-grade UI with 25+ specialized security modules supporting **50+ enterprise security use cases** for comprehensive cybersecurity monitoring and threat detection.
 - **Tech stack:**
-    - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS + Professional Dark Theme, Lucide React Icons, Recharts, Interactive Visualizations (Heatmaps, Network Graphs, Geolocation Maps), Customizable Dashboards
-    - **Backend**: Express.js microservices, KQL Engine, Correlation & Rules Engine, PostgreSQL/TimescaleDB
+    - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS + Professional Dark Theme, Lucide React Icons, Recharts, Interactive Visualizations (Heatmaps, Network Graphs, Geolocation Maps), Customizable Dashboards, TanStack Virtual for 100K+ row virtualization
+    - **Backend**: Express.js microservices, KQL Engine, Correlation & Rules Engine, PostgreSQL/TimescaleDB, Async Job Processing (Query Processor Service - Port 4008), Specialized Analytics API (Port 4009), WebSocket notifications
     - **Data Ingestion**: HTTP Event Collector (HEC) service (port 8888), Universal Syslog Adapter (UDP/TCP 514, TCP 601, TLS 6514), File Upload API with drag-and-drop interface, Multi-format processing (CSV, XML, JSON, EVTX)
     - **Agent**: Python 3.12+ with macOS Unified Logging integration, Persistent SQLite queuing, Guaranteed delivery with retry logic, Compression and batching
     - **CLI Dashboard**: Enhanced TypeScript-based terminal UI with blessed.js, granular service monitoring, collapsible panels, service control capabilities, **blessed-contrib rich dashboard with line charts, gauges, sparklines, Nerd Font support, and responsive 4K layouts**
     - **Infrastructure**: Docker Compose, Redis, Kafka (message streaming), TimescaleDB, OpenSearch
-    - **Database**: TimescaleDB (PostgreSQL) with time-series optimization + Extended Normalized Schema (100+ security fields)
+    - **Database**: TimescaleDB (PostgreSQL) with time-series optimization + Extended Normalized Schema (100+ security fields) + Continuous Aggregates for sub-second dashboard performance
+    - **Performance**: TanStack Virtual for 100K+ row tables, TimescaleDB continuous aggregates (6 materialized views), Async job processing with Redis Bull queue, Specialized analytics endpoints with intelligent caching
     - **Build**: Turbopack (development), pnpm workspaces
 
 ## 2. Directory and File Structure
 - **High-level directory map:**
   ```
-  eventlog-analyzer/
-  ├── src/
-  │   ├── app/                    # Next.js App Router pages
-  │   │   ├── page.tsx           # Dashboard (home page)
-  │   │   ├── explorer/          # Event log browser
-  │   │   ├── visualizations/    # Charts and graphs
-  │   │   ├── reporting/         # Report generation
-  │   │   ├── settings/          # Configuration
-  │   │   └── alerts/            # Alert management
-  │   ├── components/            # Reusable React components
-  │   │   ├── dashboard/         # Dashboard widgets
-  │   │   ├── explorer/          # Event table components
-  │   │   ├── layout/            # Navigation and layout
-  │   │   ├── reporting/         # Report components
-  │   │   ├── settings/          # Settings forms
-  │   │   ├── visualization/     # Advanced visualizations (heatmaps, network graphs, geo maps)
-  │   │   ├── kql-search-visualization.tsx  # KQL search & visualization pipeline
-  │   │   └── customizable-dashboard.tsx    # Drag-drop dashboard system
-  │   └── lib/
-  │       └── data/              # Mock data and configurations
-  ├── public/                    # Static assets
-  ├── scripts/                   # Utility scripts (e.g., log collection, parsers)
-  ├── docs/                      # Documentation files
-  ├── .github/                   # GitHub specific files (e.g., workflows)
-  ├── package.json               # Dependencies and scripts
-  ├── next.config.ts             # Next.js configuration
-  ├── tsconfig.json              # TypeScript configuration
-  └── README.md                  # Project README
+  SecureWatch/
+  ├── frontend/                  # Next.js App Router frontend
+  │   ├── app/                   # App Router pages
+  │   │   ├── page.tsx          # Dashboard (home page)
+  │   │   ├── explorer/         # Event log browser with virtualized tables
+  │   │   ├── visualizations/   # Charts and graphs
+  │   │   ├── reporting/        # Report generation
+  │   │   ├── settings/         # Configuration
+  │   │   └── alerts/           # Alert management
+  │   └── components/           # Reusable React components
+  │       ├── explorer/         # EventsTable with TanStack Virtual
+  │       ├── dashboard/        # Dashboard widgets
+  │       └── visualization/    # Advanced visualizations
+  ├── apps/                     # Microservices
+  │   ├── search-api/           # Search & query service (Port 4004)
+  │   ├── log-ingestion/        # Data ingestion service (Port 4002)
+  │   ├── correlation-engine/   # Rules & correlation (Port 4005)
+  │   ├── query-processor/      # Async job processing (Port 4008) ⭐ NEW
+  │   ├── analytics-api/        # Fast dashboard APIs (Port 4009) ⭐ NEW
+  │   ├── auth-service/         # Authentication (Port 4006)
+  │   └── mcp-marketplace/      # MCP integration (Port 4010)
+  ├── infrastructure/           # Database & infrastructure
+  │   ├── database/
+  │   │   ├── continuous_aggregates.sql    # Performance optimization ⭐ NEW
+  │   │   └── migrations/       # Schema migrations
+  │   └── kubernetes/           # K8s deployment configs
+  ├── agent/                    # Mac agent for log collection
+  ├── scripts/                  # Utility scripts
+  ├── docs/                     # Documentation
+  │   ├── PERFORMANCE_OPTIMIZATION_GUIDE.md ⭐ NEW
+  │   └── DEPLOYMENT_GUIDE.md   # Updated with new services
+  ├── package.json              # Dependencies and scripts
+  └── README.md                 # Project README
   ```
 - **Entry points:**
     - `src/app/layout.tsx`: The root layout component for the entire application.
@@ -116,6 +122,8 @@
     cd apps/search-api && pnpm run dev      # Port 4004
     cd apps/log-ingestion && pnpm run dev   # Port 4002
     cd apps/correlation-engine && pnpm run dev # Port 4005
+    cd apps/query-processor && pnpm run dev # Port 4008 (NEW - Async Job Processing)
+    cd apps/analytics-api && pnpm run dev   # Port 4009 (NEW - Fast Dashboard APIs)
     cd frontend && pnpm run dev             # Port 4000
     
     # 4. Start Mac agent (optional for live data)
@@ -139,10 +147,14 @@
     - **Search API:** `curl http://localhost:4004/health`
     - **Log Ingestion:** `curl http://localhost:4002/health`
     - **Correlation Engine:** `curl http://localhost:4005/health`
+    - **Query Processor:** `curl http://localhost:4008/health` (NEW - Async Jobs)
+    - **Analytics API:** `curl http://localhost:4009/health` (NEW - Fast Dashboards)
     - **Database Health:** `curl http://localhost:4002/db/health`
     - **Infrastructure Status:** `docker compose -f docker-compose.dev.yml ps`
     - **Agent Status:** `ps aux | grep event_log_agent.py`
     - **Real-time Monitoring:** Services auto-monitor and restart on failure
+    - **Performance Metrics:** `curl http://localhost:4009/api/dashboard/cache-stats`
+    - **Job Queue Status:** `curl http://localhost:4008/api/queue/stats`
     - **TROUBLESHOOTING NOTE**: If explorer shows static data instead of live Mac logs:
       1. Verify Mac agent is running: `ps aux | grep event_log_agent.py`
       2. Check log ingestion service: `curl http://localhost:4002/health`

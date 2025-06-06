@@ -10,6 +10,8 @@ import { initializeDatabase } from './database/init';
 import { KafkaConsumer } from './consumers/kafka-consumer';
 import { MetricsCollector } from './services/metrics-collector';
 import { RuleScheduler } from './services/rule-scheduler';
+import { CommunityRuleService } from './services/CommunityRuleService';
+import { Pool } from 'pg';
 
 const app = express();
 const port = process.env.CORRELATION_ENGINE_PORT || 4005;
@@ -47,9 +49,27 @@ async function startServer() {
     await initializeDatabase();
     logger.info('Database initialized');
 
-    // Initialize correlation engine
-    await correlationEngine.initialize();
-    logger.info('Correlation engine initialized');
+    // Initialize database pool for community rules
+    const dbPool = new Pool({
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      database: process.env.DB_NAME || 'securewatch',
+      user: process.env.DB_USER || 'securewatch',
+      password: process.env.DB_PASSWORD || 'securewatch',
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    });
+
+    // Initialize community rule service
+    const communityRuleService = new CommunityRuleService(dbPool);
+    await communityRuleService.initialize();
+    logger.info('Community rule service initialized');
+
+    // Initialize correlation engine with community rules
+    await correlationEngine.initialize(communityRuleService);
+    logger.info('Correlation engine initialized with community rules');
 
     // Start Kafka consumer
     const kafkaConsumer = new KafkaConsumer();

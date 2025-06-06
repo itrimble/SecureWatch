@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import type { LogEntry } from '@/lib/types/log_entry'; 
 import EventDetailsModal from './EventDetailsModal';
 import useDebounce from '@/hooks/useDebounce'; // Import the hook
 import { XCircle, Search as SearchIcon, FileText, FileJson } from 'lucide-react'; // Added icons
 import { generateFilename, exportToCsv, exportToJson } from '@/lib/utils/exportUtils'; // Import from new location
 
-const ITEMS_PER_PAGE = 15;
+const VIRTUAL_ITEMS_BUFFER = 50; // Show 50 items at a time in virtual scroller
+const ROW_HEIGHT = 60; // Fixed row height for virtualization
 
 // Define a specific sort key type for LogEntry fields that are sortable
 type LogEntrySortKey = 'timestamp' | 'source_identifier' | 'log_file';
@@ -41,7 +43,6 @@ const EventsTable: React.FC<EventsTableProps> = ({
   // onOpenModal 
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedEvent, setSelectedEvent] = useState<LogEntry | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
@@ -49,12 +50,10 @@ const EventsTable: React.FC<EventsTableProps> = ({
   const [sortKey, setSortKey] = useState<LogEntrySortKey>('timestamp');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   
+  // Virtualization setup
+  const parentRef = useRef<HTMLDivElement>(null);
+  
   const debouncedSearchTerm = useDebounce(searchTerm, 300); // Debounce search term by 300ms
-
-  // Reset current page when logEntries, debouncedSearchTerm, or appliedFilters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [logEntries, debouncedSearchTerm, appliedFilters]);
 
   const sortedData = useMemo(() => {
     // Sort the initial logEntries
@@ -185,16 +184,16 @@ const EventsTable: React.FC<EventsTableProps> = ({
     return data;
   }, [debouncedSearchTerm, sortedData, appliedFilters]);
 
-  const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredData, currentPage]);
-
-  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  // Setup virtual scroller
+  const virtualizer = useVirtualizer({
+    count: filteredData.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 10, // Render 10 extra items outside visible area for smooth scrolling
+  });
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
-    setCurrentPage(1); 
   };
 
   const handleRowClick = (log: LogEntry) => {
@@ -203,11 +202,7 @@ const EventsTable: React.FC<EventsTableProps> = ({
     // if (onOpenModal) onOpenModal(log); // Use this if modal state is lifted
   };
 
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setCurrentPage(newPage);
-    }
-  };
+  // Removed pagination handlers since we're using virtualization
 
   const handleSort = (key: LogEntrySortKey) => {
     if (sortKey === key) {
@@ -216,7 +211,10 @@ const EventsTable: React.FC<EventsTableProps> = ({
       setSortKey(key);
       setSortOrder('asc');
     }
-    setCurrentPage(1);
+    // Reset scroll position when sorting
+    if (parentRef.current) {
+      parentRef.current.scrollTop = 0;
+    }
   };
 
   const getSortIndicator = (key: LogEntrySortKey) => {
@@ -295,7 +293,10 @@ const EventsTable: React.FC<EventsTableProps> = ({
             <button
                 onClick={() => {
                     setSearchTerm('');
-                    setCurrentPage(1); // Optionally reset page
+                    // Reset scroll position when clearing search
+                    if (parentRef.current) {
+                      parentRef.current.scrollTop = 0;
+                    }
                 }}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200 transition-colors"
                 aria-label="Clear search"
@@ -306,79 +307,102 @@ const EventsTable: React.FC<EventsTableProps> = ({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-700">
-          <thead className="bg-gray-900">
-            <tr>
+      {/* Virtual Table Container */}
+      <div className="flex-1 overflow-auto">
+        {/* Fixed Header */}
+        <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-700">
+          <div className="min-w-full">
+            <div className="grid grid-cols-12 gap-2 px-3 py-3">
               {[
-                { label: 'Timestamp', key: 'timestamp' as LogEntrySortKey, sortable: true },
-                { label: 'Source Identifier', key: 'source_identifier' as LogEntrySortKey, sortable: true },
-                { label: 'Log File', key: 'log_file' as LogEntrySortKey, sortable: true },
-                { label: 'Message', key: null, sortable: false }, // Message not typically sorted
+                { label: 'Timestamp', key: 'timestamp' as LogEntrySortKey, sortable: true, cols: 3 },
+                { label: 'Source Identifier', key: 'source_identifier' as LogEntrySortKey, sortable: true, cols: 2 },
+                { label: 'Log File', key: 'log_file' as LogEntrySortKey, sortable: true, cols: 2 },
+                { label: 'Message', key: null, sortable: false, cols: 4 },
+                { label: 'Actions', key: null, sortable: false, cols: 1 },
               ].map(col => (
-                <th 
-                  key={col.label} 
-                  scope="col" 
-                  className={`px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider ${col.sortable ? 'cursor-pointer hover:bg-gray-700' : ''}`}
+                <div 
+                  key={col.label}
+                  className={`col-span-${col.cols} text-left text-xs font-medium text-gray-300 uppercase tracking-wider ${col.sortable ? 'cursor-pointer hover:bg-gray-700 px-2 py-1 rounded' : ''}`}
                   onClick={() => col.sortable && col.key && handleSort(col.key as LogEntrySortKey)}
                 >
                   {col.label}
                   {col.sortable && col.key && getSortIndicator(col.key as LogEntrySortKey)}
-                </th>
+                </div>
               ))}
-               <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-gray-800 divide-y divide-gray-700">
-            {paginatedData.map((log) => (
-              <tr 
-                key={log.id}
-                className="hover:bg-gray-700 transition-colors duration-150"
-              >
-                <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-300">
-                  {new Date(log.timestamp).toLocaleString()}
-                </td>
-                <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-100">{log.source_identifier}</td>
-                <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-300">{log.log_file}</td>
-                <td className="px-3 py-3 text-sm text-gray-300 max-w-md truncate" title={log.message}>{log.message}</td>
-                <td className="px-3 py-3 whitespace-nowrap text-sm">
-                   <button 
-                      onClick={() => handleRowClick(log)}
-                      className="text-blue-400 hover:text-blue-300 text-xs"
-                    >
-                      View Details
-                    </button>
-                </td>
-              </tr>
-            ))}
-            {paginatedData.length === 0 && !isLoading && (
-              <tr>
-                <td colSpan={5} className="px-3 py-3 text-center text-sm text-gray-400">No log entries found matching your criteria.</td>
-              </tr>
+            </div>
+          </div>
+        </div>
+
+        {/* Virtual Scrollable Content */}
+        <div
+          ref={parentRef}
+          className="h-96 overflow-auto bg-gray-800"
+          style={{ contain: 'strict' }}
+        >
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const log = filteredData[virtualItem.index];
+              return (
+                <div
+                  key={virtualItem.key}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: `${virtualItem.size}px`,
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                  className="border-b border-gray-700 hover:bg-gray-700 transition-colors duration-150"
+                >
+                  <div className="grid grid-cols-12 gap-2 px-3 py-3 h-full items-center">
+                    <div className="col-span-3 text-sm text-gray-300 truncate">
+                      {new Date(log.timestamp).toLocaleString()}
+                    </div>
+                    <div className="col-span-2 text-sm font-medium text-gray-100 truncate">
+                      {log.source_identifier}
+                    </div>
+                    <div className="col-span-2 text-sm text-gray-300 truncate">
+                      {log.log_file}
+                    </div>
+                    <div className="col-span-4 text-sm text-gray-300 truncate" title={log.message}>
+                      {log.message}
+                    </div>
+                    <div className="col-span-1 text-sm">
+                      <button 
+                        onClick={() => handleRowClick(log)}
+                        className="text-blue-400 hover:text-blue-300 text-xs whitespace-nowrap"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            
+            {filteredData.length === 0 && !isLoading && (
+              <div className="flex items-center justify-center h-32 text-center text-sm text-gray-400">
+                No log entries found matching your criteria.
+              </div>
             )}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
 
-      {totalPages > 1 && (
-        <div className="px-4 py-3 border-t border-gray-600 flex justify-between items-center text-sm text-gray-400">
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Previous
-          </button>
-          <span className="font-medium">Page {currentPage} of {totalPages} ({filteredData.length} entries)</span>
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      {/* Stats Footer - shows total entries instead of pagination */}
+      <div className="px-4 py-3 border-t border-gray-600 flex justify-center items-center text-sm text-gray-400">
+        <span className="font-medium">
+          {filteredData.length.toLocaleString()} entries total
+          {filteredData.length !== logEntries.length && ` (filtered from ${logEntries.length.toLocaleString()})`}
+        </span>
+      </div>
 
       {isModalOpen && selectedEvent && (
         <EventDetailsModal
