@@ -1,6 +1,6 @@
 {
   "name": "@securewatch/mcp-marketplace",
-  "version": "1.0.0",
+  "version": "1.9.0",
   "description": "MCP Marketplace API service for SecureWatch SIEM",
   "main": "src/index.ts",
   "scripts": {
@@ -40,5 +40,5 @@
     "api"
   ],
   "author": "SecureWatch Team",
-  "license": "MIT"
+  "private": true
 }

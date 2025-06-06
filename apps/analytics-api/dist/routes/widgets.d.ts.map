@@ -1,1 +1,0 @@
-{"version":3,"file":"widgets.d.ts","sourceRoot":"","sources":["../../src/routes/widgets.ts"],"names":[],"mappings":"AAGA,OAAO,OAAO,MAAM,SAAS,CAAC;AAC9B,OAAO,EAAE,IAAI,EAAE,MAAM,IAAI,CAAC;AAI1B,QAAA,MAAM,MAAM,EAAE,OAAO,CAAC,MAAyB,CAAC;AAOhD,wBAAgB,sBAAsB,CAAC,IAAI,EAAE,IAAI,GAAG,IAAI,CAEvD;AA6bD,OAAO,EAAE,MAAM,IAAI,YAAY,EAAE,CAAC"}

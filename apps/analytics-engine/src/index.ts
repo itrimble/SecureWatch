@@ -12,6 +12,8 @@ import { Pool } from 'pg';
 import { Redis } from 'ioredis';
 import rateLimit from 'express-rate-limit';
 import { AnalyticsRoutes } from './routes/analytics.routes';
+import { DashboardRoutes } from './routes/dashboard.routes';
+import { WidgetRoutes } from './routes/widgets.routes';
 import { ResourceConfig } from './engine/resource-manager';
 import { ResourceLimits } from './types/kql.types';
 import winston from 'winston';
@@ -47,7 +49,7 @@ const logger = winston.createLogger({
 
 // Service configuration
 const CONFIG = {
-  port: parseInt(process.env.PORT || '4006', 10),
+  port: parseInt(process.env.PORT || '4009', 10),
   host: process.env.HOST || '0.0.0.0',
   nodeEnv: process.env.NODE_ENV || 'development',
   
@@ -257,6 +259,8 @@ class AnalyticsEngineService {
         endpoints: {
           health: '/health',
           analytics: '/api/v1/analytics/*',
+          dashboard: '/api/dashboard/*',
+          widgets: '/api/widgets/*',
           documentation: '/api/docs'
         },
         features: [
@@ -266,7 +270,10 @@ class AnalyticsEngineService {
           'Real-time Analytics',
           'Resource Management',
           'Caching & Optimization',
-          'Schema Management'
+          'Schema Management',
+          'Dashboard Analytics (merged from analytics-api)',
+          'Widget Endpoints for Fast UI Updates',
+          'TimescaleDB Continuous Aggregates'
         ]
       });
     });
@@ -298,7 +305,13 @@ class AnalyticsEngineService {
       resourceConfig
     );
     
+    // Setup dashboard routes (merged from analytics-api)
+    const dashboardRoutes = new DashboardRoutes(this.dbPool, logger);
+    const widgetRoutes = new WidgetRoutes(this.dbPool, logger);
+    
     this.app.use('/api/v1/analytics', analyticsRoutes.getRouter());
+    this.app.use('/api/dashboard', dashboardRoutes.getRouter());
+    this.app.use('/api/widgets', widgetRoutes.getRouter());
     
     // 404 handler
     this.app.use('*', (req, res) => {

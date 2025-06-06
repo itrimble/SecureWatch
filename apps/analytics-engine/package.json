@@ -1,6 +1,6 @@
 {
   "name": "@securewatch/analytics-engine",
-  "version": "1.0.0",
+  "version": "1.9.0",
   "description": "KQL Analytics Engine for SecureWatch SIEM - Ad-hoc analysis, threat hunting, and historical investigations",
   "private": true,
   "scripts": {
@@ -31,7 +31,8 @@
     "express-validator": "^7.0.1",
     "bull": "^4.16.5",
     "ml-matrix": "^6.12.1",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "node-cache": "^5.1.2"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",

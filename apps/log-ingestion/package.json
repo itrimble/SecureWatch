@@ -1,6 +1,6 @@
 {
   "name": "@securewatch/log-ingestion",
-  "version": "0.1.0",
+  "version": "1.9.0",
   "private": true,
   "scripts": {
     "dev": "tsx watch src/simple-index.ts",

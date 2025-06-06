@@ -266,7 +266,7 @@ show_log_locations() {
     
     if [ "$MINIMAL_MODE" = false ]; then
         echo -e "${DIM}│${NC} Query Processor:  /tmp/query-processor.log           ${DIM}│${NC}"
-        echo -e "${DIM}│${NC} Analytics API:    /tmp/analytics-api.log             ${DIM}│${NC}"
+        echo -e "${DIM}│${NC} Analytics Engine: /tmp/analytics-engine.log         ${DIM}│${NC}"
         echo -e "${DIM}│${NC} Correlation:      /tmp/correlation-engine.log        ${DIM}│${NC}"
         echo -e "${DIM}│${NC} MCP Marketplace:  /tmp/mcp-marketplace.log           ${DIM}│${NC}"
     fi
@@ -294,7 +294,7 @@ show_live_dashboard() {
         # Quick health checks
         services=("frontend:4000" "search-api:4004" "log-ingestion:4002" "auth-service:4006")
         if [ "$MINIMAL_MODE" = false ]; then
-            services+=("query-processor:4008" "analytics-api:4009" "correlation-engine:4005" "mcp-marketplace:4010")
+            services+=("query-processor:4008" "analytics-engine:4009" "correlation-engine:4005" "mcp-marketplace:4010")
         fi
         
         for service_port in "${services[@]}"; do
@@ -458,7 +458,7 @@ main() {
     # Performance services (skip in minimal mode)
     performance_services=(
         "query-processor:4008:./apps/query-processor"
-        "analytics-api:4009:./apps/analytics-api"
+        "analytics-engine:4009:./apps/analytics-engine"
         "correlation-engine:4005:./apps/correlation-engine"
         "mcp-marketplace:4010:./apps/mcp-marketplace"
     )

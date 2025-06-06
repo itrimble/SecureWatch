@@ -1,6 +1,6 @@
 {
-  "name": "query-processor",
-  "version": "1.0.0",
+  "name": "@securewatch/query-processor",
+  "version": "1.9.0",
   "description": "Async job processing service for long-running queries in SecureWatch SIEM",
   "main": "dist/index.js",
   "scripts": {
@@ -12,7 +12,7 @@
   },
   "keywords": ["siem", "query", "async", "jobs", "processing"],
   "author": "SecureWatch Team",
-  "license": "MIT",
+  "private": true,
   "dependencies": {
     "express": "^4.19.2",
     "pg": "^8.11.5",

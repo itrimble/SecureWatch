@@ -1,6 +1,6 @@
 {
   "name": "@securewatch/rule-ingestor",
-  "version": "1.0.0",
+  "version": "1.9.0",
   "description": "Community rule ingestion service for SecureWatch SIEM",
   "main": "dist/index.js",
   "scripts": {
@@ -52,5 +52,5 @@
     "ossec"
   ],
   "author": "SecureWatch Team",
-  "license": "MIT"
+  "private": true
 }

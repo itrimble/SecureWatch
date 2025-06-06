@@ -1,6 +1,6 @@
 {
   "name": "@securewatch/hec-service",
-  "version": "1.0.0",
+  "version": "1.9.0",
   "description": "HTTP Event Collector service for SecureWatch SIEM",
   "main": "dist/index.js",
   "scripts": {
@@ -48,5 +48,5 @@
     "securewatch"
   ],
   "author": "SecureWatch Team",
-  "license": "MIT"
+  "private": true
 }
