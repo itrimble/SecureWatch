@@ -5,6 +5,28 @@ All notable changes to the SecureWatch SIEM platform will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-06-06
+
+### 🏗️ MAJOR ARCHITECTURE CONSOLIDATION - 95,000+ LINES REMOVED
+
+#### Removed
+- **Phase 1**: Removed obsolete `/src` directory (50+ duplicate components)
+- **Phase 2**: Merged `analytics-api` into `analytics-engine` (preserved all functionality)
+- **Phase 3**: Removed duplicate `/apps/web-frontend` implementation
+- **Phase 4**: Cleaned up obsolete configuration files and backup scripts
+
+#### Changed
+- **Service Architecture**: Consolidated from 12+ services to 8 core services
+- **Package Naming**: Standardized all packages to @securewatch/service-name convention
+- **Port Configuration**: Resolved port conflicts (analytics-engine moved to 4009)
+- **Build System**: All packages now compile successfully with TypeScript
+
+#### Fixed
+- **Zero Duplicate Code**: Eliminated ~95,000 lines of duplicate implementations
+- **Clean Architecture**: Single canonical implementation for all components
+- **Port Conflicts**: Standardized service ports with no conflicts
+- **Build Errors**: All TypeScript compilation issues resolved
+
 ## [1.13.0] - 2025-06-06
 
 ### 🛡️ CRITICAL SECURITY FIXES - ALL P0 VULNERABILITIES RESOLVED

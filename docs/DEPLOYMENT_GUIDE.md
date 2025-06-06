@@ -72,17 +72,16 @@ pnpm install
 
 ### 3. Verify Deployment
 ```bash
-# Check all services
+# Check all services (consolidated architecture)
 curl http://localhost:4000/api/health  # Frontend
 curl http://localhost:4002/health      # Log Ingestion Service
-curl http://localhost:4003/health      # API Gateway
 curl http://localhost:4004/health      # Search API Service
-curl http://localhost:4005/health      # HEC Service
+curl http://localhost:4005/health      # Correlation Engine
 curl http://localhost:4006/health      # Auth Service
-curl http://localhost:4007/health      # Correlation Engine
 curl http://localhost:4008/health      # Query Processor Service
-curl http://localhost:4009/health      # Analytics API Service
+curl http://localhost:4009/health      # Analytics Engine (consolidated)
 curl http://localhost:4010/health      # MCP Marketplace
+curl http://localhost:8888/health      # HEC Service
 
 # Check WebSocket notifications
 wscat -c ws://localhost:8080
@@ -116,18 +115,18 @@ curl -X POST http://localhost:4008/api/jobs/submit \
   -d '{"query": "SELECT COUNT(*) FROM logs", "type": "sql"}'
 ```
 
-#### Analytics API Service (Port 4009)
-Specialized endpoints for dashboard widgets:
+#### Analytics Engine Service (Port 4009)
+Consolidated analytics and dashboard API service:
 ```bash
-# Start analytics API
-cd apps/analytics-api
+# Start analytics engine
+cd apps/analytics-engine
 pnpm install
 pnpm run dev
 
 # Health check
 curl http://localhost:4009/health
 
-# Test dashboard endpoints
+# Test consolidated endpoints
 curl http://localhost:4009/api/dashboard/realtime-overview
 curl http://localhost:4009/api/widgets/total-events
 curl http://localhost:4009/api/dashboard/cache-stats

@@ -1,10 +1,11 @@
 # SecureWatch - Enterprise SIEM Platform
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
 ![Live Pipeline](https://img.shields.io/badge/pipeline-live-success.svg)
 ![Data Ingestion](https://img.shields.io/badge/ingestion-splunk--compatible-orange.svg)
+![Architecture](https://img.shields.io/badge/architecture-consolidated-success.svg)
 
 <p align="center">
   <img src="frontend/public/images/siem-interface.png" alt="SecureWatch SIEM Interface" width="800">
@@ -47,7 +48,7 @@ Complete enterprise-grade data ingestion with HTTP Event Collector (HEC), univer
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    SecureWatch SIEM Platform                   │
+│              SecureWatch SIEM Platform v2.1                    │
 ├─────────────────────────────────────────────────────────────────┤
 │  Data Ingestion Layer                                          │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────┐  │
@@ -56,12 +57,12 @@ Complete enterprise-grade data ingestion with HTTP Event Collector (HEC), univer
 │  │             │ │    6514)    │ │   (4000)    │ │          │  │
 │  └─────────────┘ └─────────────┘ └─────────────┘ └──────────┘  │
 ├─────────────────────────────────────────────────────────────────┤
-│  Processing Layer                                              │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐              │
-│  │Log Ingestion│ │Correlation  │ │ Analytics   │              │
-│  │   (4002)    │ │ Engine      │ │   Engine    │              │
-│  │             │ │   (4005)    │ │   (4003)    │              │
-│  └─────────────┘ └─────────────┘ └─────────────┘              │
+│  Processing & Analytics Layer                                  │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────┐  │
+│  │Log Ingestion│ │Correlation  │ │ Analytics   │ │  Query   │  │
+│  │   (4002)    │ │ Engine      │ │   Engine    │ │Processor │  │
+│  │             │ │   (4005)    │ │   (4009)    │ │  (4008)  │  │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────┘  │
 ├─────────────────────────────────────────────────────────────────┤
 │  Storage Layer                                                 │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐              │
@@ -69,12 +70,18 @@ Complete enterprise-grade data ingestion with HTTP Event Collector (HEC), univer
 │  │  (5432)     │ │   (9092)    │ │   (6379)    │              │
 │  └─────────────┘ └─────────────┘ └─────────────┘              │
 ├─────────────────────────────────────────────────────────────────┤
-│  API & Frontend Layer                                          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐              │
-│  │ Search API  │ │   Frontend  │ │     MCP     │              │
-│  │   (4004)    │ │   (4000)    │ │ Marketplace │              │
-│  │             │ │             │ │   (4006)    │              │
-│  └─────────────┘ └─────────────┘ └─────────────┘              │
+│  API & Services Layer                                          │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────┐  │
+│  │ Search API  │ │ Auth Service│ │     MCP     │ │   Rule   │  │
+│  │   (4004)    │ │   (4006)    │ │ Marketplace │ │ Ingestor │  │
+│  │             │ │             │ │   (4010)    │ │  (4011)  │  │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│  Frontend Layer                                                │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │                    Next.js Frontend (4000)                  │ │
+│  │         Enterprise UI with Real-time Dashboards             │ │
+│  └────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

@@ -2,24 +2,30 @@
 
 # Project Context - SecureWatch SIEM Platform
 
-## Recent Updates (June 6, 2025) - SECURITY FIXES COMPLETED
+## Recent Updates (June 6, 2025) - CONSOLIDATION COMPLETED
 
-### 🛡️ Security Update v1.13.0 - CRITICAL FIXES COMPLETED
-**ALL P0 SECURITY VULNERABILITIES RESOLVED**
+### 🏗️ Architecture Consolidation v2.1.0 - MAJOR CLEANUP COMPLETED
+**95,000+ LINES OF DUPLICATE CODE REMOVED**
 
-#### ✅ Critical Security Issues Fixed (P0)
-- **JWT Security**: Fixed hardcoded secrets, added environment variable validation
-- **MFA Security**: Implemented complete Redis storage, fixed encryption key management  
-- **API Key Authentication**: Complete validation system with database lookup
-- **Token Refresh**: Fixed permission fetching vulnerability
-- **Organization ID Validation**: Prevents cross-tenant data access
+#### ✅ Phase 1: Removed Obsolete Code
+- **Legacy Frontend**: Removed obsolete `/src` directory (50+ duplicate components)
+- **Duplicate Configs**: Cleaned up root-level configuration files
+- **Backup Scripts**: Removed outdated backup and legacy scripts
 
-#### ✅ High-Priority Issues Fixed (P1/P2)
-- **Service Dependencies**: Fixed correlation engine missing logger
-- **Database Performance**: Applied TimescaleDB continuous aggregates
-- **Production Logging**: Replaced console.log with winston logging
-- **Error Handling**: Implemented sanitized error responses
-- **Service Monitoring**: Added comprehensive health checks and alerting
+#### ✅ Phase 2: Service Consolidation  
+- **Analytics Merger**: Merged analytics-api functionality into analytics-engine
+- **Port Optimization**: Resolved port conflicts (analytics-engine → port 4009)
+- **Feature Preservation**: Retained all dashboard and widget endpoints
+
+#### ✅ Phase 3: Package Standardization
+- **Naming Convention**: Standardized all packages to @securewatch/service-name
+- **Version Alignment**: Updated all services to version 1.9.0
+- **Build System**: Fixed TypeScript build errors across all packages
+
+#### ✅ Phase 4: Frontend Consolidation
+- **Single Implementation**: Consolidated to main `/frontend` directory
+- **Removed Duplicates**: Eliminated `/apps/web-frontend` minimal implementation
+- **Enterprise Features**: Preserved all advanced security modules
 
 #### 📋 Required Environment Variables
 ```bash
@@ -29,23 +35,28 @@ MFA_ENCRYPTION_KEY="[32-byte-base64-key]"
 REDIS_URL="redis://localhost:6379"
 ```
 
-#### 📊 Security Impact Summary
-- **Security Risk**: Reduced from CRITICAL to LOW
-- **Service Availability**: Improved from 5/8 to 8/8 services operational
-- **Production Readiness**: ✅ ACHIEVED
-- **Multi-tenancy**: ✅ SECURE
+#### 📊 Consolidation Impact Summary
+- **Codebase Size**: Reduced by ~95,000 lines of duplicate code
+- **Service Count**: Optimized from 12+ to 8 core services  
+- **Build Status**: ✅ All packages compile successfully
+- **Architecture**: ✅ Clean, maintainable, enterprise-ready
 
-#### 📖 Security Documentation
-- `docs/SECUREWATCH_BUG_ANALYSIS.md` - Complete vulnerability analysis
-- `docs/SECURITY_FIXES_SUMMARY.md` - Detailed security fixes summary
-- `docs/CHANGELOG.md` - Security update details
+#### 📖 Updated Documentation
+- `README.md` - Updated architecture diagrams and service ports
+- `docs/MONOREPO_SETUP.md` - Consolidation status and current architecture
+- `docs/DEPLOYMENT_GUIDE.md` - Updated service endpoints and health checks
 
-### Build System Fixes
-- Fixed TypeScript build errors across multiple packages:
-  - analytics-api: Router type annotations and unused parameters
-  - hec-service: Strict optional property types
-  - rule-ingestor: Removed invalid dependency
-- All packages now build successfully with `pnpm run build`
+### Current Service Architecture
+- **8 Core Services** (consolidated from 12+):
+  - `analytics-engine` (Port 4009) - Consolidated analytics + dashboard APIs
+  - `auth-service` (Port 4006) - Authentication and authorization
+  - `correlation-engine` (Port 4005) - Real-time correlation and rules
+  - `hec-service` (Port 8888) - HTTP Event Collector (Splunk-compatible)
+  - `log-ingestion` (Port 4002) - Data ingestion and processing
+  - `mcp-marketplace` (Port 4010) - MCP integrations
+  - `query-processor` (Port 4008) - Async job processing
+  - `search-api` (Port 4004) - Search functionality and KQL engine
+- **Single Frontend** (Port 4000) - Enterprise Next.js application
 
 ### Developer Tooling
 - Added comprehensive Makefile with 30+ commands
