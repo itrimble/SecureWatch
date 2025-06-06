@@ -35,15 +35,17 @@ export class ValidationMiddleware {
   /**
    * Joi schema for batch request
    */
-  private hecBatchSchema = Joi.object({
-    events: Joi.array().items(this.hecEventSchema).min(1).max(this.maxEventsPerBatch).required(),
-    metadata: Joi.object({
-      source: Joi.string().max(255).optional(),
-      sourcetype: Joi.string().max(255).optional(),
-      index: Joi.string().max(255).optional(),
-      host: Joi.string().max(255).optional()
-    }).optional()
-  });
+  private get hecBatchSchema() {
+    return Joi.object({
+      events: Joi.array().items(this.hecEventSchema).min(1).max(this.maxEventsPerBatch).required(),
+      metadata: Joi.object({
+        source: Joi.string().max(255).optional(),
+        sourcetype: Joi.string().max(255).optional(),
+        index: Joi.string().max(255).optional(),
+        host: Joi.string().max(255).optional()
+      }).optional()
+    });
+  }
 
   /**
    * Express validator chains for query parameters
@@ -217,27 +219,27 @@ export class ValidationMiddleware {
       }
 
       // Validate individual event sizes and total size
-      const validationResult = this.validateBatchContent(value.events);
-      if (!validationResult.isValid) {
+      const batchValidationResult = this.validateBatchContent(value.events);
+      if (!batchValidationResult.isValid) {
         logger.warn('Batch content validation failed', {
-          errors: validationResult.errors,
+          errors: batchValidationResult.errors,
           eventCount: value.events.length,
-          estimatedSize: validationResult.estimatedSize,
+          estimatedSize: batchValidationResult.estimatedSize,
           ip: req.clientIp,
           tokenId: req.hecToken?.id
         });
         res.status(400).json({
-          text: `Batch validation failed: ${validationResult.errors.join(', ')}`,
+          text: `Batch validation failed: ${batchValidationResult.errors.join(', ')}`,
           code: 400,
           invalid: true,
-          errors: validationResult.errors
+          errors: batchValidationResult.errors
         });
         return;
       }
 
       logger.debug('Batch validation successful', {
-        eventCount: validationResult.eventCount,
-        estimatedSize: validationResult.estimatedSize,
+        eventCount: batchValidationResult.eventCount,
+        estimatedSize: batchValidationResult.estimatedSize,
         ip: req.clientIp,
         tokenId: req.hecToken?.id
       });

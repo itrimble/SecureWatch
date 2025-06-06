@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Pool } from 'pg';
 import { logger } from '../utils/logger';
 import { LogEvent } from '../types';

@@ -16,10 +16,10 @@ import logger from './utils/logger';
 class HECService {
   private app: express.Application;
   private config: HECConfig;
-  private tokenService: TokenService;
-  private kafkaService: KafkaService;
-  private eventsRoutes: EventsRoutes;
-  private adminRoutes: AdminRoutes;
+  private tokenService!: TokenService;
+  private kafkaService!: KafkaService;
+  private eventsRoutes!: EventsRoutes;
+  private adminRoutes!: AdminRoutes;
 
   constructor() {
     this.app = express();

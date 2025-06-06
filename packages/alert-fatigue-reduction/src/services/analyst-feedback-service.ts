@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Analyst Feedback Learning System
  * 

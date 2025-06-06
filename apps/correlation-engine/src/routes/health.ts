@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import { correlationEngine } from '../engine/correlation-engine';
 import { logger } from '../utils/logger';

@@ -1,4 +1,4 @@
-import { Kafka, Producer, KafkaMessage } from 'kafkajs';
+import { Kafka, Producer, Message } from 'kafkajs';
 import { ProcessedHECEvent } from '../types/hec.types';
 import logger from '../utils/logger';
 
@@ -86,9 +86,9 @@ export class KafkaService {
     }
 
     try {
-      const message: KafkaMessage = {
-        key: event.metadata.organizationId,
-        value: JSON.stringify(event),
+      const message: Message = {
+        key: Buffer.from(event.metadata.organizationId),
+        value: Buffer.from(JSON.stringify(event)),
         timestamp: event.metadata.receivedAt.getTime().toString(),
         headers: {
           'event-type': 'hec-event',
@@ -136,9 +136,9 @@ export class KafkaService {
     }
 
     try {
-      const messages: KafkaMessage[] = events.map(event => ({
-        key: event.metadata.organizationId,
-        value: JSON.stringify(event),
+      const messages: Message[] = events.map(event => ({
+        key: Buffer.from(event.metadata.organizationId),
+        value: Buffer.from(JSON.stringify(event)),
         timestamp: event.metadata.receivedAt.getTime().toString(),
         headers: {
           'event-type': 'hec-event',

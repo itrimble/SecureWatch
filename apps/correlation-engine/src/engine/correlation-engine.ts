@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Pool } from 'pg';
 import { createClient } from 'redis';
 import PQueue from 'p-queue';

@@ -12,6 +12,18 @@ export { SQLGenerator } from './execution/sql-generator';
 export { QueryOptimizer } from './execution/query-optimizer';
 export * from './execution/types';
 
+// Export ExecutionContext for compatibility
+export interface ExecutionContext {
+  organizationId: string;
+  userId?: string;
+  timeRange?: {
+    start: Date;
+    end: Date;
+  };
+  limit?: number;
+  cache?: boolean;
+}
+
 // Export IntelliSense components
 export { CompletionProvider } from './intellisense/completion-provider';
 export { SchemaProvider } from './intellisense/schema-provider';

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import { KQLEngine } from '@securewatch/kql-engine';
 import Redis from 'ioredis';

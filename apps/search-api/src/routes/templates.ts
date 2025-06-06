@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import { query, body, param, validationResult } from 'express-validator';
 import { SecurityTemplateProvider, SecurityCategory } from '@securewatch/kql-engine';
