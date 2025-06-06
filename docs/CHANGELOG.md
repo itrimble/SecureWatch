@@ -5,6 +5,42 @@ All notable changes to the SecureWatch SIEM platform will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.1] - 2025-06-06
+
+### 🔧 Build System & Developer Experience
+
+#### Fixed
+- **TypeScript Build Errors** - Resolved compilation issues across multiple packages
+  - Analytics API: Fixed Express Router type annotations and unused parameter warnings
+  - HEC Service: Disabled strict optional property types for compatibility
+  - Rule Ingestor: Removed non-existent workspace dependency
+  - Root tsconfig: Added unique build info paths to prevent conflicts
+
+#### Added
+- **Comprehensive Makefile** - Enterprise-grade developer commands
+  - 30+ commands organized into logical categories
+  - Service management with start/stop/restart capabilities
+  - Real-time monitoring with live dashboard
+  - Health checks and status reporting
+  - Emergency commands for troubleshooting
+  - Colored output with progress indicators
+  - Examples: `make up`, `make status`, `make health`, `make dashboard`
+
+#### Enhanced
+- **Docker Compose Configuration** - Production-ready improvements
+  - Resource limits for all services (memory and CPU)
+  - Health checks with start_period for slow-starting services
+  - Optimized settings for TimescaleDB (2GB memory, 200 connections)
+  - OpenSearch memory locks and 4GB allocation
+  - Redis persistence and memory policies
+  - Network isolation with custom subnet
+
+### Developer Experience Improvements
+- **Simplified Commands**: Use `make` instead of complex Docker/pnpm commands
+- **Better Error Handling**: TypeScript errors now provide clearer guidance
+- **Faster Builds**: Optimized TypeScript configuration for parallel builds
+- **Resource Management**: Prevent OOM errors with defined resource limits
+
 ## [1.12.0] - 2025-06-06
 
 ### ⚡ Performance & Scalability Optimizations
