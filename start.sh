@@ -29,26 +29,29 @@ STARTUP_LOG_FILE="/tmp/securewatch_startup_$(date +%Y%m%d_%H%M%S).log"
 
 # Service tiers for ordered startup
 TIER1_SERVICES=("postgres" "redis" "zookeeper")
-TIER2_SERVICES=("kafka" "elasticsearch")  
+TIER2_SERVICES=("kafka" "opensearch")  
 TIER3_SERVICES=("log-ingestion" "search-api" "correlation-engine" "analytics-engine" "mcp-marketplace")
 TIER4_SERVICES=("new-reporting-service" "new-ueba-service")
 TIER5_SERVICES=("frontend")
-OPTIONAL_SERVICES=("kibana")
+OPTIONAL_SERVICES=("opensearch-dashboards")
 
 # All critical services that must be healthy
-CRITICAL_SERVICES=("postgres" "redis" "kafka" "elasticsearch" "log-ingestion" "search-api" "correlation-engine" "analytics-engine" "mcp-marketplace" "frontend")
+CRITICAL_SERVICES=("postgres" "redis" "kafka" "opensearch" "log-ingestion" "search-api" "correlation-engine" "analytics-engine" "mcp-marketplace" "frontend")
 
-# Service health endpoints
-declare -A HEALTH_ENDPOINTS=(
-    ["log-ingestion"]="http://localhost:4002/health"
-    ["search-api"]="http://localhost:4004/health"
-    ["correlation-engine"]="http://localhost:4005/health"
-    ["analytics-engine"]="http://localhost:4003/health"
-    ["mcp-marketplace"]="http://localhost:4006/health"
-    ["new-reporting-service"]="http://localhost:4007/health"
-    ["new-ueba-service"]="http://localhost:4008/health"
-    ["frontend"]="http://localhost:4000/api/health"
-)
+# Service health endpoints (using functions for bash 3.2 compatibility)
+get_health_endpoint() {
+    case "$1" in
+        "log-ingestion") echo "http://localhost:4002/health" ;;
+        "search-api") echo "http://localhost:4004/health" ;;
+        "correlation-engine") echo "http://localhost:4005/health" ;;
+        "analytics-engine") echo "http://localhost:4003/health" ;;
+        "mcp-marketplace") echo "http://localhost:4006/health" ;;
+        "new-reporting-service") echo "http://localhost:4007/health" ;;
+        "new-ueba-service") echo "http://localhost:4008/health" ;;
+        "frontend") echo "http://localhost:4000/api/health" ;;
+        *) echo "" ;;
+    esac
+}
 
 # =============================================================================
 # UTILITY FUNCTIONS
@@ -92,8 +95,8 @@ check_prerequisites() {
         exit 1
     fi
     
-    # Check if docker-compose is available
-    if ! command -v docker-compose >/dev/null 2>&1; then
+    # Check if docker-compose or docker compose is available
+    if ! command -v docker-compose >/dev/null 2>&1 && ! docker compose version >/dev/null 2>&1; then
         log_message "ERROR" "docker-compose is not installed or not in PATH."
         exit 1
     fi
@@ -124,9 +127,9 @@ cleanup_existing_containers() {
     log_message "INFO" "Cleaning up existing containers..."
     
     # Stop any running containers from previous runs
-    if docker-compose -f "$COMPOSE_FILE" ps -q >/dev/null 2>&1; then
+    if docker compose -f "$COMPOSE_FILE" ps -q >/dev/null 2>&1; then
         log_message "INFO" "Stopping existing containers..."
-        docker-compose -f "$COMPOSE_FILE" down --remove-orphans 2>/dev/null || true
+        docker compose -f "$COMPOSE_FILE" down --remove-orphans 2>/dev/null || true
     fi
     
     # Clean up any orphaned containers
@@ -151,7 +154,7 @@ start_service_tier() {
     # Start services in this tier
     for service in "${services[@]}"; do
         log_message "DEBUG" "Starting service: $service"
-        if ! docker-compose -f "$COMPOSE_FILE" up -d "$service" 2>>"$STARTUP_LOG_FILE"; then
+        if ! docker compose -f "$COMPOSE_FILE" up -d "$service" 2>>"$STARTUP_LOG_FILE"; then
             log_message "ERROR" "Failed to start service: $service"
             return 1
         fi
@@ -200,13 +203,13 @@ check_service_health() {
     local service="$1"
     
     # First check if container is running
-    if ! docker-compose -f "$COMPOSE_FILE" ps "$service" 2>/dev/null | grep -q "Up"; then
+    if ! docker compose -f "$COMPOSE_FILE" ps "$service" 2>/dev/null | grep -q "Up"; then
         return 1
     fi
     
     # For services with HTTP health endpoints
-    if [[ -n "${HEALTH_ENDPOINTS[$service]}" ]]; then
-        local endpoint="${HEALTH_ENDPOINTS[$service]}"
+    local endpoint=$(get_health_endpoint "$service")
+    if [[ -n "$endpoint" ]]; then
         if curl -f -s --max-time 5 "$endpoint" >/dev/null 2>&1; then
             return 0
         else
@@ -215,7 +218,7 @@ check_service_health() {
     fi
     
     # For infrastructure services, use docker-compose health check
-    local health_status=$(docker-compose -f "$COMPOSE_FILE" ps "$service" 2>/dev/null | grep "$service" | awk '{print $4}')
+    local health_status=$(docker compose -f "$COMPOSE_FILE" ps "$service" 2>/dev/null | grep "$service" | awk '{print $4}')
     if [[ "$health_status" == *"healthy"* ]] || [[ "$health_status" == *"Up"* ]]; then
         return 0
     fi
@@ -301,8 +304,9 @@ show_comprehensive_status() {
                 fi
                 ((total_count++))
                 
-                if [[ -n "${HEALTH_ENDPOINTS[$service]}" ]]; then
-                    endpoint=" (${HEALTH_ENDPOINTS[$service]})"
+                local endpoint_url=$(get_health_endpoint "$service")
+                if [[ -n "$endpoint_url" ]]; then
+                    endpoint=" ($endpoint_url)"
                 fi
                 
                 echo -e "   $service: $status$endpoint"
@@ -338,8 +342,8 @@ show_startup_summary() {
     echo -e "   🐘 PostgreSQL:            localhost:5432"
     echo -e "   🟥 Redis:                 localhost:6379"
     echo -e "   🔄 Kafka:                 localhost:9092"
-    echo -e "   🔍 Elasticsearch:         localhost:9200"
-    echo -e "   📊 Kibana:                http://localhost:5601"
+    echo -e "   🔍 OpenSearch:            localhost:9200"
+    echo -e "   📊 OpenSearch Dashboards: http://localhost:5601"
     echo ""
     
     echo -e "${CYAN}📊 Health Monitoring:${NC}"
@@ -348,8 +352,8 @@ show_startup_summary() {
     echo ""
     
     echo -e "${YELLOW}🛠️  Management Commands:${NC}"
-    echo -e "   📊 Check status:   docker-compose -f $COMPOSE_FILE ps"
-    echo -e "   📝 View logs:      docker-compose -f $COMPOSE_FILE logs -f [service]"
+    echo -e "   📊 Check status:   docker compose -f $COMPOSE_FILE ps"
+    echo -e "   📝 View logs:      docker compose -f $COMPOSE_FILE logs -f [service]"
     echo -e "   🛑 Stop platform:  ./stop.sh"
     echo ""
     
@@ -388,7 +392,7 @@ main() {
     if [ ${#OPTIONAL_SERVICES[@]} -gt 0 ]; then
         log_message "INFO" "Starting optional services: ${OPTIONAL_SERVICES[*]}"
         for service in "${OPTIONAL_SERVICES[@]}"; do
-            docker-compose -f "$COMPOSE_FILE" up -d "$service" 2>>"$STARTUP_LOG_FILE" || true
+            docker compose -f "$COMPOSE_FILE" up -d "$service" 2>>"$STARTUP_LOG_FILE" || true
         done
     fi
     

@@ -118,6 +118,7 @@ services:
       - plugins.security.disabled=true
       - plugins.security.ssl.http.enabled=false
       - plugins.security.ssl.transport.enabled=false
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=SecureWatch123!
     ulimits:
       memlock:
         soft: -1
@@ -148,8 +149,6 @@ services:
     environment:
       - 'OPENSEARCH_HOSTS=["http://opensearch:9200"]'
       - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
-      - "SERVER_BASEPATH="
-      - "SERVER_REWRITEBASEPATH=true"
     depends_on:
       opensearch:
         condition: service_healthy
