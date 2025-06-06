@@ -53,9 +53,13 @@ export class CorrelationEngine {
       await this.redis.connect();
       logger.info('Connected to Redis');
 
-      // Load active rules
-      await this.loadActiveRules();
-      logger.info(`Loaded ${this.activeRules.size} active correlation rules`);
+      // Load active rules (may fail if tables don't exist yet)
+      try {
+        await this.loadActiveRules();
+        logger.info(`Loaded ${this.activeRules.size} active correlation rules`);
+      } catch (error) {
+        logger.warn('Could not load rules - tables may not exist yet:', error.message);
+      }
 
       // Initialize components
       await this.ruleEvaluator.initialize();

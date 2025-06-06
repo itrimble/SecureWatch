@@ -7,6 +7,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { body, query, param, validationResult } from 'express-validator';
 import { Pool } from 'pg';
 import { Redis } from 'ioredis';
+import winston from 'winston';
 import { KQLParser } from '../engine/kql-parser';
 import { QueryPlanner } from '../engine/query-planner';
 import { ExecutionEngine } from '../engine/execution-engine';
@@ -33,6 +34,7 @@ export class AnalyticsRoutes {
   private queryLibrary: QueryLibrary;
   private cacheManager: CacheManager;
   private schemaManager: SchemaManager;
+  private logger: winston.Logger;
   
   constructor(
     dbPool: Pool,
@@ -47,6 +49,25 @@ export class AnalyticsRoutes {
     this.queryLibrary = new QueryLibrary();
     this.cacheManager = new CacheManager(redisClient);
     this.schemaManager = new SchemaManager(dbPool);
+    
+    // Initialize logger
+    this.logger = winston.createLogger({
+      level: process.env.LOG_LEVEL || 'info',
+      format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.errors({ stack: true }),
+        winston.format.json()
+      ),
+      defaultMeta: { service: 'analytics-engine' },
+      transports: [
+        new winston.transports.Console({
+          format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.simple()
+          )
+        })
+      ]
+    });
     
     this.setupRoutes();
     this.setupEventHandlers();
@@ -143,15 +164,15 @@ export class AnalyticsRoutes {
    */
   private setupEventHandlers(): void {
     this.resourceManager.on('healthAlert', (status) => {
-      console.warn('Resource health alert:', status);
+      this.logger.warn('Resource health alert:', status);
     });
     
     this.resourceManager.on('queryCancelled', (event) => {
-      console.log('Query cancelled:', event);
+      this.logger.info('Query cancelled:', event);
     });
     
     this.resourceManager.on('forcedCleanup', (result) => {
-      console.log('Forced cleanup completed:', result);
+      this.logger.info('Forced cleanup completed:', result);
     });
   }
   
@@ -229,7 +250,7 @@ export class AnalyticsRoutes {
       }
       
     } catch (error) {
-      console.error('Query execution error:', error);
+      this.logger.error('Query execution error:', error);
       res.status(500).json({
         error: 'Query execution failed',
         message: error.message

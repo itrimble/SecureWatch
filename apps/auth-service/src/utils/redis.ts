@@ -24,17 +24,38 @@ export const redis = process.env.REDIS_URL
     })
   : new Redis(redisConfig);
 
+// Import logger for proper logging
+import winston from 'winston';
+
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  defaultMeta: { service: 'auth-service' },
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    })
+  ]
+});
+
 // Handle Redis connection events
 redis.on('connect', () => {
-  console.log('Connected to Redis');
+  logger.info('Connected to Redis');
 });
 
 redis.on('error', (error) => {
-  console.error('Redis connection error:', error);
+  logger.error('Redis connection error:', error);
 });
 
 redis.on('close', () => {
-  console.log('Redis connection closed');
+  logger.info('Redis connection closed');
 });
 
 export default redis;

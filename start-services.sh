@@ -507,12 +507,29 @@ main() {
     echo -e "${DIM}║${NC} ${CYAN}${CLOCK}${NC} Monitoring services... ${DIM}(Press Ctrl+C to stop)${NC}     ${DIM}║${NC}"
     echo -e "${DIM}╚═══════════════════════════════════════════════════════════╝${NC}\n"
     
+    # Run comprehensive service startup health check
+    log_message "INFO" "Running comprehensive service health validation..."
+    if command -v npx &> /dev/null && [ -f "scripts/service-monitor.ts" ]; then
+        cd scripts
+        if npx tsx service-monitor.ts startup; then
+            log_message "SUCCESS" "All services passed comprehensive health check"
+        else
+            log_message "WARNING" "Some services failed comprehensive health check"
+        fi
+        cd ..
+    else
+        log_message "WARNING" "Service monitor not available, using basic health checks"
+    fi
+
     # Monitor services or show live dashboard
     if [ "$DEBUG_MODE" = true ]; then
-        echo -e "${DIM}Press 'd' for live dashboard, any other key to continue monitoring...${NC}"
+        echo -e "${DIM}Press 'd' for live dashboard, 'm' for monitoring, any other key to continue...${NC}"
         read -n 1 -t 5 key
         if [ "$key" = "d" ]; then
             show_live_dashboard
+        elif [ "$key" = "m" ] && [ -f "scripts/service-monitor.ts" ]; then
+            echo -e "\n${GREEN}${ROCKET}${NC} Starting continuous service monitoring..."
+            cd scripts && npx tsx service-monitor.ts monitor 30
         fi
     fi
     

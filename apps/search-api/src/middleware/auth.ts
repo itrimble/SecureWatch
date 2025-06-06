@@ -26,16 +26,8 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
       });
     }
 
-    // In development, allow bypass with a special token
-    if (process.env.NODE_ENV === 'development' && token === 'dev-bypass-token') {
-      req.user = {
-        sub: 'dev-user',
-        email: 'dev@securewatch.local',
-        roles: ['admin'],
-        organizationId: 'dev-org'
-      };
-      return next();
-    }
+    // Note: Removed development security bypass for production security
+    // All authentication must go through proper JWT validation
 
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
     const decoded = jwt.verify(token, jwtSecret);

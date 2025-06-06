@@ -44,7 +44,8 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({
     status: 'error',
     message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    timestamp: new Date().toISOString(),
+    // Note: Error details are logged but not exposed to clients for security
   });
 });
 

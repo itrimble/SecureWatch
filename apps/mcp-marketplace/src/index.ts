@@ -54,7 +54,9 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   logger.error('Unhandled error:', err)
   res.status(500).json({
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    message: 'Something went wrong',
+    timestamp: new Date().toISOString(),
+    // Note: Error details are logged but not exposed to clients for security
   })
 })
 

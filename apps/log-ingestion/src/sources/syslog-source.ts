@@ -1,6 +1,7 @@
 import * as net from 'net';
 import * as dgram from 'dgram';
 import * as tls from 'tls';
+import { logger } from '../utils/logger';
 import { DataSource, DataSourceConfig } from '../types/data-source.types';
 import { LogEvent } from '../types/log-event.types';
 
@@ -177,7 +178,7 @@ export class SyslogSource extends DataSource {
 
       socket.on('listening', () => {
         const address = socket.address();
-        console.log(`Syslog UDP server listening on ${address.address}:${address.port}`);
+        logger.info(`Syslog UDP server listening on ${address.address}:${address.port}`);
         resolve();
       });
 
@@ -201,7 +202,7 @@ export class SyslogSource extends DataSource {
       server.on('listening', () => {
         const address = server.address();
         const addr = typeof address === 'string' ? address : `${address?.address}:${address?.port}`;
-        console.log(`Syslog TCP server listening on ${addr}`);
+        logger.info(`Syslog TCP server listening on ${addr}`);
         resolve();
       });
 
@@ -233,7 +234,7 @@ export class SyslogSource extends DataSource {
       server.on('listening', () => {
         const address = server.address();
         const addr = typeof address === 'string' ? address : `${address?.address}:${address?.port}`;
-        console.log(`Syslog TLS server listening on ${addr}`);
+        logger.info(`Syslog TLS server listening on ${addr}`);
         resolve();
       });
 

@@ -1,14 +1,21 @@
 export interface LogEvent {
   id: string;
   timestamp: string;
-  event_id: string;
+  event_id?: string;
   source: string;
+  source_identifier?: string;
   level: string;
   message: string;
   computer_name?: string;
+  hostname?: string;
   user_name?: string;
   ip_address?: string;
+  source_ip?: string;
+  destination_ip?: string;
   process_name?: string;
+  auth_result?: string;
+  logon_type?: string;
+  event_category?: string;
   metadata?: Record<string, any>;
 }
 
@@ -62,6 +69,7 @@ export interface RuleCondition {
 
 export interface CorrelationIncident {
   id: string;
+  organization_id?: string;
   rule_id?: string;
   pattern_id?: string;
   incident_type: string;
@@ -76,6 +84,9 @@ export interface CorrelationIncident {
   assigned_to?: string;
   resolved_at?: string;
   resolution_notes?: string;
+  resolution?: string;
+  created_at?: string;
+  updated_at?: string;
   metadata?: Record<string, any>;
 }
 

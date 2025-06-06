@@ -147,6 +147,42 @@ dashboard: ## 📊 Show live dashboard (interactive)
 		sleep 5; \
 	done
 
+monitor: ## 🔍 Enhanced service monitoring with health checks
+	@echo "$(CYAN)$(BOLD)🔍 Enhanced Service Monitor$(RESET)"
+	@if [ -f scripts/service-monitor.ts ]; then \
+		cd scripts && npx tsx service-monitor.ts check; \
+	else \
+		echo "$(RED)Service monitor not found. Using basic health checks:$(RESET)"; \
+		make health; \
+	fi
+
+monitor-startup: ## 🚀 Check if all services started successfully (for CI/CD)
+	@echo "$(CYAN)$(BOLD)🚀 Service Startup Health Check$(RESET)"
+	@if [ -f scripts/service-monitor.ts ]; then \
+		cd scripts && npx tsx service-monitor.ts startup; \
+	else \
+		echo "$(RED)Service monitor not found$(RESET)"; \
+		exit 1; \
+	fi
+
+monitor-continuous: ## 🔄 Continuous service monitoring (30s intervals)
+	@echo "$(CYAN)$(BOLD)🔄 Continuous Service Monitoring$(RESET)"
+	@echo "$(YELLOW)Press Ctrl+C to stop$(RESET)"
+	@if [ -f scripts/service-monitor.ts ]; then \
+		cd scripts && npx tsx service-monitor.ts monitor 30; \
+	else \
+		echo "$(RED)Service monitor not found$(RESET)"; \
+		exit 1; \
+	fi
+
+monitor-metrics: ## 📊 Get service metrics in JSON format
+	@if [ -f scripts/service-monitor.ts ]; then \
+		cd scripts && npx tsx service-monitor.ts metrics; \
+	else \
+		echo "$(RED)Service monitor not found$(RESET)"; \
+		exit 1; \
+	fi
+
 ##@ 🏗️ Infrastructure
 
 infra-up: ## 🏗️ Start only infrastructure services (database, redis, opensearch)

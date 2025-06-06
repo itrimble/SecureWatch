@@ -115,7 +115,7 @@ export class JobQueue {
 
     } catch (error) {
       logger.error(`Failed to submit job ${jobId}:`, error);
-      await this.updateJobStatus(jobId, 'failed', `Failed to queue job: ${error}`);
+      await this.updateJobStatus(jobId, 'failed', this.sanitizeErrorMessage(`Failed to queue job: ${error}`));
       throw error;
     }
   }
@@ -176,6 +176,48 @@ export class JobQueue {
   }
 
   // Update job status and metadata
+  // Sanitize error messages to prevent information leakage
+  private sanitizeErrorMessage(errorMessage: string): string {
+    // Common patterns that should not be exposed to clients
+    const sensitivePatterns = [
+      /password[^\\s]*/gi,
+      /secret[^\\s]*/gi,
+      /token[^\\s]*/gi,
+      /key[^\\s]*/gi,
+      /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, // IP addresses
+      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, // Email addresses
+      /\/[^\s]+/g, // File paths
+    ];
+
+    let sanitized = errorMessage;
+    
+    // Replace sensitive patterns
+    sensitivePatterns.forEach(pattern => {
+      sanitized = sanitized.replace(pattern, '[REDACTED]');
+    });
+
+    // Generic error messages for common database errors
+    if (sanitized.toLowerCase().includes('connection')) {
+      return 'Database connection error';
+    }
+    if (sanitized.toLowerCase().includes('authentication') || sanitized.toLowerCase().includes('login')) {
+      return 'Authentication error';
+    }
+    if (sanitized.toLowerCase().includes('timeout')) {
+      return 'Query timeout error';
+    }
+    if (sanitized.toLowerCase().includes('syntax') || sanitized.toLowerCase().includes('invalid')) {
+      return 'Query syntax error';
+    }
+
+    // If message is too long or contains sensitive info, use generic message
+    if (sanitized.length > 100 || sanitized.includes('[REDACTED]')) {
+      return 'Query processing error';
+    }
+
+    return sanitized;
+  }
+
   async updateJobStatus(
     jobId: string, 
     status: JobStatus, 
@@ -371,7 +413,9 @@ export class JobQueue {
 
     this.queue.on('failed', async (job, err) => {
       logger.error(`Job ${job.id} failed:`, err);
-      await this.updateJobStatus(job.id, 'failed', err.message);
+      // Sanitize error message to prevent information leakage
+      const sanitizedError = this.sanitizeErrorMessage(err.message);
+      await this.updateJobStatus(job.id, 'failed', sanitizedError);
     });
 
     this.queue.on('progress', async (job, progress) => {

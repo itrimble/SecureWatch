@@ -399,22 +399,22 @@ export class IntegrationService extends EventEmitter {
   private async sendToKafka(event: LogEvent, config: any): Promise<void> {
     // Mock Kafka output implementation
     // In production, this would use the actual Kafka client
-    console.log(`Sending event ${event.id} to Kafka topic: ${config.topic}`);
+    this.logger.debug(`Sending event ${event.id} to Kafka topic: ${config.topic}`);
   }
 
   private async sendToOpenSearch(event: LogEvent, config: any): Promise<void> {
     // Mock OpenSearch output implementation
-    console.log(`Sending event ${event.id} to OpenSearch index: ${config.index}`);
+    this.logger.debug(`Sending event ${event.id} to OpenSearch index: ${config.index}`);
   }
 
   private async sendToFile(event: LogEvent, config: any): Promise<void> {
     // Mock file output implementation
-    console.log(`Writing event ${event.id} to file: ${config.path}`);
+    this.logger.debug(`Writing event ${event.id} to file: ${config.path}`);
   }
 
   private async sendToWebhook(event: LogEvent, config: any): Promise<void> {
     // Mock webhook output implementation
-    console.log(`Sending event ${event.id} to webhook: ${config.url}`);
+    this.logger.debug(`Sending event ${event.id} to webhook: ${config.url}`);
   }
 
   private loadPredefinedProfiles(): void {
