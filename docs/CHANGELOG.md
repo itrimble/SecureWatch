@@ -5,6 +5,88 @@ All notable changes to the SecureWatch SIEM platform will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2025-01-06
+
+### 🌐 HTTP Event Collector (HEC) Service
+
+#### Added
+- **Complete HTTP Event Collector Microservice** - Splunk-compatible REST API for log ingestion
+  - Token-based authentication with configurable rate limits
+  - Support for single events, batch events, and raw text submission
+  - Enterprise security with CORS, compression, and request validation
+  - Administrative API for token management and usage statistics
+  - Direct Kafka integration for real-time event processing
+  - Custom port configuration (default: 8888) to avoid conflicts
+  - Health monitoring and metrics collection
+  - Graceful error handling and recovery mechanisms
+
+- **REST API Endpoints**
+  - `POST /services/collector/event` - Single event submission
+  - `POST /services/collector/events` - Batch event submission (up to 1000 events)
+  - `POST /services/collector/raw` - Raw text event submission
+  - `GET /admin/tokens` - Token management interface
+  - `GET /admin/metrics` - Usage statistics and performance metrics
+  - `GET /health` - Service health and status monitoring
+
+- **Enterprise Features**
+  - Configurable rate limiting per token (events per second)
+  - Request size validation (up to 100MB batches)
+  - Comprehensive audit logging and usage tracking
+  - Token expiration and access control by source/index
+  - Real-time performance metrics and health monitoring
+  - Docker containerization with health checks
+
+#### Enhanced
+- **SecureWatch Integration** - HEC events flow directly into existing log processing pipeline
+- **Documentation** - Updated LOG_FORMATS_GUIDE.md with comprehensive HEC usage examples
+- **Configuration** - Environment-based configuration for production deployments
+
+## [1.10.0] - 2025-01-06
+
+### 🚀 Enterprise Log Format Support
+
+#### Added
+- **CSV Adapter** - Full-featured CSV/TSV log ingestion
+  - Configurable delimiters, quote characters, and escape sequences
+  - Header row support with automatic field detection
+  - Custom timestamp parsing with multiple format support
+  - Directory watching for automatic file processing
+  - Large file streaming support (100MB+ files)
+  - Batch processing with configurable size
+
+- **XML Adapter** - Comprehensive XML log processing
+  - Flexible record path extraction (XPath-like)
+  - Attribute and element parsing
+  - Nested structure flattening
+  - Namespace support
+  - Custom timestamp extraction
+  - Auto-detection of log record structures
+
+- **Enhanced Syslog Adapter** - JSON payload support
+  - RFC3164 and RFC5424 with embedded JSON
+  - Configurable JSON payload delimiters
+  - Automatic JSON field extraction and flattening
+  - Mixed format handling (Syslog + JSON/KV)
+  - Backward compatible with standard syslog
+
+- **Key-Value Parser** - Integrated field extraction
+  - Configurable key-value delimiters
+  - Quoted value support
+  - Nested structure handling
+  - Integration with all adapters
+
+#### Enhanced
+- **Log Source Types** - Added CSV, XML, and JSON as primary sources
+- **Field Normalization** - Automatic field mapping across formats
+- **Error Handling** - Graceful degradation with detailed error tracking
+- **Performance Metrics** - Per-adapter monitoring and statistics
+
+#### Documentation
+- Created comprehensive LOG_FORMATS_GUIDE.md
+- Updated data source types and enums
+- Added configuration examples for all formats
+- Included troubleshooting and best practices
+
 ## [1.9.0] - 2025-06-05
 
 ### 🛡️ Enhanced EVTX Parser v2.0 - Major Release

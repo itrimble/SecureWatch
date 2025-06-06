@@ -44,6 +44,41 @@ This directory contains comprehensive documentation for the SecureWatch SIEM pla
 
 ## 🔥 Latest Updates & Key Features
 
+### Splunk-Compatible Data Ingestion System (January 2025) 🆕
+Complete enterprise-grade data ingestion capabilities with Splunk-style functionality:
+
+#### 🚀 HTTP Event Collector (HEC) Service
+- **Splunk-Compatible API**: Full HEC endpoint compatibility with token authentication
+- **Multi-Format Support**: JSON events, raw data, batch processing, and streaming ingestion
+- **Enterprise Security**: Token-based authentication, rate limiting, and access control
+- **High-Performance**: Kafka integration, async processing, and horizontal scaling
+- **Docker Integration**: Containerized deployment with health monitoring
+
+#### 📡 Universal Syslog Ingestion
+- **Standard Syslog Ports**: Full support for UDP 514, TCP 514, TCP 601 (RFC 5425), and TLS 6514
+- **Multi-Protocol Transport**: Simultaneous UDP, TCP, and secure TLS syslog reception
+- **RFC Compliance**: Support for both RFC 3164 and RFC 5424 syslog formats
+- **JSON Payload Support**: Structured data extraction from syslog messages
+- **Connection Management**: Robust connection handling with automatic reconnection
+
+#### 📁 File Upload & Processing API
+- **Drag-and-Drop Interface**: Modern file upload component with progress tracking
+- **Multi-Format Support**: CSV, XML, JSON, EVTX, and plain text file processing
+- **Real-time Processing**: Live status updates and processing progress monitoring
+- **Batch Processing**: Efficient handling of large files with queue management
+- **Error Recovery**: Comprehensive error handling and retry mechanisms
+
+#### 🔄 Enhanced Agent with Persistent Queuing
+- **Guaranteed Delivery**: SQLite-backed persistent queue with retry logic
+- **Dual-Loop Architecture**: Separate buffer-to-queue and queue-to-transport loops
+- **Compression Support**: Automatic payload compression for large events
+- **Exponential Backoff**: Intelligent retry scheduling with configurable delays
+- **Queue Management**: Statistics, cleanup, and administrative controls
+
+### Enterprise Log Format Support (January 2025) 🆕
+Comprehensive support for enterprise log formats with specialized adapters:
+- **[LOG_FORMATS_GUIDE.md](LOG_FORMATS_GUIDE.md)** - ⭐ **Log Formats Guide** for CSV, XML, JSON, Syslog with JSON payloads, and Key-Value formats
+
 ### Lookup Tables & Data Enrichment System (January 2025) 🆕
 Enterprise-grade lookup table system with Splunk-style functionality and modern enhancements:
 

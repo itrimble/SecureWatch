@@ -30,17 +30,18 @@ STARTUP_LOG_FILE="/tmp/securewatch_startup_$(date +%Y%m%d_%H%M%S).log"
 # Service tiers for ordered startup
 TIER1_SERVICES=("postgres" "redis" "zookeeper")
 TIER2_SERVICES=("kafka" "opensearch")  
-TIER3_SERVICES=("log-ingestion" "search-api" "correlation-engine" "analytics-engine" "mcp-marketplace")
+TIER3_SERVICES=("hec-service" "log-ingestion" "search-api" "correlation-engine" "analytics-engine" "mcp-marketplace")
 TIER4_SERVICES=("new-reporting-service" "new-ueba-service")
 TIER5_SERVICES=("frontend")
 OPTIONAL_SERVICES=("opensearch-dashboards")
 
 # All critical services that must be healthy
-CRITICAL_SERVICES=("postgres" "redis" "kafka" "opensearch" "log-ingestion" "search-api" "correlation-engine" "analytics-engine" "mcp-marketplace" "frontend")
+CRITICAL_SERVICES=("postgres" "redis" "kafka" "opensearch" "hec-service" "log-ingestion" "search-api" "correlation-engine" "analytics-engine" "mcp-marketplace" "frontend")
 
 # Service health endpoints (using functions for bash 3.2 compatibility)
 get_health_endpoint() {
     case "$1" in
+        "hec-service") echo "http://localhost:8888/health" ;;
         "log-ingestion") echo "http://localhost:4002/health" ;;
         "search-api") echo "http://localhost:4004/health" ;;
         "correlation-engine") echo "http://localhost:4005/health" ;;
@@ -336,6 +337,7 @@ show_startup_summary() {
     echo -e "   📋 Reporting Service:     http://localhost:4007"
     echo -e "   🤖 UEBA Service:          http://localhost:4008"
     echo -e "   🔧 Log Ingestion:         http://localhost:4002"
+    echo -e "   🚀 HEC Service:           http://localhost:8888"
     echo ""
     
     echo -e "${CYAN}🗄️  Infrastructure:${NC}"
@@ -344,6 +346,13 @@ show_startup_summary() {
     echo -e "   🔄 Kafka:                 localhost:9092"
     echo -e "   🔍 OpenSearch:            localhost:9200"
     echo -e "   📊 OpenSearch Dashboards: http://localhost:5601"
+    echo ""
+    
+    echo -e "${CYAN}📡 Syslog Ingestion Ports:${NC}"
+    echo -e "   📩 UDP Syslog:            localhost:514/udp"
+    echo -e "   📡 TCP Syslog:            localhost:514/tcp"
+    echo -e "   🔗 RFC 5425 TCP:          localhost:601/tcp"
+    echo -e "   🔒 TLS Syslog:            localhost:6514/tcp"
     echo ""
     
     echo -e "${CYAN}📊 Health Monitoring:${NC}"

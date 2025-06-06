@@ -12,12 +12,15 @@ import logger from '../utils/logger';
 interface SyslogConfig {
   udpPort?: number;
   tcpPort?: number;
+  rfc5425Port?: number; // TCP port 601 for RFC 5425
   tlsPort?: number;
   tlsOptions?: tls.TlsOptions;
   maxMessageSize: number;
   batchSize: number;
   flushInterval: number;
   rfc: 'RFC3164' | 'RFC5424';
+  enableJsonPayloadParsing?: boolean;
+  jsonPayloadDelimiter?: string; // e.g., '|||' or ' JSON:' to separate syslog header from JSON
 }
 
 export class SyslogAdapter extends EventEmitter {
@@ -27,8 +30,10 @@ export class SyslogAdapter extends EventEmitter {
   private metrics: MetricsCollector;
   private udpServer?: dgram.Socket;
   private tcpServer?: net.Server;
+  private rfc5425Server?: net.Server; // RFC 5425 TCP server (port 601)
   private tlsServer?: tls.Server;
   private tcpConnections: Set<net.Socket> = new Set();
+  private rfc5425Connections: Set<net.Socket> = new Set();
   private isRunning: boolean = false;
   private flushInterval?: NodeJS.Timer;
 
@@ -59,12 +64,17 @@ export class SyslogAdapter extends EventEmitter {
       await this.startUdpServer();
     }
 
-    // Start TCP server
+    // Start TCP server (port 514)
     if (this.config.tcpPort) {
       await this.startTcpServer();
     }
 
-    // Start TLS server
+    // Start RFC 5425 TCP server (port 601)
+    if (this.config.rfc5425Port) {
+      await this.startRfc5425Server();
+    }
+
+    // Start TLS server (port 6514)
     if (this.config.tlsPort) {
       await this.startTlsServer();
     }
@@ -103,6 +113,16 @@ export class SyslogAdapter extends EventEmitter {
         connection.destroy();
       }
       this.tcpConnections.clear();
+    }
+
+    // Stop RFC 5425 server
+    if (this.rfc5425Server) {
+      this.rfc5425Server.close();
+      // Close all active connections
+      for (const connection of this.rfc5425Connections) {
+        connection.destroy();
+      }
+      this.rfc5425Connections.clear();
     }
 
     // Stop TLS server
@@ -144,7 +164,7 @@ export class SyslogAdapter extends EventEmitter {
   private async startTcpServer(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.tcpServer = net.createServer((socket) => {
-        this.handleTcpConnection(socket);
+        this.handleTcpConnection(socket, 'tcp_514', this.tcpConnections);
       });
 
       this.tcpServer.on('error', (error) => {
@@ -163,10 +183,32 @@ export class SyslogAdapter extends EventEmitter {
     });
   }
 
+  private async startRfc5425Server(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.rfc5425Server = net.createServer((socket) => {
+        this.handleTcpConnection(socket, 'tcp_601', this.rfc5425Connections);
+      });
+
+      this.rfc5425Server.on('error', (error) => {
+        logger.error('RFC 5425 TCP server error', error);
+        this.metrics.incrementCounter('syslog.rfc5425_errors');
+        reject(error);
+      });
+
+      this.rfc5425Server.on('listening', () => {
+        const address = this.rfc5425Server!.address() as net.AddressInfo;
+        logger.info(`Syslog RFC 5425 TCP server listening on ${address.address}:${address.port}`);
+        resolve();
+      });
+
+      this.rfc5425Server.listen(this.config.rfc5425Port);
+    });
+  }
+
   private async startTlsServer(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.tlsServer = tls.createServer(this.config.tlsOptions || {}, (socket) => {
-        this.handleTcpConnection(socket);
+        this.handleTcpConnection(socket, 'tls_6514', new Set());
       });
 
       this.tlsServer.on('error', (error) => {
@@ -185,12 +227,12 @@ export class SyslogAdapter extends EventEmitter {
     });
   }
 
-  private handleTcpConnection(socket: net.Socket): void {
+  private handleTcpConnection(socket: net.Socket, protocol: string, connections: Set<net.Socket>): void {
     const clientId = `${socket.remoteAddress}:${socket.remotePort}`;
-    logger.debug(`New TCP connection from ${clientId}`);
+    logger.debug(`New ${protocol} connection from ${clientId}`);
     
-    this.tcpConnections.add(socket);
-    this.metrics.incrementCounter('syslog.tcp_connections');
+    connections.add(socket);
+    this.metrics.incrementCounter(`syslog.${protocol}_connections`);
 
     let buffer = '';
 
@@ -204,7 +246,7 @@ export class SyslogAdapter extends EventEmitter {
         buffer = buffer.substring(newlineIndex + 1);
         
         if (message.trim()) {
-          this.handleSyslogMessage(message, 'tcp', socket.remoteAddress || '');
+          this.handleSyslogMessage(message, protocol, socket.remoteAddress || '');
         }
       }
 
@@ -222,8 +264,8 @@ export class SyslogAdapter extends EventEmitter {
     });
 
     socket.on('close', () => {
-      logger.debug(`TCP connection closed from ${clientId}`);
-      this.tcpConnections.delete(socket);
+      logger.debug(`${protocol} connection closed from ${clientId}`);
+      connections.delete(socket);
     });
   }
 
@@ -234,6 +276,38 @@ export class SyslogAdapter extends EventEmitter {
   ): Promise<void> {
     try {
       const syslogEvent = this.parseSyslogMessage(message);
+      
+      // Build fields from syslog event and JSON payload if present
+      const fields: Record<string, any> = {
+        facility: syslogEvent.facility,
+        severity: syslogEvent.severity,
+        hostname: syslogEvent.hostname,
+        appName: syslogEvent.appName,
+        message: syslogEvent.message,
+        sourceIp,
+        protocol,
+      };
+
+      // Add RFC5424 specific fields if present
+      if ('version' in syslogEvent) {
+        fields.version = syslogEvent.version;
+        fields.procId = syslogEvent.procId;
+        fields.msgId = syslogEvent.msgId;
+        if (syslogEvent.structuredData) {
+          fields.structuredData = syslogEvent.structuredData;
+        }
+      }
+
+      // Merge JSON payload fields if present
+      if (syslogEvent.jsonPayload) {
+        if (typeof syslogEvent.jsonPayload === 'object' && !Array.isArray(syslogEvent.jsonPayload)) {
+          // Flatten JSON payload into fields
+          for (const [key, value] of Object.entries(syslogEvent.jsonPayload)) {
+            fields[`json_${key}`] = value;
+          }
+        }
+        fields.jsonPayload = syslogEvent.jsonPayload;
+      }
       
       const rawEvent: RawLogEvent = {
         id: uuidv4(),
@@ -253,8 +327,16 @@ export class SyslogAdapter extends EventEmitter {
             compressed: false,
             encrypted: false,
           },
+          syslog: {
+            facility: syslogEvent.facility,
+            severity: syslogEvent.severity,
+            protocol,
+            sourceIp,
+            hasJsonPayload: !!syslogEvent.jsonPayload,
+          },
         },
         receivedAt: new Date(),
+        fields,
       };
 
       // Add to buffer
@@ -265,6 +347,7 @@ export class SyslogAdapter extends EventEmitter {
         protocol,
         facility: syslogEvent.facility.toString(),
         severity: syslogEvent.severity.toString(),
+        hasJsonPayload: !!syslogEvent.jsonPayload ? 'true' : 'false',
       });
     } catch (error) {
       logger.error('Error parsing syslog message', { message, error });
@@ -293,6 +376,15 @@ export class SyslogAdapter extends EventEmitter {
     const priority = parseInt(match[1], 10);
     const facility = Math.floor(priority / 8);
     const severity = priority % 8;
+    let messageContent = match[5];
+    let jsonPayload: any = undefined;
+
+    // Check if JSON payload parsing is enabled
+    if (this.config.enableJsonPayloadParsing) {
+      const result = this.extractJsonPayload(messageContent);
+      messageContent = result.message;
+      jsonPayload = result.jsonPayload;
+    }
 
     return {
       facility,
@@ -300,7 +392,8 @@ export class SyslogAdapter extends EventEmitter {
       timestamp: this.parseRFC3164Timestamp(match[2]),
       hostname: match[3],
       appName: match[4],
-      message: match[5],
+      message: messageContent,
+      jsonPayload,
     };
   }
 
@@ -317,8 +410,17 @@ export class SyslogAdapter extends EventEmitter {
     const priority = parseInt(match[1], 10);
     const facility = Math.floor(priority / 8);
     const severity = priority % 8;
+    let messageContent = match[9];
+    let jsonPayload: any = undefined;
 
     const structuredData = match[8] !== '-' ? this.parseStructuredData(match[8]) : undefined;
+
+    // Check if JSON payload parsing is enabled
+    if (this.config.enableJsonPayloadParsing) {
+      const result = this.extractJsonPayload(messageContent);
+      messageContent = result.message;
+      jsonPayload = result.jsonPayload;
+    }
 
     return {
       facility,
@@ -330,7 +432,8 @@ export class SyslogAdapter extends EventEmitter {
       procId: match[6] !== '-' ? match[6] : undefined,
       msgId: match[7] !== '-' ? match[7] : undefined,
       structuredData,
-      message: match[9],
+      message: messageContent,
+      jsonPayload,
     };
   }
 
@@ -368,6 +471,44 @@ export class SyslogAdapter extends EventEmitter {
     }
 
     return result;
+  }
+
+  /**
+   * Extract JSON payload from syslog message content
+   */
+  private extractJsonPayload(message: string): { message: string; jsonPayload?: any } {
+    const delimiter = this.config.jsonPayloadDelimiter || ' JSON:';
+    const delimiterIndex = message.indexOf(delimiter);
+
+    if (delimiterIndex === -1) {
+      // No delimiter found, check if entire message is JSON
+      try {
+        const trimmedMessage = message.trim();
+        if (trimmedMessage.startsWith('{') || trimmedMessage.startsWith('[')) {
+          const jsonPayload = JSON.parse(trimmedMessage);
+          return { message: '', jsonPayload };
+        }
+      } catch (e) {
+        // Not valid JSON, return as is
+      }
+      return { message };
+    }
+
+    // Split message at delimiter
+    const textPart = message.substring(0, delimiterIndex).trim();
+    const jsonPart = message.substring(delimiterIndex + delimiter.length).trim();
+
+    try {
+      const jsonPayload = JSON.parse(jsonPart);
+      return { message: textPart, jsonPayload };
+    } catch (error) {
+      logger.warn('Failed to parse JSON payload in syslog message', { 
+        jsonPart,
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+      // Return original message if JSON parsing fails
+      return { message };
+    }
   }
 
   private async flushBufferedEvents(): Promise<void> {
@@ -411,10 +552,16 @@ export class SyslogAdapter extends EventEmitter {
   getStats(): object {
     return {
       isRunning: this.isRunning,
-      udpPort: this.config.udpPort,
-      tcpPort: this.config.tcpPort,
-      tlsPort: this.config.tlsPort,
-      activeTcpConnections: this.tcpConnections.size,
+      ports: {
+        udp: this.config.udpPort,
+        tcp: this.config.tcpPort,
+        rfc5425: this.config.rfc5425Port,
+        tls: this.config.tlsPort,
+      },
+      activeConnections: {
+        tcp: this.tcpConnections.size,
+        rfc5425: this.rfc5425Connections.size,
+      },
       bufferSize: this.bufferManager.getSize(),
       metrics: this.metrics.getMetrics(),
     };

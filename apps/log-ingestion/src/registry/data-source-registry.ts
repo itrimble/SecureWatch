@@ -3,6 +3,8 @@ import WindowsEventSource from '../sources/windows-event-source';
 import SyslogSource from '../sources/syslog-source';
 import CloudTrailSource from '../sources/cloud-trail-source';
 import NetworkSecuritySource from '../sources/network-security-source';
+import CSVSource from '../sources/csv-source';
+import XMLSource from '../sources/xml-source';
 
 export class DefaultDataSourceRegistry implements DataSourceRegistry {
   private factories: Map<DataSourceType, (config: DataSourceConfig) => DataSource> = new Map();
@@ -34,6 +36,11 @@ export class DefaultDataSourceRegistry implements DataSourceRegistry {
 
     // Syslog sources
     this.register('syslog', (config) => new SyslogSource(config));
+
+    // File-based sources
+    this.register('csv', (config) => new CSVSource(config));
+    this.register('xml', (config) => new XMLSource(config));
+    this.register('json', (config) => new CustomDataSource(config)); // JSON can use CSV adapter with custom parsing
 
     // Cloud platform sources
     this.register('cloud_trail', (config) => new CloudTrailSource(config));

@@ -17,6 +17,7 @@ from contextlib import asynccontextmanager
 from .config import AgentConfig, ConfigManager
 from .buffer import EventBuffer
 from .transport import SecureTransport
+from .persistent_queue import PersistentQueue, QueueConfig
 from .health import HealthMonitor
 from .collectors.base import Collector
 from .collectors.windows_event import WindowsEventCollector
@@ -58,6 +59,7 @@ class SecureWatchAgent:
         self.collectors: List[Collector] = []
         self.buffer: Optional[EventBuffer] = None
         self.transport: Optional[SecureTransport] = None
+        self.persistent_queue: Optional[PersistentQueue] = None
         self.health_monitor: Optional[HealthMonitor] = None
         self.resource_manager: Optional[ResourceManager] = None
         
@@ -127,6 +129,20 @@ class SecureWatchAgent:
                 agent_id=self.agent_id
             )
             await self.buffer.initialize()
+            
+            # Initialize persistent queue for reliable delivery
+            queue_config = QueueConfig(
+                db_path=str(Path(self.config.buffer.db_path).parent / "persistent_queue.db"),
+                max_size=50000,  # 50k events max
+                max_age_hours=72,  # 3 days retention
+                compression_threshold=2048,  # Compress events > 2KB
+                batch_size=100,  # Process 100 events at a time
+                retry_delays=[30, 300, 1800, 7200],  # 30s, 5m, 30m, 2h
+                cleanup_interval=3600  # Cleanup hourly
+            )
+            
+            self.persistent_queue = PersistentQueue(queue_config)
+            await self.persistent_queue.initialize()
             
             # Initialize secure transport
             self.transport = SecureTransport(
@@ -286,44 +302,120 @@ class SecureWatchAgent:
                 await self.stop()
     
     async def _transport_loop(self) -> None:
-        """Main transport loop for sending buffered events"""
-        self.logger.info("Starting transport loop")
+        """Enhanced transport loop with persistent queue and retry logic"""
+        self.logger.info("Starting enhanced transport loop with persistent queue")
         
+        # Start two parallel tasks: buffer to queue, and queue to transport
+        buffer_task = asyncio.create_task(self._buffer_to_queue_loop())
+        queue_task = asyncio.create_task(self._queue_to_transport_loop())
+        
+        try:
+            await asyncio.gather(buffer_task, queue_task)
+        except Exception as e:
+            self.logger.error(f"Transport loop error: {e}")
+            buffer_task.cancel()
+            queue_task.cancel()
+    
+    async def _buffer_to_queue_loop(self) -> None:
+        """Move events from buffer to persistent queue"""
         while self.running:
             try:
-                # Check resource usage before processing
+                # Check resource usage
                 if not await self.resource_manager.check_resources():
-                    self.logger.warning("Resource limits exceeded, pausing transport")
-                    await asyncio.sleep(self.config.transport.retry.base_delay)
+                    await asyncio.sleep(5)
                     continue
                 
-                # Get batch of events from buffer
+                # Get events from buffer
                 events = await self.buffer.get_batch(self.config.transport.batch_size)
                 
                 if events:
-                    # Send events via transport
-                    success, bytes_sent = await self.transport.send_events(events)
+                    # Queue each event in persistent queue
+                    queued_events = []
+                    for event in events:
+                        try:
+                            event_id = await self.persistent_queue.enqueue(
+                                payload=event,
+                                priority=event.get('priority', 0)
+                            )
+                            queued_events.append(event['id'])
+                            self.logger.debug(f"Event {event['id']} queued as {event_id}")
+                            
+                        except Exception as e:
+                            self.logger.error(f"Failed to queue event {event['id']}: {e}")
+                            self.stats.events_failed += 1
                     
-                    if success:
-                        # Mark events as sent in buffer
-                        await self.buffer.mark_sent([event['id'] for event in events])
-                        
-                        # Update statistics
-                        self.stats.events_sent += len(events)
-                        self.stats.bytes_sent += bytes_sent
-                        
-                        self.logger.debug(f"Sent {len(events)} events ({bytes_sent} bytes)")
-                    else:
-                        self.stats.events_failed += len(events)
-                        self.logger.warning(f"Failed to send {len(events)} events")
+                    # Mark events as processed in buffer
+                    if queued_events:
+                        await self.buffer.mark_sent(queued_events)
+                        self.logger.debug(f"Moved {len(queued_events)} events to persistent queue")
                 else:
-                    # No events to send, sleep briefly
                     await asyncio.sleep(1)
-                
+                    
             except Exception as e:
-                self.logger.error(f"Transport loop error: {e}")
-                await self.health_monitor.record_error('transport', str(e))
-                await asyncio.sleep(self.config.transport.retry.base_delay)
+                self.logger.error(f"Buffer to queue loop error: {e}")
+                await asyncio.sleep(5)
+    
+    async def _queue_to_transport_loop(self) -> None:
+        """Send events from persistent queue to transport"""
+        while self.running:
+            try:
+                # Check if there are pending events
+                pending_count = await self.persistent_queue.get_pending_count()
+                if pending_count == 0:
+                    await asyncio.sleep(2)
+                    continue
+                
+                # Get batch of events from queue
+                queued_events = await self.persistent_queue.dequeue_batch()
+                
+                if queued_events:
+                    # Extract payloads for transport
+                    event_payloads = [qe.payload for qe in queued_events]
+                    
+                    try:
+                        # Send events via transport
+                        success, bytes_sent = await self.transport.send_events(event_payloads)
+                        
+                        if success:
+                            # Mark events as completed in queue
+                            completed_ids = [qe.id for qe in queued_events]
+                            await self.persistent_queue.mark_completed(completed_ids)
+                            
+                            # Update statistics
+                            self.stats.events_sent += len(event_payloads)
+                            self.stats.bytes_sent += bytes_sent
+                            
+                            self.logger.debug(f"Successfully sent {len(event_payloads)} events ({bytes_sent} bytes)")
+                            
+                        else:
+                            # Mark events as failed for retry
+                            for qe in queued_events:
+                                await self.persistent_queue.mark_failed(
+                                    qe.id, 
+                                    "Transport send failed - will retry"
+                                )
+                            
+                            self.logger.warning(f"Failed to send {len(event_payloads)} events, queued for retry")
+                            
+                    except Exception as transport_error:
+                        # Handle transport errors
+                        for qe in queued_events:
+                            await self.persistent_queue.mark_failed(
+                                qe.id, 
+                                f"Transport error: {str(transport_error)}"
+                            )
+                        
+                        self.logger.error(f"Transport error for {len(queued_events)} events: {transport_error}")
+                        await self.health_monitor.record_error('transport', str(transport_error))
+                        
+                        # Back off on transport errors
+                        await asyncio.sleep(self.config.transport.retry.base_delay)
+                else:
+                    await asyncio.sleep(1)
+                    
+            except Exception as e:
+                self.logger.error(f"Queue to transport loop error: {e}")
+                await asyncio.sleep(5)
     
     async def _heartbeat_loop(self) -> None:
         """Send periodic heartbeats to the server"""
@@ -408,6 +500,13 @@ class SecureWatchAgent:
             except Exception as e:
                 self.logger.error(f"Error closing buffer: {e}")
         
+        # Close persistent queue
+        if self.persistent_queue:
+            try:
+                await self.persistent_queue.close()
+            except Exception as e:
+                self.logger.error(f"Error closing persistent queue: {e}")
+        
         # Stop health monitor
         if self.health_monitor:
             try:
@@ -428,7 +527,7 @@ class SecureWatchAgent:
         """Get current agent status"""
         uptime = time.time() - self.stats.start_time if self.stats.start_time else 0
         
-        return {
+        status = {
             'agent_id': self.agent_id,
             'status': 'running' if self.running else 'stopped',
             'uptime': uptime,
@@ -452,6 +551,26 @@ class SecureWatchAgent:
             'health': self.health_monitor.get_status() if self.health_monitor else None,
             'resources': self.resource_manager.get_usage() if self.resource_manager else None
         }
+        
+        # Add queue statistics if available
+        if self.persistent_queue:
+            try:
+                # Get queue stats synchronously (will be async in real implementation)
+                import asyncio
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # Create a task to get stats
+                    queue_stats_task = asyncio.create_task(self.persistent_queue.get_stats())
+                    # Note: In real implementation, you'd want to cache these stats
+                    # or make the status method async
+                    status['queue'] = {'stats_pending': True}
+                else:
+                    queue_stats = loop.run_until_complete(self.persistent_queue.get_stats())
+                    status['queue'] = queue_stats
+            except Exception as e:
+                status['queue'] = {'error': str(e)}
+        
+        return status
     
     @asynccontextmanager
     async def run_context(self):

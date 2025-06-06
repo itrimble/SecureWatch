@@ -8,6 +8,7 @@ import { KafkaProducerPool } from './utils/kafka-producer-pool';
 import { BufferManager } from './buffers/buffer-manager';
 import { MetricsCollector } from './monitoring/metrics-collector';
 import { HealthChecker } from './monitoring/health-checker';
+import { UploadRoutes } from './routes/upload.routes';
 import { kafkaConfig, producerConfig, consumerConfig, topics, performanceConfig } from './config/kafka.config';
 import logger from './utils/logger';
 import axios from 'axios';
@@ -26,6 +27,7 @@ let windowsAdapter: WindowsEventLogAdapter;
 let syslogAdapter: SyslogAdapter;
 let normalizer: LogNormalizer;
 let enricher: LogEnricher;
+let uploadRoutes: UploadRoutes;
 
 async function initializeServices() {
   try {
@@ -73,11 +75,14 @@ async function initializeServices() {
       {
         udpPort: parseInt(process.env.SYSLOG_UDP_PORT || '514', 10),
         tcpPort: parseInt(process.env.SYSLOG_TCP_PORT || '514', 10),
+        rfc5425Port: parseInt(process.env.SYSLOG_RFC5425_PORT || '601', 10),
         tlsPort: parseInt(process.env.SYSLOG_TLS_PORT || '6514', 10),
         maxMessageSize: 64 * 1024, // 64KB
         batchSize: performanceConfig.batchSize,
         flushInterval: performanceConfig.batchTimeout,
         rfc: 'RFC5424',
+        enableJsonPayloadParsing: true,
+        jsonPayloadDelimiter: ' JSON:',
       },
       producerPool,
       bufferManager,
@@ -98,6 +103,13 @@ async function initializeServices() {
         syslog: syslogAdapter,
       },
     });
+    
+    // Initialize upload routes
+    uploadRoutes = new UploadRoutes(
+      producerPool,
+      bufferManager,
+      metricsCollector
+    );
     
     logger.info('All services initialized successfully');
   } catch (error) {
@@ -175,6 +187,9 @@ async function startProcessingPipeline() {
 // API endpoints
 app.use(express.json({ limit: '100mb' })); // Increase limit for EVTX uploads
 app.use(express.raw({ type: 'application/octet-stream', limit: '100mb' }));
+
+// Mount upload routes
+app.use('/', uploadRoutes.getRouter());
 
 // EVTX file processing endpoint
 app.post('/api/evtx/process', async (req, res) => {

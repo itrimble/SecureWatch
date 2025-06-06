@@ -1,13 +1,14 @@
 # Claude.md
 
 ## 1. Project Overview
-- **Brief description:** A comprehensive SIEM (Security Information and Event Management) platform with real-time log collection, processing, and analysis capabilities. Built with Next.js 15, this production-ready system features live Mac agent data collection, TimescaleDB storage with **extended normalized schema (100+ fields)**, KQL-powered search and visualization pipeline, real-time correlation & rules engine with automated threat detection, customizable drag-drop dashboards, interactive analytics (heatmaps, network graphs, geolocation maps), **enhanced CLI dashboard v2.0 with granular service monitoring and control**, and a professional enterprise-grade UI with 25+ specialized security modules supporting **50+ enterprise security use cases** for comprehensive cybersecurity monitoring and threat detection.
+- **Brief description:** A comprehensive enterprise-grade SIEM (Security Information and Event Management) platform with Splunk-compatible data ingestion capabilities. Built with Next.js 15, this production-ready system features **HTTP Event Collector (HEC) service for Splunk-compatible REST API ingestion**, **universal syslog support (UDP 514, TCP 514, TCP 601 RFC 5425, TLS 6514)**, **file upload API with drag-and-drop interface for CSV/XML/JSON/EVTX files**, **enhanced agent with persistent SQLite queuing and guaranteed delivery**, live Mac agent data collection, TimescaleDB storage with **extended normalized schema (100+ fields)**, KQL-powered search and visualization pipeline, real-time correlation & rules engine with automated threat detection, customizable drag-drop dashboards, interactive analytics (heatmaps, network graphs, geolocation maps), **enhanced CLI dashboard v2.0 with granular service monitoring and control**, and a professional enterprise-grade UI with 25+ specialized security modules supporting **50+ enterprise security use cases** for comprehensive cybersecurity monitoring and threat detection.
 - **Tech stack:**
     - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS + Professional Dark Theme, Lucide React Icons, Recharts, Interactive Visualizations (Heatmaps, Network Graphs, Geolocation Maps), Customizable Dashboards
     - **Backend**: Express.js microservices, KQL Engine, Correlation & Rules Engine, PostgreSQL/TimescaleDB
-    - **Agent**: Python 3.12+ with macOS Unified Logging integration
+    - **Data Ingestion**: HTTP Event Collector (HEC) service (port 8888), Universal Syslog Adapter (UDP/TCP 514, TCP 601, TLS 6514), File Upload API with drag-and-drop interface, Multi-format processing (CSV, XML, JSON, EVTX)
+    - **Agent**: Python 3.12+ with macOS Unified Logging integration, Persistent SQLite queuing, Guaranteed delivery with retry logic, Compression and batching
     - **CLI Dashboard**: Enhanced TypeScript-based terminal UI with blessed.js, granular service monitoring, collapsible panels, service control capabilities, **blessed-contrib rich dashboard with line charts, gauges, sparklines, Nerd Font support, and responsive 4K layouts**
-    - **Infrastructure**: Docker Compose, Redis, Elasticsearch, Kafka
+    - **Infrastructure**: Docker Compose, Redis, Kafka (message streaming), TimescaleDB, OpenSearch
     - **Database**: TimescaleDB (PostgreSQL) with time-series optimization + Extended Normalized Schema (100+ security fields)
     - **Build**: Turbopack (development), pnpm workspaces
 

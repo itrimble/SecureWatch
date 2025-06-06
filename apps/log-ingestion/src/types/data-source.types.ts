@@ -1,6 +1,9 @@
 export type DataSourceType = 
   | 'windows_event' 
   | 'syslog' 
+  | 'csv'
+  | 'xml'
+  | 'json'
   | 'cloud_trail' 
   | 'azure_activity' 
   | 'gcp_audit' 

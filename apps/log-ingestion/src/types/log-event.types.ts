@@ -5,6 +5,7 @@ export interface RawLogEvent {
   rawData: string | Buffer;
   metadata: LogMetadata;
   receivedAt: Date;
+  fields?: Record<string, any>;
 }
 
 export interface NormalizedLogEvent {
@@ -50,6 +51,9 @@ export enum LogSource {
   IDS_IPS = 'ids_ips',
   ENDPOINT = 'endpoint',
   APPLICATION = 'application',
+  CSV = 'csv',
+  XML = 'xml',
+  JSON = 'json',
   CUSTOM = 'custom',
 }
 
@@ -266,4 +270,5 @@ export interface SyslogEvent {
   msgId?: string;
   structuredData?: Record<string, Record<string, string>>;
   message: string;
+  jsonPayload?: any;
 }

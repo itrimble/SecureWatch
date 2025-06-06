@@ -26,6 +26,120 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Kafka for event streaming
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: securewatch_kafka
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    restart: unless-stopped
+
+  # Zookeeper for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: securewatch_zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    restart: unless-stopped
+
+  # HTTP Event Collector (HEC) Service
+  hec-service:
+    build:
+      context: ./apps/hec-service
+      dockerfile: Dockerfile
+    container_name: securewatch_hec
+    ports:
+      - "8888:8888"
+    environment:
+      - PORT=8888
+      - KAFKA_BROKERS=kafka:29092
+      - LOG_LEVEL=info
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_WINDOW_MS=60000
+      - RATE_LIMIT_MAX_REQUESTS=1000
+      - BATCH_SIZE=100
+      - BATCH_TIMEOUT_MS=5000
+    depends_on:
+      - kafka
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Log Ingestion Service
+  log-ingestion:
+    build:
+      context: ./apps/log-ingestion
+      dockerfile: Dockerfile
+    container_name: securewatch_log_ingestion
+    ports:
+      - "4002:4002"
+      # Standard syslog ports
+      - "514:514/udp"    # UDP syslog
+      - "514:514/tcp"    # TCP syslog
+      - "601:601/tcp"    # TCP syslog (RFC 5425)
+      - "6514:6514/tcp"  # TLS syslog
+    environment:
+      - PORT=4002
+      - KAFKA_BROKERS=kafka:29092
+      - CORRELATION_ENGINE_URL=http://correlation-engine:4005
+      - SYSLOG_UDP_PORT=514
+      - SYSLOG_TCP_PORT=514
+      - SYSLOG_RFC5425_PORT=601
+      - SYSLOG_TLS_PORT=6514
+      - LOG_LEVEL=info
+      - DISK_BUFFER_PATH=/var/lib/securewatch/buffers
+    volumes:
+      - log_buffers:/var/lib/securewatch/buffers
+    depends_on:
+      - kafka
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Correlation Engine
+  correlation-engine:
+    build:
+      context: ./apps/correlation-engine
+      dockerfile: Dockerfile
+    container_name: securewatch_correlation
+    ports:
+      - "4005:4005"
+    environment:
+      - PORT=4005
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   pgdata_eventlog: # Defines the named volume for data persistence
+    driver: local
+  log_buffers: # Volume for log ingestion buffers
     driver: local

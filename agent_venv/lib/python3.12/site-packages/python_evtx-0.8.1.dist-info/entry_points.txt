@@ -1,0 +1,11 @@
+[console_scripts]
+evtx_dump = scripts.evtx_dump:main
+evtx_dump_chunk_slack = scripts.evtx_dump_chunk_slack:main
+evtx_dump_json = scripts.evtx_dump_json:main
+evtx_eid_record_numbers = scripts.evtx_eid_record_numbers:main
+evtx_extract_record = scripts.evtx_extract_record:main
+evtx_filter_records = scripts.evtx_filter_records:main
+evtx_info = scripts.evtx_info:main
+evtx_record_structure = scripts.evtx_record_structure:main
+evtx_structure = scripts.evtx_structure:main
+evtx_templates = scripts.evtx_templates:main
