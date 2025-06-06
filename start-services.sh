@@ -549,7 +549,7 @@ show_usage() {
 }
 
 # Check for help flag
-if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     show_usage
     exit 0
 fi
