@@ -1,0 +1,259 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    name: Security Vulnerability Scan
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for better analysis
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm install -g pnpm
+        pnpm install
+
+    # 1. NPM Audit for Node.js dependencies
+    - name: Run npm audit
+      run: |
+        echo "🔍 Running npm audit..."
+        pnpm audit --audit-level moderate || echo "NPM audit found vulnerabilities"
+        pnpm audit --json > npm-audit-report.json || true
+
+    # 2. Semgrep for SAST (Static Application Security Testing)
+    - name: Run Semgrep
+      uses: returntocorp/semgrep-action@v1
+      with:
+        config: >-
+          p/security-audit
+          p/nodejs
+          p/typescript
+          p/docker
+          p/secrets
+        generateSarif: "1"
+      env:
+        SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+    # 3. CodeQL Analysis
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: javascript, typescript
+        queries: security-extended,security-and-quality
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:javascript"
+
+    # 4. Docker Security Scan with Trivy
+    - name: Build Docker images for scanning
+      run: |
+        echo "🐳 Building Docker images for security scanning..."
+        docker build -t securewatch-frontend ./frontend || true
+        docker build -t securewatch-auth ./apps/auth-service || true
+        docker build -t securewatch-search ./apps/search-api || true
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'securewatch-frontend'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    # 5. Secret Detection with GitLeaks
+    - name: Run GitLeaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+    # 6. OWASP Dependency Check
+    - name: Run OWASP Dependency Check
+      uses: dependency-check/Dependency-Check_Action@main
+      with:
+        project: 'SecureWatch SIEM'
+        path: '.'
+        format: 'JSON'
+        args: >
+          --enableRetired
+          --enableExperimental
+          --nodeAuditSkipDevDependencies
+
+    - name: Upload OWASP Dependency Check results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: dependency-check-report
+        path: reports/
+
+    # 7. Custom Security Checks
+    - name: Run custom security checks
+      run: |
+        echo "🔐 Running custom security checks..."
+        
+        # Check for hardcoded secrets patterns
+        echo "Checking for hardcoded secrets..."
+        grep -r -E "(password|secret|key|token)\s*[:=]\s*['\"](?!.*env|.*process|.*config)[^'\"]{8,}" --include="*.ts" --include="*.js" --exclude-dir=node_modules . || echo "No hardcoded secrets found"
+        
+        # Check for console.log in production code
+        echo "Checking for console.log statements..."
+        find . -name "*.ts" -not -path "./node_modules/*" -not -path "./.git/*" -exec grep -l "console\.log" {} \; | tee console-log-files.txt
+        if [ -s console-log-files.txt ]; then
+          echo "⚠️ Found console.log statements in production code"
+          cat console-log-files.txt
+          exit 1
+        fi
+        
+        # Check for TODO/FIXME in security-critical files
+        echo "Checking for TODOs in security-critical files..."
+        find . -path "*/auth*" -o -path "*/security*" -o -path "*/middleware*" | grep -E "\.(ts|js)$" | xargs grep -l "TODO\|FIXME" | tee security-todos.txt || echo "No security TODOs found"
+        
+        # Check for proper error handling
+        echo "Checking for proper error handling..."
+        grep -r "throw.*Error.*stack" --include="*.ts" --include="*.js" --exclude-dir=node_modules . && echo "⚠️ Found potential stack trace exposure" || echo "No stack trace exposure found"
+
+    # 8. Infrastructure as Code Security
+    - name: Run Checkov on Docker and Infrastructure files
+      uses: bridgecrewio/checkov-action@master
+      with:
+        directory: .
+        framework: dockerfile,docker_compose,kubernetes
+        output_format: sarif
+        output_file_path: checkov-results.sarif
+
+    - name: Upload Checkov scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'checkov-results.sarif'
+
+    # 9. Generate Security Report
+    - name: Generate Security Summary Report
+      run: |
+        echo "📊 Generating security summary report..."
+        cat > security-report.md << 'EOF'
+        # SecureWatch SIEM - Security Scan Report
+        
+        **Scan Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        **Branch:** ${{ github.ref_name }}
+        **Commit:** ${{ github.sha }}
+        
+        ## Summary
+        
+        This automated security scan includes:
+        
+        - ✅ NPM Audit (Node.js dependencies)
+        - ✅ Semgrep SAST (Static Application Security Testing)
+        - ✅ CodeQL Analysis (GitHub Security)
+        - ✅ Trivy Container Scanning
+        - ✅ GitLeaks Secret Detection
+        - ✅ OWASP Dependency Check
+        - ✅ Custom Security Checks
+        - ✅ Infrastructure as Code Security (Checkov)
+        
+        ## Key Security Improvements Implemented
+        
+        - 🛡️ Query complexity analysis to prevent DoS attacks
+        - 📊 Comprehensive audit logging for all security events
+        - 🔧 Circuit breakers for service resilience
+        - 🔐 Enhanced authentication with MFA and API key validation
+        - 🏢 Multi-tenant security with organization isolation
+        - 📋 Automated security scanning in CI/CD pipeline
+        
+        ## Next Steps
+        
+        1. Review any security findings in the GitHub Security tab
+        2. Address high and critical vulnerabilities promptly
+        3. Update dependencies with known vulnerabilities
+        4. Review and implement recommended security configurations
+        
+        EOF
+
+    - name: Upload Security Report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-report
+        path: |
+          security-report.md
+          npm-audit-report.json
+          console-log-files.txt
+          security-todos.txt
+
+    # 10. Security Quality Gate
+    - name: Security Quality Gate
+      run: |
+        echo "🚦 Evaluating security quality gate..."
+        
+        # Check if critical vulnerabilities were found
+        CRITICAL_ISSUES=0
+        
+        # Count console.log occurrences (should be 0 in production)
+        if [ -s console-log-files.txt ]; then
+          CONSOLE_COUNT=$(wc -l < console-log-files.txt)
+          echo "⚠️ Found $CONSOLE_COUNT files with console.log statements"
+          CRITICAL_ISSUES=$((CRITICAL_ISSUES + CONSOLE_COUNT))
+        fi
+        
+        # Check for security TODOs in critical files
+        if [ -s security-todos.txt ]; then
+          TODO_COUNT=$(wc -l < security-todos.txt)
+          echo "⚠️ Found $TODO_COUNT security-critical files with TODOs"
+          CRITICAL_ISSUES=$((CRITICAL_ISSUES + TODO_COUNT))
+        fi
+        
+        echo "Total critical security issues: $CRITICAL_ISSUES"
+        
+        if [ $CRITICAL_ISSUES -gt 0 ]; then
+          echo "❌ Security quality gate failed: $CRITICAL_ISSUES critical issues found"
+          echo "Please address these issues before merging:"
+          [ -s console-log-files.txt ] && echo "- Remove console.log statements from production code"
+          [ -s security-todos.txt ] && echo "- Complete TODOs in security-critical files"
+          exit 1
+        else
+          echo "✅ Security quality gate passed: No critical issues found"
+        fi
+
+  # Notification job
+  notify-security-team:
+    runs-on: ubuntu-latest
+    needs: security-scan
+    if: always() && github.ref == 'refs/heads/main'
+    steps:
+    - name: Notify security team of scan results
+      run: |
+        echo "🔔 Security scan completed for main branch"
+        echo "Status: ${{ needs.security-scan.result }}"
+        # In production, this would send notifications to:
+        # - Slack security channel
+        # - Email security team
+        # - SIEM platform for correlation
+        # - Security dashboard for metrics

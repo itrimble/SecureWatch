@@ -3,6 +3,7 @@ import { JWTService } from '../services/jwt.service';
 import { PermissionService } from '../services/permission.service';
 import { AuditService } from '../services/audit.service';
 import { DatabaseService } from '../services/database.service';
+import { securityAuditLogger, SecurityEventType } from '../utils/audit-logger';
 
 interface AuthRequest extends Request {
   user?: {
@@ -312,6 +313,7 @@ export const authenticateApiKey = async (
     const apiKeyData = await DatabaseService.validateApiKey(apiKey);
     
     if (!apiKeyData || !apiKeyData.isActive) {
+      // Log to legacy audit service for backwards compatibility
       await AuditService.logAuthEvent({
         eventType: 'api_key_validation_failed',
         eventStatus: 'failure',
@@ -324,6 +326,21 @@ export const authenticateApiKey = async (
         },
       });
 
+      // Log to comprehensive security audit logger
+      await securityAuditLogger.logAuthEvent({
+        eventType: SecurityEventType.API_KEY_INVALID,
+        eventStatus: 'failure',
+        authMethod: 'api_key',
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'] as string,
+        metadata: {
+          path: req.path,
+          method: req.method,
+          apiKeyPrefix: apiKey.substring(0, 8) + '...',
+          reason: !apiKeyData ? 'API key not found' : 'API key inactive'
+        }
+      });
+
       res.status(401).json({ 
         error: 'Unauthorized',
         message: 'Invalid or inactive API key' 
@@ -333,6 +350,7 @@ export const authenticateApiKey = async (
 
     // Check if API key has expired
     if (apiKeyData.expiresAt && new Date() > apiKeyData.expiresAt) {
+      // Log to legacy audit service
       await AuditService.logAuthEvent({
         eventType: 'api_key_expired',
         eventStatus: 'failure',
@@ -345,6 +363,23 @@ export const authenticateApiKey = async (
           method: req.method,
           apiKeyId: apiKeyData.id,
         },
+      });
+
+      // Log to comprehensive security audit logger
+      await securityAuditLogger.logAuthEvent({
+        eventType: SecurityEventType.API_KEY_EXPIRED,
+        eventStatus: 'failure',
+        userId: apiKeyData.userId,
+        organizationId: apiKeyData.organizationId,
+        authMethod: 'api_key',
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'] as string,
+        metadata: {
+          path: req.path,
+          method: req.method,
+          apiKeyId: apiKeyData.id,
+          expiresAt: apiKeyData.expiresAt.toISOString()
+        }
       });
 
       res.status(401).json({ 

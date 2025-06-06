@@ -2,8 +2,151 @@ import { Router } from 'express';
 import { body, query, validationResult } from 'express-validator';
 import { KQLEngine, ExecutionContext } from '@securewatch/kql-engine';
 import logger from '../utils/logger';
+import { queryComplexityAnalyzer, queryRateLimiter } from '../utils/query-complexity-analyzer';
+import { securityAuditLogger } from '../utils/audit-logger';
+import { withSearchCircuitBreaker, withDatabaseCircuitBreaker, circuitBreakerManager } from '@securewatch/shared-utils/circuit-breaker';
 
 const router = Router();
+
+/**
+ * @swagger
+ * /search/complexity:
+ *   post:
+ *     summary: Analyze query complexity without execution
+ *     description: Validate query complexity and get resource usage estimates
+ *     tags: [Search]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/SearchRequest'
+ *     responses:
+ *       200:
+ *         description: Query complexity analysis
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 isValid:
+ *                   type: boolean
+ *                 complexityScore:
+ *                   type: number
+ *                 violations:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 recommendations:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 estimatedResourceUsage:
+ *                   type: object
+ *                   properties:
+ *                     memory:
+ *                       type: string
+ *                     cpu:
+ *                       type: string
+ *                     executionTime:
+ *                       type: string
+ *       400:
+ *         description: Invalid request
+ *       403:
+ *         description: Forbidden
+ */
+router.post('/complexity', [
+    body('query')
+      .isString()
+      .isLength({ min: 1, max: 10000 })
+      .withMessage('Query must be a non-empty string (max 10000 characters)'),
+    body('timeRange.start')
+      .optional()
+      .isISO8601()
+      .withMessage('Start time must be a valid ISO 8601 date'),
+    body('timeRange.end')
+      .optional()
+      .isISO8601()
+      .withMessage('End time must be a valid ISO 8601 date'),
+    body('maxRows')
+      .optional()
+      .isInt({ min: 1, max: 5000 })
+      .withMessage('Max rows must be between 1 and 5000'),
+    body('timeout')
+      .optional()
+      .isInt({ min: 1000, max: 120000 })
+      .withMessage('Timeout must be between 1000ms and 120000ms')
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    try {
+      const { query, timeRange, maxRows, timeout } = req.body;
+      const userId = (req as any).user?.sub;
+      const userOrgId = (req as any).user?.organizationId;
+      const headerOrgId = req.headers['x-organization-id'] as string;
+
+      if (!headerOrgId) {
+        return res.status(400).json({
+          error: 'Missing organization ID',
+          message: 'X-Organization-ID header is required'
+        });
+      }
+
+      // Validate organization access
+      const userRoles = (req as any).user?.roles || [];
+      if (!userRoles.includes('super_admin') && headerOrgId !== userOrgId) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'Access denied to the requested organization'
+        });
+      }
+
+      // Analyze query complexity
+      const complexityAnalysis = queryComplexityAnalyzer.analyzeQuery({
+        kqlQuery: query,
+        startTime: timeRange?.start,
+        endTime: timeRange?.end,
+        maxRows,
+        timeout,
+        organizationId: headerOrgId
+      });
+
+      // Check rate limits
+      const rateLimitCheck = queryRateLimiter.canExecuteQuery(userId, complexityAnalysis.complexityScore);
+
+      logger.info('Query complexity analysis requested', {
+        userId,
+        organizationId: headerOrgId,
+        complexityScore: complexityAnalysis.complexityScore,
+        isValid: complexityAnalysis.isValid,
+        rateLimitAllowed: rateLimitCheck.allowed
+      });
+
+      res.json({
+        ...complexityAnalysis,
+        rateLimit: {
+          allowed: rateLimitCheck.allowed,
+          reason: rateLimitCheck.reason,
+          retryAfter: rateLimitCheck.retryAfter
+        }
+      });
+
+    } catch (error) {
+      logger.error('Query complexity analysis failed', { error, userId: (req as any).user?.sub });
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Failed to analyze query complexity'
+      });
+    }
+  }
+);
 
 /**
  * @swagger
@@ -117,12 +260,12 @@ router.post('/execute',
       .withMessage('End time must be a valid ISO 8601 date'),
     body('maxRows')
       .optional()
-      .isInt({ min: 1, max: 10000 })
-      .withMessage('Max rows must be between 1 and 10000'),
+      .isInt({ min: 1, max: 5000 })
+      .withMessage('Max rows must be between 1 and 5000 (DoS prevention)'),
     body('timeout')
       .optional()
-      .isInt({ min: 1000, max: 300000 })
-      .withMessage('Timeout must be between 1000ms and 300000ms'),
+      .isInt({ min: 1000, max: 120000 })
+      .withMessage('Timeout must be between 1000ms and 120000ms (DoS prevention)'),
     body('cache')
       .optional()
       .isBoolean()
@@ -172,6 +315,82 @@ router.post('/execute',
 
       const organizationId = headerOrgId;
 
+      // 1. Analyze query complexity to prevent DoS attacks
+      const complexityAnalysis = queryComplexityAnalyzer.analyzeQuery({
+        kqlQuery: query,
+        startTime: timeRange?.start,
+        endTime: timeRange?.end,
+        maxRows,
+        timeout,
+        organizationId
+      });
+
+      // 2. Reject queries that exceed complexity limits
+      if (!complexityAnalysis.isValid) {
+        logger.warn('Query rejected due to complexity limits', {
+          userId,
+          organizationId,
+          complexityScore: complexityAnalysis.complexityScore,
+          violations: complexityAnalysis.violations,
+          query: query.substring(0, 200) + (query.length > 200 ? '...' : ''),
+          ip: req.ip
+        });
+
+        // Log to comprehensive security audit system
+        await securityAuditLogger.logQueryExecution({
+          userId,
+          organizationId,
+          query,
+          complexityScore: complexityAnalysis.complexityScore,
+          executionTime: 0,
+          resultCount: 0,
+          ipAddress: req.ip,
+          blocked: true,
+          blockReason: complexityAnalysis.violations.join(', ')
+        });
+
+        return res.status(429).json({
+          error: 'Query complexity limit exceeded',
+          message: 'Query is too complex and may impact system performance',
+          details: {
+            complexityScore: complexityAnalysis.complexityScore,
+            violations: complexityAnalysis.violations,
+            recommendations: complexityAnalysis.recommendations,
+            estimatedResourceUsage: complexityAnalysis.estimatedResourceUsage
+          }
+        });
+      }
+
+      // 3. Check rate limits for complex queries
+      const rateLimitCheck = queryRateLimiter.canExecuteQuery(userId, complexityAnalysis.complexityScore);
+      if (!rateLimitCheck.allowed) {
+        logger.warn('Query rejected due to rate limiting', {
+          userId,
+          organizationId,
+          reason: rateLimitCheck.reason,
+          complexityScore: complexityAnalysis.complexityScore,
+          ip: req.ip
+        });
+
+        return res.status(429).json({
+          error: 'Rate limit exceeded',
+          message: rateLimitCheck.reason,
+          retryAfter: rateLimitCheck.retryAfter
+        });
+      }
+
+      // 4. Log complex query execution for monitoring
+      if (complexityAnalysis.complexityScore > 25) {
+        logger.info('Complex query executed', {
+          userId,
+          organizationId,
+          complexityScore: complexityAnalysis.complexityScore,
+          estimatedResourceUsage: complexityAnalysis.estimatedResourceUsage,
+          query: query.substring(0, 200) + (query.length > 200 ? '...' : ''),
+          ip: req.ip
+        });
+      }
+
       const context: ExecutionContext = {
         organizationId,
         userId,
@@ -185,7 +404,12 @@ router.post('/execute',
       };
 
       const startTime = Date.now();
-      const result = await kqlEngine.executeQuery(query, context);
+      
+      // Execute query with circuit breaker protection
+      const result = await withSearchCircuitBreaker(async () => {
+        return await kqlEngine.executeQuery(query, context);
+      });
+      
       const queryTime = Date.now() - startTime;
 
       // Log query execution
@@ -199,11 +423,24 @@ router.post('/execute',
         fromCache: result.fromCache
       });
 
+      // Log to comprehensive security audit system
+      await securityAuditLogger.logQueryExecution({
+        userId,
+        organizationId,
+        query,
+        complexityScore: complexityAnalysis.complexityScore,
+        executionTime: result.executionTime || queryTime,
+        resultCount: result.rows.length,
+        ipAddress: req.ip,
+        blocked: false
+      });
+
       res.json({
         ...result,
         metadata: {
           ...result.metadata,
-          totalTime: queryTime
+          totalTime: queryTime,
+          complexityScore: complexityAnalysis.complexityScore
         }
       });
 
@@ -665,6 +902,56 @@ router.get('/logs', async (req, res) => {
     res.status(500).json({
       error: 'Failed to get logs',
       message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /search/circuit-breakers:
+ *   get:
+ *     summary: Get circuit breaker status
+ *     description: Monitor the health and status of all circuit breakers
+ *     tags: [Search]
+ *     responses:
+ *       200:
+ *         description: Circuit breaker health status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 circuitBreakers:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: object
+ *                     properties:
+ *                       state:
+ *                         type: string
+ *                         enum: [CLOSED, OPEN, HALF_OPEN]
+ *                       healthy:
+ *                         type: boolean
+ *                       metrics:
+ *                         type: object
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/circuit-breakers', async (req, res) => {
+  try {
+    const healthStatus = circuitBreakerManager.getHealthStatus();
+    
+    res.json({
+      timestamp: new Date().toISOString(),
+      circuitBreakers: healthStatus
+    });
+  } catch (error) {
+    logger.error('Failed to get circuit breaker status', { error });
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to retrieve circuit breaker status'
     });
   }
 });
