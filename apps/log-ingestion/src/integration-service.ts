@@ -16,7 +16,7 @@ export interface IntegrationServiceConfig {
 export interface OutputDestination {
   id: string;
   name: string;
-  type: 'kafka' | 'elasticsearch' | 'file' | 'webhook' | 'custom';
+  type: 'kafka' | 'opensearch' | 'file' | 'webhook' | 'custom';
   config: Record<string, any>;
   enabled: boolean;
 }
@@ -377,8 +377,8 @@ export class IntegrationService extends EventEmitter {
         case 'kafka':
           await this.sendToKafka(event, destination.config);
           break;
-        case 'elasticsearch':
-          await this.sendToElasticsearch(event, destination.config);
+        case 'opensearch':
+          await this.sendToOpenSearch(event, destination.config);
           break;
         case 'file':
           await this.sendToFile(event, destination.config);
@@ -402,9 +402,9 @@ export class IntegrationService extends EventEmitter {
     console.log(`Sending event ${event.id} to Kafka topic: ${config.topic}`);
   }
 
-  private async sendToElasticsearch(event: LogEvent, config: any): Promise<void> {
-    // Mock Elasticsearch output implementation
-    console.log(`Sending event ${event.id} to Elasticsearch index: ${config.index}`);
+  private async sendToOpenSearch(event: LogEvent, config: any): Promise<void> {
+    // Mock OpenSearch output implementation
+    console.log(`Sending event ${event.id} to OpenSearch index: ${config.index}`);
   }
 
   private async sendToFile(event: LogEvent, config: any): Promise<void> {

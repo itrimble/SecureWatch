@@ -105,33 +105,62 @@ services:
       timeout: 10s
       retries: 5
 
-  # Elasticsearch for log search
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: securewatch_elasticsearch
+  # OpenSearch for log search
+  opensearch:
+    image: opensearchproject/opensearch:3.0.0
+    container_name: securewatch_opensearch
     environment:
+      - cluster.name=securewatch-cluster
+      - node.name=opensearch-node
       - discovery.type=single-node
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - xpack.security.enabled=false
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - plugins.security.disabled=true
+      - plugins.security.ssl.http.enabled=false
+      - plugins.security.ssl.transport.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
     ports:
       - "9200:9200"
+      - "9600:9600"
     volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
+      - opensearch_data:/usr/share/opensearch/data
     networks:
       - securewatch_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\\|yellow\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
-  # Kibana for visualization (optional)
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.0
-    container_name: securewatch_kibana
+  # OpenSearch Dashboards for visualization
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:3.0.0
+    container_name: securewatch_opensearch_dashboards
     ports:
       - "5601:5601"
     environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      - 'OPENSEARCH_HOSTS=["http://opensearch:9200"]'
+      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
+      - "SERVER_BASEPATH="
+      - "SERVER_REWRITEBASEPATH=true"
     depends_on:
-      - elasticsearch
+      opensearch:
+        condition: service_healthy
     networks:
       - securewatch_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status | grep -q '\"state\":\"green\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # Correlation Engine
   correlation-engine:
@@ -176,7 +205,7 @@ services:
     container_name: securewatch_analytics_engine
     environment:
       - NODE_ENV=development
-      - PORT=4006
+      - PORT=4003
       - HOST=0.0.0.0
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -194,7 +223,7 @@ services:
       - RATE_LIMIT_MAX=100
       - LOG_LEVEL=info
     ports:
-      - "4006:4006"
+      - "4003:4003"
     depends_on:
       postgres:
         condition: service_healthy
@@ -204,7 +233,7 @@ services:
       - securewatch_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4006/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4003/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -218,4 +247,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
-  elasticsearch_data:
+  opensearch_data:
