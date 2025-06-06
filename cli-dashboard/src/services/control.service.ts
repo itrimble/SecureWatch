@@ -299,41 +299,102 @@ export class ServiceControlService {
   }
 
   async startAllServices(): Promise<ServiceControlResult[]> {
-    const results: ServiceControlResult[] = [];
-    
-    // Start infrastructure first
-    const infrastructureServices = ['PostgreSQL', 'Redis', 'Zookeeper', 'Kafka', 'Elasticsearch'];
-    for (const service of infrastructureServices) {
-      results.push(await this.startService(service));
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait between services
+    try {
+      // Use the new resilient startup script
+      const { stdout, stderr } = await execAsync(`cd ${this.projectRoot} && ./start.sh`);
+      return [{
+        success: true,
+        message: 'Platform started using resilient startup system',
+        output: stdout
+      }];
+    } catch (error: any) {
+      return [{
+        success: false,
+        message: `Failed to start platform: ${error.message}`,
+        output: error.stderr || error.stdout
+      }];
     }
-
-    // Then start microservices
-    const microservices = ['Log Ingestion', 'Search API', 'Correlation Engine', 'Analytics Engine', 'Frontend'];
-    for (const service of microservices) {
-      results.push(await this.startService(service));
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-
-    return results;
   }
 
   async stopAllServices(): Promise<ServiceControlResult[]> {
-    const results: ServiceControlResult[] = [];
-    
-    // Stop microservices first
-    const microservices = ['Frontend', 'Search API', 'Log Ingestion', 'Correlation Engine', 'Analytics Engine'];
-    for (const service of microservices) {
-      results.push(await this.stopService(service));
+    try {
+      // Use the new resilient shutdown script
+      const { stdout, stderr } = await execAsync(`cd ${this.projectRoot} && echo "y" | ./stop.sh`);
+      return [{
+        success: true,
+        message: 'Platform stopped using resilient shutdown system',
+        output: stdout
+      }];
+    } catch (error: any) {
+      return [{
+        success: false,
+        message: `Failed to stop platform: ${error.message}`,
+        output: error.stderr || error.stdout
+      }];
     }
+  }
 
-    // Then stop infrastructure
-    const infrastructureServices = ['Elasticsearch', 'Kafka', 'Zookeeper', 'Redis', 'PostgreSQL'];
-    for (const service of infrastructureServices) {
-      results.push(await this.stopService(service));
+  async startResilientPlatform(): Promise<ServiceControlResult> {
+    try {
+      const { stdout, stderr } = await execAsync(`cd ${this.projectRoot} && ./start.sh`);
+      return {
+        success: true,
+        message: 'SecureWatch platform started with resilient infrastructure',
+        output: stdout
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Resilient startup failed: ${error.message}`,
+        output: error.stderr || error.stdout
+      };
     }
+  }
 
-    return results;
+  async stopResilientPlatform(): Promise<ServiceControlResult> {
+    try {
+      const { stdout, stderr } = await execAsync(`cd ${this.projectRoot} && echo "y" | ./stop.sh`);
+      return {
+        success: true,
+        message: 'SecureWatch platform stopped gracefully with data protection',
+        output: stdout
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Graceful shutdown failed: ${error.message}`,
+        output: error.stderr || error.stdout
+      };
+    }
+  }
+
+  async checkResilientStatus(): Promise<ServiceControlResult> {
+    try {
+      const { stdout } = await execAsync(`cd ${this.projectRoot} && docker-compose -f docker-compose.resilient.yml ps --services --filter "status=running"`);
+      const runningServices = stdout.trim().split('\n').filter(s => s);
+      
+      // Expected services in resilient configuration
+      const expectedServices = [
+        'postgres', 'redis', 'zookeeper', 'kafka', 'elasticsearch',
+        'log-ingestion', 'search-api', 'correlation-engine', 'analytics-engine', 
+        'mcp-marketplace', 'frontend'
+      ];
+      
+      const healthyCount = runningServices.length;
+      const totalCount = expectedServices.length;
+      
+      return {
+        success: healthyCount === totalCount,
+        message: `Resilient platform status: ${healthyCount}/${totalCount} services running`,
+        output: `Running services:\n${runningServices.join('\n')}\n\nExpected services:\n${expectedServices.join('\n')}`
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Failed to check resilient status: ${error.message}`,
+        output: error.toString()
+      };
+    }
   }
 
   async healthCheckAll(): Promise<Map<string, boolean>> {

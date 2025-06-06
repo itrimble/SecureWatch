@@ -134,6 +134,39 @@ export interface SystemHealth {
   totalServices: number;
 }
 
+export interface ResilientPlatformStatus {
+  mode: 'resilient' | 'development' | 'production';
+  overallHealth: 'healthy' | 'degraded' | 'unhealthy';
+  servicesRunning: number;
+  servicesExpected: number;
+  lastStartup?: Date;
+  lastShutdown?: Date;
+  startupTime?: number; // seconds
+  shutdownTime?: number; // seconds
+  dataProtection: {
+    backupsEnabled: boolean;
+    lastBackup?: Date;
+    dataVolumes: string[];
+  };
+  healthEndpoints: {
+    [serviceName: string]: {
+      url: string;
+      status: 'healthy' | 'degraded' | 'unhealthy';
+      responseTime?: number;
+    };
+  };
+}
+
+export interface ServiceControlCapabilities {
+  canStart: boolean;
+  canStop: boolean;
+  canRestart: boolean;
+  canViewLogs: boolean;
+  supportsGracefulShutdown: boolean;
+  supportsHealthChecks: boolean;
+  supportsResilientMode: boolean;
+}
+
 export interface DashboardData {
   services: ServiceStatus[];
   metrics: ServiceMetrics[];
@@ -143,4 +176,6 @@ export interface DashboardData {
   recentLogs: LogEntry[];
   lastUpdated: Date;
   systemHealth: SystemHealth;
+  resilientStatus: ResilientPlatformStatus;
+  controlCapabilities: ServiceControlCapabilities;
 }
