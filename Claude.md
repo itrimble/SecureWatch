@@ -4,6 +4,33 @@
 
 ## Recent Updates (June 6, 2025)
 
+### 🛡️ Security Update v1.13.0 - CRITICAL FIXES COMPLETED
+**ALL P0 SECURITY VULNERABILITIES RESOLVED**
+
+#### ✅ Authentication Security Hardened
+- **JWT Security**: Fixed hardcoded secrets, added environment variable validation
+- **MFA Security**: Implemented Redis storage, fixed encryption key management  
+- **API Key Authentication**: Complete validation system with database lookup
+- **Token Refresh**: Fixed permission fetching vulnerability
+
+#### ✅ Multi-tenant Security  
+- **Organization ID Validation**: Prevents cross-tenant data access
+- **Audit Logging**: Enhanced security event tracking
+- **Production Ready**: Removed all development security bypasses
+
+#### 📋 Required Environment Variables
+```bash
+JWT_ACCESS_SECRET="[secure-random-secret]"
+JWT_REFRESH_SECRET="[secure-random-secret]" 
+MFA_ENCRYPTION_KEY="[32-byte-base64-key]"
+REDIS_URL="redis://localhost:6379"
+```
+
+#### 📖 Security Documentation
+- `docs/SECUREWATCH_BUG_ANALYSIS.md` - Complete vulnerability analysis
+- `docs/SECURITY_CONFIGURATION_GUIDE.md` - Environment setup guide
+- `docs/CHANGELOG.md` - Security update details
+
 ### Build System Fixes
 - Fixed TypeScript build errors across multiple packages:
   - analytics-api: Router type annotations and unused parameters

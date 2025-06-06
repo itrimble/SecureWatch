@@ -1,7 +1,15 @@
+// Validate required environment variables at startup
+if (!process.env.JWT_ACCESS_SECRET) {
+  throw new Error('JWT_ACCESS_SECRET environment variable is required');
+}
+if (!process.env.JWT_REFRESH_SECRET) {
+  throw new Error('JWT_REFRESH_SECRET environment variable is required');
+}
+
 export const authConfig = {
   jwt: {
-    accessTokenSecret: process.env.JWT_ACCESS_SECRET || 'your-access-secret',
-    refreshTokenSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret',
+    accessTokenSecret: process.env.JWT_ACCESS_SECRET,
+    refreshTokenSecret: process.env.JWT_REFRESH_SECRET,
     accessTokenExpiry: process.env.JWT_ACCESS_EXPIRY || '15m',
     refreshTokenExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
     issuer: process.env.JWT_ISSUER || 'securewatch',

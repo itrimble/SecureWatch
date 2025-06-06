@@ -39,11 +39,40 @@ This directory contains comprehensive documentation for the SecureWatch SIEM pla
 - **[testing-framework.md](testing-framework.md)** - Comprehensive testing framework and strategies
 - **[bug-tracker.md](bug-tracker.md)** - Bug tracking system and workflow
 
+### 🛡️ Security & Compliance
+- **[SECUREWATCH_BUG_ANALYSIS.md](SECUREWATCH_BUG_ANALYSIS.md)** - ⭐ **Security Analysis** comprehensive vulnerability assessment and remediation
+- **[SECURITY_CONFIGURATION_GUIDE.md](SECURITY_CONFIGURATION_GUIDE.md)** - ⭐ **Security Configuration** essential setup for production deployment
+- **Security Hardening Guide** - Advanced production security practices (Coming Soon)
+- **Compliance Framework** - SOX, HIPAA, PCI-DSS, GDPR compliance mapping (Coming Soon)
+
 ### 🛠️ Support & Troubleshooting
 - **[SUPPORT_BUNDLE_API_GUIDE.md](SUPPORT_BUNDLE_API_GUIDE.md)** - ⭐ **Support Bundle API** comprehensive technical documentation
 - **[TROUBLESHOOTING_EXPORT_USER_GUIDE.md](TROUBLESHOOTING_EXPORT_USER_GUIDE.md)** - ⭐ **User Guide** for troubleshooting log export feature
 
 ## 🔥 Latest Updates & Key Features
+
+### 🛡️ Security Update v1.13.0 (June 6, 2025) 🚨
+**CRITICAL SECURITY FIXES - ALL P0 VULNERABILITIES RESOLVED**
+
+✅ **Authentication Security Hardened:**
+- Fixed hardcoded JWT secrets vulnerability
+- Implemented secure MFA encryption key management
+- Added complete Redis-based MFA storage system
+- Fixed token refresh permission vulnerability
+- Implemented comprehensive API key validation
+
+✅ **Multi-tenant Security:**
+- Added organization ID validation in search API
+- Prevented cross-tenant data access vulnerabilities
+- Enhanced audit logging for security events
+
+✅ **Production Readiness:**
+- Removed all development-only security bypasses
+- Added startup validation for required security environment variables
+- Implemented proper error handling without information leakage
+
+**📋 Files Updated:** 6 authentication & authorization modules
+**🔍 Detailed Analysis:** See [SECUREWATCH_BUG_ANALYSIS.md](SECUREWATCH_BUG_ANALYSIS.md)
 
 ### Performance & Scalability Optimizations (June 2025) 🆕
 Enterprise-grade performance enhancements for handling large-scale SIEM operations:

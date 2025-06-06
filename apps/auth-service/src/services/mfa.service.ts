@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { authConfig } from '../config/auth.config';
 import { DatabaseService } from './database.service';
 import { MFAMethod, MFASetupResponse } from '../types/auth.types';
+import { redis } from '../utils/redis';
 
 export class MFAService {
   /**
@@ -205,7 +206,10 @@ export class MFAService {
    */
   private static encryptSecret(secret: string): string {
     const algorithm = 'aes-256-gcm';
-    const key = Buffer.from(process.env.MFA_ENCRYPTION_KEY || 'your-32-byte-encryption-key-here');
+    if (!process.env.MFA_ENCRYPTION_KEY) {
+      throw new Error('MFA_ENCRYPTION_KEY environment variable is required');
+    }
+    const key = Buffer.from(process.env.MFA_ENCRYPTION_KEY);
     const iv = crypto.randomBytes(16);
     
     const cipher = crypto.createCipheriv(algorithm, key, iv);
@@ -223,7 +227,10 @@ export class MFAService {
    */
   private static decryptSecret(encryptedSecret: string): string {
     const algorithm = 'aes-256-gcm';
-    const key = Buffer.from(process.env.MFA_ENCRYPTION_KEY || 'your-32-byte-encryption-key-here');
+    if (!process.env.MFA_ENCRYPTION_KEY) {
+      throw new Error('MFA_ENCRYPTION_KEY environment variable is required');
+    }
+    const key = Buffer.from(process.env.MFA_ENCRYPTION_KEY);
     
     const parts = encryptedSecret.split(':');
     const iv = Buffer.from(parts[0], 'hex');
@@ -246,8 +253,15 @@ export class MFAService {
     userId: string,
     data: { secret: string; backupCodes: string[] }
   ): Promise<void> {
-    // TODO: Implement Redis storage
-    // This would store the setup data temporarily until verified
+    const key = `mfa:pending:${userId}`;
+    const encrypted = {
+      secret: this.encryptSecret(data.secret),
+      backupCodes: data.backupCodes.map(code => this.hashBackupCode(code)),
+      createdAt: new Date().toISOString()
+    };
+    
+    // Store for 10 minutes
+    await redis.setex(key, 600, JSON.stringify(encrypted));
   }
 
   /**
@@ -256,14 +270,30 @@ export class MFAService {
   private static async getPendingMFASetup(
     userId: string
   ): Promise<{ secret: string; backupCodes: string[] } | null> {
-    // TODO: Implement Redis retrieval
-    return null;
+    const key = `mfa:pending:${userId}`;
+    const data = await redis.get(key);
+    
+    if (!data) {
+      return null;
+    }
+    
+    try {
+      const parsed = JSON.parse(data);
+      return {
+        secret: this.decryptSecret(parsed.secret),
+        backupCodes: parsed.backupCodes
+      };
+    } catch (error) {
+      console.error('Error parsing pending MFA data:', error);
+      return null;
+    }
   }
 
   /**
    * Clear pending MFA setup from Redis
    */
   private static async clearPendingMFASetup(userId: string): Promise<void> {
-    // TODO: Implement Redis deletion
+    const key = `mfa:pending:${userId}`;
+    await redis.del(key);
   }
 }

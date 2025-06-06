@@ -2,6 +2,7 @@ import jwt, { SignOptions, VerifyOptions } from 'jsonwebtoken';
 import { authConfig } from '../config/auth.config';
 import { TokenPayload, RefreshTokenPayload } from '../types/auth.types';
 import { redis } from '../utils/redis';
+import { DatabaseService } from './database.service';
 
 export class JWTService {
   private static readonly TOKEN_BLACKLIST_PREFIX = 'blacklist:token:';
@@ -214,9 +215,10 @@ export class JWTService {
     const key = `${this.REFRESH_TOKEN_PREFIX}${decoded.userId}:${decoded.sessionId}`;
     await redis.del(key);
 
-    // TODO: Fetch current permissions and roles from database
-    const permissions: string[] = []; // Fetch from DB
-    const roles: string[] = []; // Fetch from DB
+    // Fetch current permissions and roles from database
+    const userPerms = await DatabaseService.getUserPermissions(decoded.userId);
+    const permissions: string[] = userPerms?.permissions || [];
+    const roles: string[] = userPerms?.roles || [];
 
     return this.generateTokenPair(
       decoded.userId,

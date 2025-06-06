@@ -5,6 +5,34 @@ All notable changes to the SecureWatch SIEM platform will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2025-06-06
+
+### 🛡️ Security - CRITICAL FIXES
+
+#### Fixed
+- **🚨 P0 Security Issues Resolved** - All critical authentication vulnerabilities patched
+  - **JWT Secrets**: Removed hardcoded fallback secrets, added startup validation for required environment variables
+  - **MFA Encryption**: Fixed hardcoded encryption key fallback, now requires secure MFA_ENCRYPTION_KEY environment variable
+  - **MFA Redis Storage**: Implemented complete Redis persistence for MFA setup/verification with proper encryption
+  - **Token Refresh**: Fixed permission fetching vulnerability that left users without permissions after token refresh
+  - **API Key Authentication**: Implemented complete API key validation with database lookup, expiration checks, and audit logging
+  - **Organization ID Validation**: Added tenant isolation protection in search API to prevent cross-organization data access
+
+#### Files Modified
+- `apps/auth-service/src/config/auth.config.ts` - Added required environment variable validation
+- `apps/auth-service/src/services/mfa.service.ts` - Implemented Redis storage, fixed encryption key security
+- `apps/auth-service/src/utils/redis.ts` - Created secure Redis client with proper configuration
+- `apps/auth-service/src/services/jwt.service.ts` - Fixed permission fetching in token refresh flow
+- `apps/auth-service/src/middleware/rbac.middleware.ts` - Implemented complete API key validation system
+- `apps/search-api/src/routes/search.ts` - Added organization ID validation against authenticated users
+
+#### Security Impact
+- **Authentication Bypass Prevention**: Eliminated multiple pathways for unauthorized access
+- **Multi-tenant Security**: Ensured proper data isolation between organizations  
+- **MFA Security**: Fixed broken multi-factor authentication implementation
+- **Audit Trail**: Added comprehensive logging for all authentication events
+- **Production Readiness**: Removed all development-only security bypasses
+
 ## [1.12.1] - 2025-06-06
 
 ### 🔧 Build System & Developer Experience

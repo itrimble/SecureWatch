@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { JWTService } from '../services/jwt.service';
 import { PermissionService } from '../services/permission.service';
 import { AuditService } from '../services/audit.service';
+import { DatabaseService } from '../services/database.service';
 
 interface AuthRequest extends Request {
   user?: {
@@ -307,15 +308,86 @@ export const authenticateApiKey = async (
       return authenticate(req, res, next);
     }
 
-    // TODO: Implement API key validation
-    // This would check the API key against the database
-    // and set req.user with the appropriate permissions
+    // Validate API key against database
+    const apiKeyData = await DatabaseService.validateApiKey(apiKey);
+    
+    if (!apiKeyData || !apiKeyData.isActive) {
+      await AuditService.logAuthEvent({
+        eventType: 'api_key_validation_failed',
+        eventStatus: 'failure',
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        metadata: {
+          path: req.path,
+          method: req.method,
+          apiKeyPrefix: apiKey.substring(0, 8) + '...',
+        },
+      });
+
+      res.status(401).json({ 
+        error: 'Unauthorized',
+        message: 'Invalid or inactive API key' 
+      });
+      return;
+    }
+
+    // Check if API key has expired
+    if (apiKeyData.expiresAt && new Date() > apiKeyData.expiresAt) {
+      await AuditService.logAuthEvent({
+        eventType: 'api_key_expired',
+        eventStatus: 'failure',
+        userId: apiKeyData.userId,
+        organizationId: apiKeyData.organizationId,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        metadata: {
+          path: req.path,
+          method: req.method,
+          apiKeyId: apiKeyData.id,
+        },
+      });
+
+      res.status(401).json({ 
+        error: 'Unauthorized',
+        message: 'API key has expired' 
+      });
+      return;
+    }
+
+    // Set user context from API key
+    req.user = {
+      userId: apiKeyData.userId,
+      organizationId: apiKeyData.organizationId,
+      permissions: apiKeyData.permissions || [],
+      roles: apiKeyData.roles || [],
+      sessionId: `api-key-${apiKeyData.id}`,
+    };
+
+    // Update last used timestamp
+    await DatabaseService.updateApiKeyLastUsed(apiKeyData.id, req.ip);
+
+    // Log successful API key usage
+    await AuditService.logAuthEvent({
+      eventType: 'api_key_authenticated',
+      eventStatus: 'success',
+      userId: apiKeyData.userId,
+      organizationId: apiKeyData.organizationId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      metadata: {
+        path: req.path,
+        method: req.method,
+        apiKeyId: apiKeyData.id,
+        apiKeyName: apiKeyData.name,
+      },
+    });
 
     next();
   } catch (error) {
-    res.status(401).json({ 
-      error: 'Unauthorized',
-      message: 'Invalid API key' 
+    console.error('API key authentication error:', error);
+    res.status(500).json({ 
+      error: 'Internal Server Error',
+      message: 'Failed to authenticate API key' 
     });
   }
 };

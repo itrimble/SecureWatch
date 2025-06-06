@@ -141,15 +141,36 @@ router.post('/execute',
       const kqlEngine: KQLEngine = (req as any).kqlEngine;
       const { query, timeRange, maxRows, timeout, cache } = req.body;
       
-      const organizationId = req.headers['x-organization-id'] as string;
+      const headerOrgId = req.headers['x-organization-id'] as string;
       const userId = (req as any).user?.sub;
+      const userOrgId = (req as any).user?.organizationId;
 
-      if (!organizationId) {
+      if (!headerOrgId) {
         return res.status(400).json({
           error: 'Missing organization ID',
           message: 'X-Organization-ID header is required'
         });
       }
+
+      // Validate that the organization ID matches the authenticated user's organization
+      // Unless the user is a super admin
+      const userRoles = (req as any).user?.roles || [];
+      if (!userRoles.includes('super_admin') && headerOrgId !== userOrgId) {
+        logger.warn('Organization ID mismatch attempted', {
+          userId,
+          userOrgId,
+          requestedOrgId: headerOrgId,
+          ip: req.ip,
+          userAgent: req.headers['user-agent']
+        });
+        
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'Access denied to the requested organization'
+        });
+      }
+
+      const organizationId = headerOrgId;
 
       const context: ExecutionContext = {
         organizationId,
@@ -341,15 +362,35 @@ router.post('/explain',
       const kqlEngine: KQLEngine = (req as any).kqlEngine;
       const { query, timeRange } = req.body;
       
-      const organizationId = req.headers['x-organization-id'] as string;
+      const headerOrgId = req.headers['x-organization-id'] as string;
       const userId = (req as any).user?.sub;
+      const userOrgId = (req as any).user?.organizationId;
 
-      if (!organizationId) {
+      if (!headerOrgId) {
         return res.status(400).json({
           error: 'Missing organization ID',
           message: 'X-Organization-ID header is required'
         });
       }
+
+      // Validate that the organization ID matches the authenticated user's organization
+      const userRoles = (req as any).user?.roles || [];
+      if (!userRoles.includes('super_admin') && headerOrgId !== userOrgId) {
+        logger.warn('Organization ID mismatch attempted in explain endpoint', {
+          userId,
+          userOrgId,
+          requestedOrgId: headerOrgId,
+          ip: req.ip,
+          userAgent: req.headers['user-agent']
+        });
+        
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'Access denied to the requested organization'
+        });
+      }
+
+      const organizationId = headerOrgId;
 
       const context: ExecutionContext = {
         organizationId,
