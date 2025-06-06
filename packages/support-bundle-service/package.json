@@ -1,0 +1,35 @@
+{
+  "name": "@securewatch/support-bundle-service",
+  "version": "1.0.0",
+  "description": "Troubleshooting log bundle export service for SecureWatch SIEM",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "securewatch",
+    "logging",
+    "support",
+    "troubleshooting",
+    "export"
+  ],
+  "author": "SecureWatch Team",
+  "license": "MIT",
+  "dependencies": {
+    "@opensearch-project/opensearch": "^2.4.0",
+    "archiver": "^6.0.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/archiver": "^6.0.2",
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@opensearch-project/opensearch": "^2.4.0"
+  }
+}
