@@ -53,7 +53,7 @@ app.use((req, res, next) => {
 });
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error('Unhandled error:', {
     error: err.message,
     stack: err.stack,
@@ -104,7 +104,7 @@ async function startServer() {
     app.use('/api/widgets', widgetRouter);
 
     // Health check endpoint
-    app.get('/health', async (req, res) => {
+    app.get('/health', async (_req, res) => {
       try {
         // Test database connectivity
         const dbResult = await dbPool.query('SELECT 1 as healthy');
@@ -134,7 +134,7 @@ async function startServer() {
     });
 
     // API documentation endpoint
-    app.get('/api/docs', (req, res) => {
+    app.get('/api/docs', (_req, res) => {
       res.json({
         service: 'Analytics API',
         version: '1.0.0',
@@ -179,7 +179,7 @@ async function startServer() {
     });
 
     // Root endpoint
-    app.get('/', (req, res) => {
+    app.get('/', (_req, res) => {
       res.json({
         service: 'SecureWatch Analytics API',
         version: '1.0.0',

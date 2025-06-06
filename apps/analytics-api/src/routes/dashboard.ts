@@ -6,7 +6,7 @@ import { Pool } from 'pg';
 import { logger } from '../utils/logger';
 import NodeCache from 'node-cache';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // Short-term cache for dashboard data (30 seconds)
 const dashboardCache = new NodeCache({ stdTTL: 30, checkperiod: 10 });
@@ -407,7 +407,7 @@ router.get('/alert-performance', async (req, res) => {
 });
 
 // Cache statistics
-router.get('/cache-stats', (req, res) => {
+router.get('/cache-stats', (_req, res) => {
   const stats = dashboardCache.getStats();
   
   res.json({

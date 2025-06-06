@@ -6,7 +6,7 @@ import { Pool } from 'pg';
 import { logger } from '../utils/logger';
 import NodeCache from 'node-cache';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // Widget-specific cache with different TTL values
 const widgetCache = new NodeCache({ stdTTL: 15, checkperiod: 5 });

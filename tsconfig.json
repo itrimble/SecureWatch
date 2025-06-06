@@ -2,6 +2,7 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "tsBuildInfoFile": "./.tsbuildinfo-root",
     "paths": {
       "@/*": ["./src/*"],
       "@securewatch/ui-components": ["./packages/ui-components/src"],
