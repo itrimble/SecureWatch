@@ -20,7 +20,7 @@ success() {
 log "Stopping SecureWatch SIEM Platform..."
 
 # Stop services by PID files
-for service in frontend search-api log-ingestion; do
+for service in frontend search-api log-ingestion auth-service query-processor analytics-api correlation-engine mcp-marketplace; do
     if [ -f "/tmp/${service}.pid" ]; then
         pid=$(cat "/tmp/${service}.pid")
         if kill -0 "$pid" 2>/dev/null; then
@@ -44,6 +44,6 @@ if [ -n "$pids" ]; then
 fi
 
 # Cleanup log files
-rm -f /tmp/frontend.log /tmp/search-api.log /tmp/log-ingestion.log
+rm -f /tmp/frontend.log /tmp/search-api.log /tmp/log-ingestion.log /tmp/auth-service.log /tmp/query-processor.log /tmp/analytics-api.log /tmp/correlation-engine.log /tmp/mcp-marketplace.log
 
 success "All services stopped"
