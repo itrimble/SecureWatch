@@ -5,11 +5,13 @@
 2. [Quick Start Deployment](#quick-start-deployment)
 3. [Advanced Configuration](#advanced-configuration)
 4. [Production Deployment](#production-deployment)
-5. [Visualization Features Setup](#visualization-features-setup)
-6. [KQL Search Configuration](#kql-search-configuration)
-7. [Health Monitoring](#health-monitoring)
-8. [Troubleshooting](#troubleshooting)
-9. [Security Considerations](#security-considerations)
+5. [OpenSearch Integration](#opensearch-integration)
+6. [Support Bundle Export](#support-bundle-export)
+7. [Visualization Features Setup](#visualization-features-setup)
+8. [KQL Search Configuration](#kql-search-configuration)
+9. [Health Monitoring](#health-monitoring)
+10. [Troubleshooting](#troubleshooting)
+11. [Security Considerations](#security-considerations)
 
 ---
 
@@ -76,6 +78,201 @@ curl http://localhost:4002/health      # Log Ingestion
 # Access the platform
 open http://localhost:4000
 ```
+
+---
+
+## 🔍 OpenSearch Integration
+
+SecureWatch now uses **OpenSearch 3.0.0** and **OpenSearch Dashboards 3.0.0** as the primary search and analytics backend, replacing the previous Elasticsearch/Kibana stack.
+
+### OpenSearch Services
+
+The platform includes two OpenSearch-related services:
+
+#### 1. OpenSearch (Port 9200)
+- **Purpose**: Primary search engine for log indexing and retrieval
+- **Configuration**: Single-node cluster for development
+- **Index Pattern**: `securewatch-logs` for application logs, `platform-internal-logs-*` for troubleshooting
+- **Health Check**: `curl http://localhost:9200/_cluster/health`
+
+#### 2. OpenSearch Dashboards (Port 5601)
+- **Purpose**: Web interface for advanced analytics and visualization
+- **Access**: `http://localhost:5601`
+- **Integration**: Optional - SecureWatch provides native React visualization
+
+### OpenSearch Configuration
+
+OpenSearch is automatically configured during deployment but can be customized:
+
+```yaml
+# docker-compose.dev.yml OpenSearch configuration
+opensearch:
+  image: opensearchproject/opensearch:3.0.0
+  container_name: securewatch_opensearch
+  environment:
+    - cluster.name=securewatch-cluster
+    - node.name=opensearch-node
+    - discovery.type=single-node
+    - bootstrap.memory_lock=true
+    - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+    - plugins.security.disabled=true
+    - plugins.security.ssl.http.enabled=false
+    - plugins.security.ssl.transport.enabled=false
+    - OPENSEARCH_INITIAL_ADMIN_PASSWORD=SecureWatch123!
+  ulimits:
+    memlock:
+      soft: -1
+      hard: -1
+    nofile:
+      soft: 65536
+      hard: 65536
+  volumes:
+    - opensearch_data:/usr/share/opensearch/data
+  ports:
+    - "9200:9200"
+    - "9600:9600"
+```
+
+### KQL to OpenSearch Translation
+
+SecureWatch includes a sophisticated KQL-to-OpenSearch DSL translator:
+
+```typescript
+// Example KQL query translation
+const kqlQuery = `Events | where TimeCreated > ago(1h) | summarize count() by EventID`;
+
+// Translated to OpenSearch DSL:
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "range": {
+            "timestamp": {
+              "gte": "now-1h"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "group_by_event_id": {
+      "terms": {
+        "field": "event_id",
+        "size": 1000
+      },
+      "aggs": {
+        "total_count": {
+          "value_count": {
+            "field": "_id"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### API Integration
+
+The platform provides seamless OpenSearch integration through the query API:
+
+```bash
+# Test OpenSearch integration
+curl -X POST http://localhost:4000/api/query/opensearch-route \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Events | count",
+    "backend": "opensearch",
+    "aggregations": true
+  }'
+```
+
+---
+
+## 📊 Support Bundle Export
+
+Enterprise-grade troubleshooting log export system for SecureWatch support and debugging.
+
+### Overview
+
+The Support Bundle Export feature allows administrators to export internal platform logs from all microservices for troubleshooting purposes. This is essential for enterprise support scenarios.
+
+### Configuration
+
+The support bundle service is automatically configured but can be customized:
+
+```typescript
+// packages/support-bundle-service configuration
+const SUPPORT_CONFIG = {
+  opensearch: {
+    node: process.env.OPENSEARCH_NODE || 'http://localhost:9200',
+    auth: {
+      username: process.env.OPENSEARCH_USERNAME || 'admin',
+      password: process.env.OPENSEARCH_PASSWORD || 'admin'
+    }
+  },
+  indexPattern: 'platform-internal-logs-*',
+  maxDocuments: 100000,
+  compression: {
+    level: 9,
+    format: 'zip'
+  }
+};
+```
+
+### Usage
+
+#### Web Interface
+1. Navigate to **Settings** → **Platform Status**
+2. Scroll to **Troubleshooting Export** section
+3. Select time range and filters
+4. Click **Generate and Download Log Bundle**
+
+#### API Usage
+```bash
+# Export last hour of error logs
+curl -X POST http://localhost:4000/api/support/export-logs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "startTime": "2025-01-05T10:00:00Z",
+    "endTime": "2025-01-05T11:00:00Z",
+    "logLevels": ["error", "warn"],
+    "services": ["correlation-engine", "search-api"],
+    "maxDocuments": 10000
+  }'
+```
+
+### Bundle Contents
+
+Each export bundle includes:
+
+1. **logs.json** - All log documents in structured JSON format
+2. **metadata.json** - Export metadata and statistics
+3. **README.txt** - Human-readable documentation
+
+### Service Health Check
+
+Verify the support bundle service is operational:
+
+```bash
+# Check service health
+curl http://localhost:4000/api/support/export-logs
+
+# Expected response
+{
+  "service": "log-export",
+  "status": "healthy",
+  "opensearch": {
+    "cluster_name": "securewatch-cluster",
+    "status": "green"
+  },
+  "timestamp": "2025-01-05T10:30:00.000Z"
+}
+```
+
+For detailed API documentation, see [SUPPORT_BUNDLE_API_GUIDE.md](SUPPORT_BUNDLE_API_GUIDE.md).
 
 ---
 

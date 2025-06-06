@@ -23,6 +23,7 @@ This directory contains comprehensive documentation for the SecureWatch SIEM pla
 
 ### 🚀 Deployment & Operations
 - **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Production deployment and configuration
+- **[OPENSEARCH_INTEGRATION_GUIDE.md](OPENSEARCH_INTEGRATION_GUIDE.md)** - ⭐ **OpenSearch Integration** comprehensive migration and setup guide
 - **[claude-siem-integration-guide.md](claude-siem-integration-guide.md)** - Integration guide for Claude AI capabilities
 
 ### 📋 Product Requirements & Specifications
@@ -36,7 +37,34 @@ This directory contains comprehensive documentation for the SecureWatch SIEM pla
 - **[testing-framework.md](testing-framework.md)** - Comprehensive testing framework and strategies
 - **[bug-tracker.md](bug-tracker.md)** - Bug tracking system and workflow
 
+### 🛠️ Support & Troubleshooting
+- **[SUPPORT_BUNDLE_API_GUIDE.md](SUPPORT_BUNDLE_API_GUIDE.md)** - ⭐ **Support Bundle API** comprehensive technical documentation
+- **[TROUBLESHOOTING_EXPORT_USER_GUIDE.md](TROUBLESHOOTING_EXPORT_USER_GUIDE.md)** - ⭐ **User Guide** for troubleshooting log export feature
+
 ## 🔥 Latest Updates & Key Features
+
+### Troubleshooting Log Bundle Export (January 2025) 🆕
+Enterprise-grade log export system for SecureWatch support and troubleshooting:
+
+#### 🎯 Support & Troubleshooting Features
+- **Comprehensive Log Export**: Stream internal platform logs from all microservices
+- **Time Range Filtering**: Export logs from specific time periods when issues occurred
+- **Service Filtering**: Select specific microservices (correlation-engine, search-api, etc.)
+- **Log Level Control**: Filter by error, warning, info, or debug levels
+- **Automatic Compression**: ZIP bundles with logs, metadata, and documentation
+- **Health Monitoring**: Real-time service status checks and export validation
+
+#### 📊 Enterprise Capabilities
+- **OpenSearch Integration**: Efficient scroll API for large dataset retrieval
+- **Streaming Downloads**: Memory-efficient file streaming with automatic cleanup
+- **Metadata Generation**: Comprehensive export details and service statistics
+- **Progress Tracking**: Real-time export progress with phase indicators
+- **Error Recovery**: Robust error handling with fallback mechanisms
+
+#### 🚀 Usage Examples
+- **Web Interface**: Settings → Platform Status → Troubleshooting Export
+- **API Endpoint**: `POST /api/support/export-logs` with time range and filters
+- **Bundle Contents**: Structured logs, export metadata, and documentation README
 
 ### Enhanced EVTX Parser v2.0 (June 2025)
 The **Enhanced EVTX Parser** represents a major advancement in Windows event log analysis:
