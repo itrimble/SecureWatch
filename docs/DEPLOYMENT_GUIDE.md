@@ -24,7 +24,7 @@
 - **Docker**: Latest version with Docker Compose
 - **Memory**: 8GB RAM minimum (16GB recommended for production)
 - **Storage**: 50GB minimum (SSD recommended)
-- **Network**: Ports 4000, 4002-4010, 5432, 6379, 8080, 8888, 9200 available
+- **Network**: Ports 4000, 4002, 4004-4006, 4008-4010, 5432, 6379, 8080, 8888, 9200 available
 
 ### Development Dependencies
 ```bash
@@ -64,7 +64,7 @@ pnpm install
 **This automatically:**
 - ✅ Starts Docker infrastructure (PostgreSQL, Redis, OpenSearch, Kafka)
 - ✅ Initializes TimescaleDB with continuous aggregates
-- ✅ Starts all 10+ microservices (Analytics API, Query Processor, Search API, Log Ingestion, HEC Service, Auth Service, etc.)
+- ✅ Starts all 8 core microservices (Analytics Engine, Query Processor, Search API, Log Ingestion, HEC Service, Auth Service, Correlation Engine, MCP Marketplace)
 - ✅ Creates performance-optimized database indexes and materialized views
 - ✅ Initializes WebSocket notification system
 - ✅ Runs comprehensive health checks across all services
@@ -72,16 +72,16 @@ pnpm install
 
 ### 3. Verify Deployment
 ```bash
-# Check all services (consolidated architecture)
-curl http://localhost:4000/api/health  # Frontend
+# Check all services (v2.1.0 consolidated architecture)
+curl http://localhost:4000/api/health  # Frontend (Enterprise Next.js)
 curl http://localhost:4002/health      # Log Ingestion Service
 curl http://localhost:4004/health      # Search API Service
 curl http://localhost:4005/health      # Correlation Engine
 curl http://localhost:4006/health      # Auth Service
 curl http://localhost:4008/health      # Query Processor Service
-curl http://localhost:4009/health      # Analytics Engine (consolidated)
+curl http://localhost:4009/health      # Analytics Engine (consolidated analytics + dashboard APIs)
 curl http://localhost:4010/health      # MCP Marketplace
-curl http://localhost:8888/health      # HEC Service
+curl http://localhost:8888/health      # HEC Service (Splunk-compatible)
 
 # Check WebSocket notifications
 wscat -c ws://localhost:8080
@@ -89,6 +89,55 @@ wscat -c ws://localhost:8080
 # Access the platform
 open http://localhost:4000
 ```
+
+---
+
+## 🏗️ Current Architecture (v2.1.0)
+
+### Service Overview
+
+SecureWatch v2.1.0 includes **8 core microservices** after the major consolidation:
+
+| Service | Port | Purpose | Key Features |
+|---------|------|---------|--------------|
+| **Frontend** | 4000 | Enterprise Next.js Web Interface | React 19, Real-time dashboards, Authentication |
+| **Log Ingestion** | 4002 | Data ingestion and processing | Multi-format parsing, Kafka integration |
+| **Search API** | 4004 | Search functionality and KQL engine | KQL-to-SQL translation, Caching, Rate limiting |
+| **Correlation Engine** | 4005 | Real-time correlation and rules | Pattern matching, Incident management |
+| **Auth Service** | 4006 | Authentication and authorization | JWT, MFA, RBAC, OAuth integrations |
+| **Query Processor** | 4008 | Async job processing | WebSocket notifications, Job queuing |
+| **Analytics Engine** | 4009 | Consolidated analytics + dashboard APIs | Real-time metrics, Continuous aggregates |
+| **MCP Marketplace** | 4010 | MCP integrations | Plugin management, Content packs |
+| **HEC Service** | 8888 | HTTP Event Collector | Splunk-compatible ingestion |
+
+### Infrastructure Components
+
+| Component | Port | Purpose | Configuration |
+|-----------|------|---------|---------------|
+| **PostgreSQL/TimescaleDB** | 5432 | Primary database | Time-series optimization, Continuous aggregates |
+| **Redis** | 6379 | Caching and sessions | LRU eviction, TTL management |
+| **OpenSearch** | 9200 | Search and analytics | Single-node development, Clustered production |
+| **OpenSearch Dashboards** | 5601 | Advanced analytics (optional) | Web interface for complex queries |
+| **Kafka** | 9092 | Message streaming | High-throughput log ingestion |
+
+### Key Changes in v2.1.0
+
+#### Consolidated Services
+- **Analytics Engine (4009)**: Merged analytics-api functionality into analytics-engine
+- **Removed Duplicates**: Eliminated obsolete /src frontend and /apps/web-frontend
+- **Standardized Naming**: All packages follow @securewatch/service-name convention
+
+#### Performance Optimizations
+- **EventsTable Virtualization**: Handle 100K+ rows with TanStack Virtual
+- **TimescaleDB Continuous Aggregates**: Sub-second dashboard performance
+- **WebSocket Notifications**: Real-time updates, eliminated polling
+- **Intelligent Caching**: Multi-tier caching with Redis integration
+
+#### Enterprise Features
+- **Lookup Tables**: CSV upload with automatic enrichment
+- **Support Bundle Export**: Enterprise troubleshooting system
+- **Advanced Visualizations**: Heatmaps, network graphs, geolocation
+- **MCP Marketplace**: Plugin ecosystem integration
 
 ---
 
@@ -116,7 +165,7 @@ curl -X POST http://localhost:4008/api/jobs/submit \
 ```
 
 #### Analytics Engine Service (Port 4009)
-Consolidated analytics and dashboard API service:
+Consolidated analytics and dashboard API service (merged from analytics-api):
 ```bash
 # Start analytics engine
 cd apps/analytics-engine
@@ -260,9 +309,9 @@ ws.onmessage = (event) => {
 };
 ```
 
-### Analytics API Service
+### Analytics Engine Service (Port 4009)
 
-Specialized endpoints optimized for dashboard performance:
+Consolidated analytics service with specialized endpoints optimized for dashboard performance:
 
 #### Fast Dashboard Endpoints
 ```bash
@@ -280,6 +329,10 @@ GET http://localhost:4009/api/dashboard/source-health
 
 # Cache performance statistics
 GET http://localhost:4009/api/dashboard/cache-stats
+
+# Widget endpoints (consolidated from analytics-api)
+GET http://localhost:4009/api/widgets/total-events
+GET http://localhost:4009/api/widgets/active-sources
 ```
 
 #### Intelligent Caching Strategy
@@ -920,7 +973,7 @@ services:
     depends_on:
       - postgres
       - redis
-      - elasticsearch
+      - opensearch
     restart: unless-stopped
 
   log-ingestion:
@@ -934,6 +987,95 @@ services:
       - DATABASE_URL=postgresql://securewatch:${DB_PASSWORD}@postgres:5432/securewatch
     depends_on:
       - postgres
+      - kafka
+    restart: unless-stopped
+
+  analytics-engine:
+    build:
+      context: ./apps/analytics-engine
+      dockerfile: Dockerfile.prod
+    ports:
+      - "4009:4009"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: ./apps/auth-service
+      dockerfile: Dockerfile.prod
+    ports:
+      - "4006:4006"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  correlation-engine:
+    build:
+      context: ./apps/correlation-engine
+      dockerfile: Dockerfile.prod
+    ports:
+      - "4005:4005"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  query-processor:
+    build:
+      context: ./apps/query-processor
+      dockerfile: Dockerfile.prod
+    ports:
+      - "4008:4008"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  mcp-marketplace:
+    build:
+      context: ./apps/mcp-marketplace
+      dockerfile: Dockerfile.prod
+    ports:
+      - "4010:4010"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  hec-service:
+    build:
+      context: ./apps/hec-service
+      dockerfile: Dockerfile.prod
+    ports:
+      - "8888:8888"
+    environment:
+      - NODE_ENV=production
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
       - kafka
     restart: unless-stopped
 
@@ -959,22 +1101,36 @@ services:
       - "6379:6379"
     restart: unless-stopped
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+  opensearch:
+    image: opensearchproject/opensearch:3.0.0
     environment:
+      - cluster.name=securewatch-cluster
+      - node.name=opensearch-node
       - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - plugins.security.disabled=true
+      - plugins.security.ssl.http.enabled=false
+      - plugins.security.ssl.transport.enabled=false
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=SecureWatch123!
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
     volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
+      - opensearch_data:/usr/share/opensearch/data
     ports:
       - "9200:9200"
+      - "9600:9600"
     restart: unless-stopped
 
 volumes:
   timescaledb_data:
   redis_data:
-  elasticsearch_data:
+  opensearch_data:
 ```
 
 ### Kubernetes Deployment
@@ -1100,9 +1256,14 @@ Monitor all services with automated health checks:
 #!/bin/bash
 services=(
   "Frontend:http://localhost:4000/api/health"
-  "Search API:http://localhost:4004/health"
   "Log Ingestion:http://localhost:4002/health"
-  "Database:http://localhost:4002/db/health"
+  "Search API:http://localhost:4004/health"
+  "Correlation Engine:http://localhost:4005/health"
+  "Auth Service:http://localhost:4006/health"
+  "Query Processor:http://localhost:4008/health"
+  "Analytics Engine:http://localhost:4009/health"
+  "MCP Marketplace:http://localhost:4010/health"
+  "HEC Service:http://localhost:8888/health"
 )
 
 for service in "${services[@]}"; do
@@ -1153,8 +1314,8 @@ python3 agent/event_log_agent.py
 
 #### 1. Services Won't Start
 ```bash
-# Check port conflicts
-lsof -i :4000 -i :4002 -i :4004 -i :5432 -i :6379 -i :9200
+# Check port conflicts (v2.1.0 architecture)
+lsof -i :4000 -i :4002 -i :4004 -i :4005 -i :4006 -i :4008 -i :4009 -i :4010 -i :5432 -i :6379 -i :8888 -i :9200
 
 # Kill conflicting processes
 kill -9 $(lsof -ti:4000)
@@ -1223,7 +1384,8 @@ pnpm run start
 ## 🔒 Security Considerations
 
 ### Network Security
-- **Firewall Rules**: Only expose necessary ports (4000 for web interface)
+- **Firewall Rules**: Only expose necessary ports (4000 for web interface, 8888 for HEC if required)
+- **Internal Services**: Keep internal service ports (4002, 4004-4006, 4008-4010) behind firewall
 - **TLS/SSL**: Enable HTTPS in production with proper certificates
 - **CORS Configuration**: Restrict origins to trusted domains
 - **Rate Limiting**: Configure appropriate API rate limits

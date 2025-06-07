@@ -1,0 +1,43 @@
+<svg width="200" height="260" viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
+  <!-- Modern Shield Shape -->
+  <path d="M100 15 
+           L165 45
+           Q175 50 175 60
+           L175 120
+           Q175 165 100 195
+           Q25 165 25 120
+           L25 60
+           Q25 50 35 45
+           L100 15 Z" 
+           fill="#1a2958" 
+           stroke="none"/>
+  
+  <!-- Decorative Circuit Elements -->
+  <g fill="none" stroke="#7a8ba7" stroke-width="2" opacity="0.5">
+    <!-- Top Left Corner -->
+    <path d="M35 45 L35 65 L55 65"/>
+    <path d="M45 45 L45 55 L55 55"/>
+    
+    <!-- Top Right Corner -->
+    <path d="M165 45 L165 65 L145 65"/>
+    <path d="M155 45 L155 55 L145 55"/>
+    
+    <!-- Bottom Accents -->
+    <path d="M50 155 L50 165 L60 165"/>
+    <path d="M150 155 L150 165 L140 165"/>
+  </g>
+  
+  <!-- SW Letters -->
+  <g fill="#ffffff">
+    <text x="100" y="115" font-family="Arial Black, sans-serif" font-size="56" font-weight="900" text-anchor="middle">SW</text>
+  </g>
+  
+  <!-- Company Text -->
+  <g fill="#1a2958">
+    <!-- SecureWatch - with custom kerning -->
+    <text x="100" y="225" font-family="Arial, sans-serif" font-size="28" font-weight="600" text-anchor="middle">SecureWatch</text>
+    
+    <!-- SIEM with wide letter spacing -->
+    <text x="100" y="250" font-family="Arial, sans-serif" font-size="16" font-weight="400" text-anchor="middle" letter-spacing="5">SIEM</text>
+  </g>
+</svg>

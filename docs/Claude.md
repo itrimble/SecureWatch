@@ -2,328 +2,610 @@
 
 ## 1. Project Overview
 - **Brief description:** A comprehensive enterprise-grade SIEM (Security Information and Event Management) platform with Splunk-compatible data ingestion capabilities. Built with Next.js 15, this production-ready system features **HTTP Event Collector (HEC) service for Splunk-compatible REST API ingestion**, **universal syslog support (UDP 514, TCP 514, TCP 601 RFC 5425, TLS 6514)**, **file upload API with drag-and-drop interface for CSV/XML/JSON/EVTX files**, **enhanced agent with persistent SQLite queuing and guaranteed delivery**, live Mac agent data collection, TimescaleDB storage with **extended normalized schema (100+ fields)**, KQL-powered search and visualization pipeline, real-time correlation & rules engine with automated threat detection, customizable drag-drop dashboards, interactive analytics (heatmaps, network graphs, geolocation maps), **enhanced CLI dashboard v2.0 with granular service monitoring and control**, and a professional enterprise-grade UI with 25+ specialized security modules supporting **50+ enterprise security use cases** for comprehensive cybersecurity monitoring and threat detection.
+
 - **Tech stack:**
-    - **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS + Professional Dark Theme, Lucide React Icons, Recharts, Interactive Visualizations (Heatmaps, Network Graphs, Geolocation Maps), Customizable Dashboards, TanStack Virtual for 100K+ row virtualization
-    - **Backend**: Express.js microservices, KQL Engine, Correlation & Rules Engine, PostgreSQL/TimescaleDB, Async Job Processing (Query Processor Service - Port 4008), Specialized Analytics API (Port 4009), WebSocket notifications
+    - **Frontend**: Next.js 15.3.2 (App Router), React 19, TypeScript, Tailwind CSS + Professional Dark Theme, Lucide React Icons, Recharts, Interactive Visualizations (Heatmaps, Network Graphs, Geolocation Maps), Customizable Dashboards, TanStack Virtual for 100K+ row virtualization
+    - **Backend**: Express.js microservices, KQL Engine, Correlation & Rules Engine, PostgreSQL/TimescaleDB, Redis, Async Job Processing (Query Processor Service - Port 4008), Analytics Engine (Port 4009 - Consolidated from analytics-api), WebSocket notifications
     - **Data Ingestion**: HTTP Event Collector (HEC) service (port 8888), Universal Syslog Adapter (UDP/TCP 514, TCP 601, TLS 6514), File Upload API with drag-and-drop interface, Multi-format processing (CSV, XML, JSON, EVTX)
     - **Agent**: Python 3.12+ with macOS Unified Logging integration, Persistent SQLite queuing, Guaranteed delivery with retry logic, Compression and batching
     - **CLI Dashboard**: Enhanced TypeScript-based terminal UI with blessed.js, granular service monitoring, collapsible panels, service control capabilities, **blessed-contrib rich dashboard with line charts, gauges, sparklines, Nerd Font support, and responsive 4K layouts**
-    - **Infrastructure**: Docker Compose, Redis, Kafka (message streaming), TimescaleDB, OpenSearch
+    - **Infrastructure**: Docker Compose, Redis, Kafka (message streaming), TimescaleDB, OpenSearch, Kubernetes-ready deployments
     - **Database**: TimescaleDB (PostgreSQL) with time-series optimization + Extended Normalized Schema (100+ security fields) + Continuous Aggregates for sub-second dashboard performance
     - **Performance**: TanStack Virtual for 100K+ row tables, TimescaleDB continuous aggregates (6 materialized views), Async job processing with Redis Bull queue, Specialized analytics endpoints with intelligent caching
-    - **Build**: Turbopack (development), pnpm workspaces
+    - **Build**: Turbo monorepo, pnpm workspaces, TypeScript 5.x
 
 ## 2. Directory and File Structure
 - **High-level directory map:**
   ```
   SecureWatch/
-  ├── frontend/                  # Next.js App Router frontend
+  ├── frontend/                  # Next.js 15 App Router frontend (SINGLE IMPLEMENTATION)
   │   ├── app/                   # App Router pages
   │   │   ├── page.tsx          # Dashboard (home page)
   │   │   ├── explorer/         # Event log browser with virtualized tables
   │   │   ├── visualizations/   # Charts and graphs
   │   │   ├── reporting/        # Report generation
-  │   │   ├── settings/         # Configuration
-  │   │   └── alerts/           # Alert management
-  │   └── components/           # Reusable React components
-  │       ├── explorer/         # EventsTable with TanStack Virtual
-  │       ├── dashboard/        # Dashboard widgets
-  │       └── visualization/    # Advanced visualizations
-  ├── apps/                     # Microservices
-  │   ├── search-api/           # Search & query service (Port 4004)
-  │   ├── log-ingestion/        # Data ingestion service (Port 4002)
+  │   │   ├── settings/         # Configuration with platform status
+  │   │   ├── alerts/           # Alert management
+  │   │   ├── correlation/      # Correlation rules interface
+  │   │   ├── kql-analytics/    # KQL query interface
+  │   │   └── marketplace/      # MCP integrations
+  │   ├── components/           # Reusable React components
+  │   │   ├── explorer/         # EventsTable with TanStack Virtual
+  │   │   ├── dashboard/        # Dashboard widgets
+  │   │   ├── visualization/    # Advanced visualizations
+  │   │   └── correlation/      # Rules management components
+  │   ├── lib/                  # Client utilities
+  │   │   ├── api-service.ts    # Unified API client
+  │   │   └── supabase/         # Auth integration
+  │   └── public/
+  │       ├── securewatch-logo.svg  # Official SecureWatch logo
+  │       └── logo.svg             # Alias for branding
+  ├── apps/                     # Microservices (8 core services)
+  │   ├── analytics-engine/     # Analytics + Dashboard APIs (Port 4009) ⭐ CONSOLIDATED
+  │   ├── auth-service/         # Authentication & RBAC (Port 4006)
   │   ├── correlation-engine/   # Rules & correlation (Port 4005)
-  │   ├── query-processor/      # Async job processing (Port 4008) ⭐ NEW
-  │   ├── analytics-api/        # Fast dashboard APIs (Port 4009) ⭐ NEW
-  │   ├── auth-service/         # Authentication (Port 4006)
-  │   └── mcp-marketplace/      # MCP integration (Port 4010)
+  │   ├── hec-service/          # HTTP Event Collector (Port 8888)
+  │   ├── log-ingestion/        # Data ingestion service (Port 4002)
+  │   ├── mcp-marketplace/      # MCP integration (Port 4010)
+  │   ├── query-processor/      # Async job processing (Port 4008)
+  │   └── search-api/           # Search & KQL service (Port 4004)
+  ├── packages/                 # Shared packages (@securewatch/*)
+  │   ├── alert-fatigue-reduction/  # Alert clustering algorithms
+  │   ├── kql-engine/           # KQL parsing and execution
+  │   ├── lookup-service/       # Lookup table management
+  │   └── shared-utils/         # Common utilities
   ├── infrastructure/           # Database & infrastructure
   │   ├── database/
-  │   │   ├── continuous_aggregates.sql    # Performance optimization ⭐ NEW
+  │   │   ├── auth_schema.sql   # Authentication schema
+  │   │   ├── correlation_schema.sql  # Correlation rules
+  │   │   ├── continuous_aggregates.sql  # Performance views
+  │   │   ├── extended_schema.sql  # 100+ field schema
   │   │   └── migrations/       # Schema migrations
+  │   ├── docker/
+  │   │   ├── docker-compose.yml  # Production stack
+  │   │   ├── docker-compose.dev.yml  # Development stack
+  │   │   └── docker-compose.resilient.yml  # HA configuration
   │   └── kubernetes/           # K8s deployment configs
-  ├── agent/                    # Mac agent for log collection
+  ├── agent/                    # Python log collection agent
+  │   ├── core/                 # Agent core functionality
+  │   ├── event_log_agent.py    # Main agent entry
+  │   └── management/           # Agent management console
+  ├── cli-dashboard/            # Enhanced terminal UI
+  │   ├── src/                  # TypeScript source
+  │   │   ├── ui/
+  │   │   │   ├── blessed-contrib-dashboard.ui.ts  # Rich widgets
+  │   │   │   └── enhanced-status-display.ui.ts    # Service control
+  │   │   └── services/         # Backend integration
+  │   └── dist/                 # Compiled JavaScript
   ├── scripts/                  # Utility scripts
+  │   ├── evtx_parser_enhanced.py  # EVTX parser with MITRE ATT&CK
+  │   ├── bug-tracker.py        # Bug tracking system
+  │   └── test-tracker.py       # Test management
   ├── docs/                     # Documentation
-  │   ├── PERFORMANCE_OPTIMIZATION_GUIDE.md ⭐ NEW
-  │   └── DEPLOYMENT_GUIDE.md   # Updated with new services
-  ├── package.json              # Dependencies and scripts
+  │   ├── CLAUDE.md             # This file - AI assistant guide
+  │   ├── Claude.md             # Project instructions (legacy)
+  │   ├── MONOREPO_SETUP.md     # v2.1.0 consolidation status
+  │   ├── DEPLOYMENT_GUIDE.md   # Production deployment
+  │   ├── PERFORMANCE_OPTIMIZATION_GUIDE.md  # Performance tuning
+  │   ├── aws-ec2-free-tier-tutorial.md  # AWS EC2 setup guide
+  │   └── PRD_SecureWatch_Unified.md  # Product requirements
+  ├── Makefile                  # 30+ developer commands
+  ├── package.json              # Root workspace config
+  ├── pnpm-workspace.yaml       # Monorepo configuration
+  ├── turbo.json               # Turborepo config
+  ├── start-services.sh         # Enterprise startup script
+  ├── stop-services.sh          # Graceful shutdown
   └── README.md                 # Project README
   ```
+  
 - **Entry points:**
-    - `src/app/layout.tsx`: The root layout component for the entire application.
-    - `src/app/page.tsx`: The main dashboard page, serving as the primary landing page.
-    - Other top-level `page.tsx` files under `src/app/*` (e.g., `src/app/explorer/page.tsx`) serve as entry points for their respective sections.
+    - `frontend/app/layout.tsx`: The root layout component for the entire application
+    - `frontend/app/page.tsx`: The main dashboard page, serving as the primary landing page
+    - `apps/*/src/index.ts`: Entry points for each microservice
+    - `agent/event_log_agent.py`: Python agent for log collection
+    - `cli-dashboard/src/index.ts`: Terminal UI entry point
+    - `start-services.sh`: Main startup script for the entire platform
 
-## 3. Key Concepts & Domain Knowledge
-- **Core concepts:**
-    - **Windows Event Log Analysis:** The project focuses on providing tools to explore, filter, and understand Windows Event Logs. This includes understanding common Event IDs, log sources, and their security implications.
-    - **SIEM Concepts:** The application incorporates basic SIEM (Security Information and Event Management) ideas such as log aggregation (simulated with mock data), dashboard overviews, alert displays, and searching through log data.
-    - **Incident Response:** The tools can be used to simulate how one might use event logs during security incident investigations (e.g., tracking user activity, identifying suspicious processes).
-    - **Threat Hunting:** The platform can aid in learning proactive security monitoring techniques by exploring log data for anomalies or patterns that might indicate threats.
-- **Domain-specific logic:**
-    - The application heavily relies on understanding the structure and meaning of Windows Event IDs (e.g., `4624` for successful logon, `4625` for failed logon). Some of this data is present in `src/lib/data/windows_event_ids.json` and `docs/windows-event-id.csv`.
-- **Data Source:**
-    - The application now uses **live data** from a real Mac agent collecting logs from 15+ macOS sources including authentication, security events, process execution, network activity, and system logs.
-    - **TimescaleDB** stores 3,000+ real log entries with **extended normalized schema (100+ security fields)** supporting threat intelligence, UEBA, compliance, and 50+ enterprise use cases.
-    - **Advanced Schema Features**: Threat intelligence correlation, MITRE ATT&CK mapping, behavioral analytics, geolocation tracking, compliance frameworks (SOX, HIPAA, PCI-DSS, GDPR), and machine learning integration.
-    - Mock data is maintained as fallback but the production flow uses live agent data end-to-end.
-    - **CURRENT STATUS (June 2025)**: All services verified operational:
-      - Mac Agent (PID 22516): ✅ Active log collection from 15+ sources
-      - Log Ingestion (Port 4002): ✅ Processing 15 events per batch, 0% error rate
-      - Search API (Port 4004): ✅ Connected to TimescaleDB with KQL engine
-      - Correlation Engine (Port 4005): ✅ Real-time rules engine with pattern detection
-      - Frontend (Port 4000): ✅ Live dashboard displaying real Mac logs with correlation interface
-      - End-to-end pipeline: ✅ Mac Agent → Ingestion → TimescaleDB → Search API → Frontend
-      - Correlation pipeline: ✅ Events → Correlation Engine → Rules Evaluation → Incident Generation
-- **Glossary:**
-    - **Event ID:** A numerical code that identifies a specific type of event in Windows logs.
-    - **Log Source:** The origin of the log data (e.g., specific server, application).
-    - **SIEM:** Security Information and Event Management.
+## 3. Architecture & Recent Changes
 
-## 4. How to Run, Build, and Test
-- **Prerequisites:**
-    - Node.js (version 18.x or later)
-    - pnpm (recommended) or npm
-    - Docker and Docker Compose
-    - Git
-- **Setup instructions:**
-    1. **Clone the repository:**
-       ```bash
-       git clone https://github.com/itrimble/SecureWatch.git
-       cd SecureWatch
-       ```
-    2. **Install dependencies:**
-       ```bash
-       pnpm install
-       ```
-- **Enterprise Startup (Recommended):**
-    ```bash
-    # Single command to start complete SIEM platform
-    ./start-services.sh
-    ```
-    **This enterprise script automatically:**
-    - ✅ Starts Docker infrastructure with health verification
-    - ✅ Initializes database schema
-    - ✅ Starts all services with proper dependency management
-    - ✅ Runs comprehensive health checks
-    - ✅ Provides real-time monitoring and auto-recovery
-    - ✅ Handles graceful error recovery and service restart
+### Version 2.1.0 - Major Consolidation (June 2025)
+- **95,000+ lines of duplicate code removed**
+- **Service consolidation from 12+ to 8 core services**
+- **Unified frontend implementation** (removed duplicate `/src` and `/apps/web-frontend`)
+- **Analytics consolidation**: Merged analytics-api into analytics-engine (Port 4009)
+- **Package standardization**: All packages now use @securewatch/* naming
+- **Version alignment**: All services updated to v1.9.0
+- **Build fixes**: Resolved all TypeScript duplicate export errors
+- **Frontend fixes**: Fixed React hydration errors and authentication flow
 
-- **Manual Startup (Advanced):**
-    ```bash
-    # 1. Start infrastructure
-    docker compose -f docker-compose.dev.yml up -d
-    
-    # 2. Initialize database
-    docker exec -i securewatch_postgres psql -U securewatch -d securewatch < infrastructure/database/auth_schema.sql
-    
-    # 3. Start services (in separate terminals)
-    cd apps/search-api && pnpm run dev      # Port 4004
-    cd apps/log-ingestion && pnpm run dev   # Port 4002
-    cd apps/correlation-engine && pnpm run dev # Port 4005
-    cd apps/query-processor && pnpm run dev # Port 4008 (NEW - Async Job Processing)
-    cd apps/analytics-api && pnpm run dev   # Port 4009 (NEW - Fast Dashboard APIs)
-    cd frontend && pnpm run dev             # Port 4000
-    
-    # 4. Start Mac agent (optional for live data)
-    source agent_venv/bin/activate
-    python3 agent/event_log_agent.py
-    ```
+### Current Service Architecture (8 Core Services)
+1. **analytics-engine** (Port 4009) - Consolidated analytics + dashboard APIs
+2. **auth-service** (Port 4006) - Authentication, RBAC, OAuth, MFA
+3. **correlation-engine** (Port 4005) - Real-time correlation and rules
+4. **hec-service** (Port 8888) - HTTP Event Collector (Splunk-compatible)
+5. **log-ingestion** (Port 4002) - Data ingestion and processing
+6. **mcp-marketplace** (Port 4010) - MCP integrations marketplace
+7. **query-processor** (Port 4008) - Async job processing with Bull queue
+8. **search-api** (Port 4004) - Search functionality and KQL engine
 
-- **Service Management:**
-    - **Stop all services:** `./stop-services.sh`
-    - **Restart services:** `./stop-services.sh && ./start-services.sh`
-    - **Logs:** Available at `/tmp/{service-name}.log`
+### Frontend Architecture
+- **Single implementation** at `/frontend` (Next.js 15.3.2 + React 19)
+- **Enterprise features**: 25+ security modules, 50+ use cases
+- **Performance optimized**: TanStack Virtual, continuous aggregates
+- **Professional UI**: Dark theme, interactive visualizations
+- **Logo integration**: Official SecureWatch branding assets
 
-- **Build/test commands:**
-    - **Production Build:** `pnpm run build`
-    - **Linting:** `pnpm run lint`
-    - **Unit Tests:** `pnpm run test`
-    - **E2E Tests:** `pnpm run test:e2e`
+## 4. Key Concepts & Domain Knowledge
 
-- **Enterprise Health Monitoring:**
-    - **Platform Health:** `curl http://localhost:4000/api/health`
-    - **Search API:** `curl http://localhost:4004/health`
-    - **Log Ingestion:** `curl http://localhost:4002/health`
-    - **Correlation Engine:** `curl http://localhost:4005/health`
-    - **Query Processor:** `curl http://localhost:4008/health` (NEW - Async Jobs)
-    - **Analytics API:** `curl http://localhost:4009/health` (NEW - Fast Dashboards)
-    - **Database Health:** `curl http://localhost:4002/db/health`
-    - **Infrastructure Status:** `docker compose -f docker-compose.dev.yml ps`
-    - **Agent Status:** `ps aux | grep event_log_agent.py`
-    - **Real-time Monitoring:** Services auto-monitor and restart on failure
-    - **Performance Metrics:** `curl http://localhost:4009/api/dashboard/cache-stats`
-    - **Job Queue Status:** `curl http://localhost:4008/api/queue/stats`
-    - **TROUBLESHOOTING NOTE**: If explorer shows static data instead of live Mac logs:
-      1. Verify Mac agent is running: `ps aux | grep event_log_agent.py`
-      2. Check log ingestion service: `curl http://localhost:4002/health`
-      3. Check search API: `curl http://localhost:4004/health`
-      4. Start frontend if down: `cd frontend && pnpm run dev`
-      5. Verify end-to-end with headers: `curl -I http://localhost:4000/api/logs` (should show `x-data-source: live-backend`)
+### Core Concepts
+- **SIEM Platform**: Enterprise security information and event management
+- **Log Ingestion**: Multi-format support (syslog, HEC, file upload, agent)
+- **Correlation Engine**: Real-time pattern detection and incident generation
+- **KQL Support**: Kusto Query Language for advanced log analysis
+- **MITRE ATT&CK**: Threat intelligence framework integration
+- **UEBA**: User and Entity Behavior Analytics
+- **Compliance**: SOX, HIPAA, PCI-DSS, GDPR framework support
 
-## 5. Tool and MCP Integration
-- **List of enabled tools/MCPs:**
-    - **Docker/Docker Compose:** Used for infrastructure management (`docker compose up -d`, health checks)
-    - **Bash/Shell:** Used for running `pnpm` scripts, database operations, and container management
-    - **Node.js runtime:** Required for executing the Next.js application and microservices
-    - **ESLint:** Integrated for code linting (`pnpm run lint`)
-    - **Database tools:** Direct PostgreSQL/TimescaleDB access via `docker exec` commands
-    - **Redis CLI:** For cache operations and connectivity testing
-    - **Python Virtual Environment:** For Mac agent execution (`agent_venv/`)
-    - **Mac Agent:** Real-time log collection from macOS Unified Logging
-    - **TimescaleDB:** Time-series database for log storage and analytics
-    - **KQL Engine:** Kusto Query Language for log search and analysis
-    - **Enhanced CLI Dashboard:** TypeScript-based terminal UI with service monitoring, control, and management capabilities (`cli-dashboard/`)
-    - **Service Control System:** Automated service start/stop/restart with Docker and Node.js integration
-    - **Enhanced EVTX Parser:** Comprehensive Windows Event Log parser with MITRE ATT&CK detection (`scripts/evtx_parser_enhanced.py`)
-    - **EVTX Testing Suite:** Automated testing framework for EVTX-ATTACK-SAMPLES validation (`scripts/test_enhanced_evtx_pipeline.py`)
-    - **EVTX Web Upload:** Frontend component for real-time EVTX file upload and parsing (`frontend/components/log-sources/evtx-file-upload.tsx`)
-    - **Bug Tracking System:** Python-based bug tracking with JSON persistence (`scripts/bug-tracker.py`)
-    - **Test Management System:** Comprehensive testing framework with unit and E2E test tracking (`scripts/test-tracker.py`)
-- **Permissions and safety:**
-    - **Bash/Shell:**
-        - Be cautious with commands that modify or delete files (e.g., `rm`, `mv`).
-        - Avoid running arbitrary scripts from untrusted sources.
-        - When in doubt, ask for confirmation before executing potentially destructive commands.
-    - **General:**
-        - Do not commit sensitive information or credentials to the repository.
-        - The project currently uses mock data, so there's minimal risk of exposing real user data from within the development environment itself.
-- **Example tool commands:**
-    - **Starting infrastructure:**
-      ```bash
-      docker compose -f docker-compose.dev.yml up -d
-      ```
-    - **Running the development server:**
-      ```bash
-      pnpm run dev
-      ```
-    - **Building the project:**
-      ```bash
-      pnpm run build
-      ```
-    - **Running linters:**
-      ```bash
-      pnpm run lint
-      ```
-    - **Database operations:**
-      ```bash
-      docker exec -i securewatch_postgres psql -U securewatch -d securewatch -c "\dt"
-      ```
-    - **Database schema migration:**
-      ```bash
-      docker exec -i securewatch_postgres psql -U securewatch -d securewatch < infrastructure/database/migrations/001_extend_logs_schema.sql
-      ```
-    - **Extended schema verification:**
-      ```bash
-      docker exec -i securewatch_postgres psql -U securewatch -d securewatch -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'logs'"
-      ```
-    - **Installing a new dependency:**
-      ```bash
-      pnpm add some-new-package
-      ```
-    - **Bug tracking operations:**
-      ```bash
-      python3 scripts/bug-tracker.py
-      ```
-    - **Test tracking operations:**
-      ```bash
-      python3 scripts/test-tracker.py
-      ```
-    - **Running tests:**
-      ```bash
-      pnpm run test          # Unit tests
-      pnpm run test:e2e      # E2E tests
-      pnpm run test:all      # All tests
-      ```
-    - **Enhanced CLI Dashboard operations:**
-      ```bash
-      ./cli-dashboard.sh enhanced                    # Start enhanced dashboard
-      ./cli-dashboard.sh blessed-contrib             # Start rich widgets dashboard (NEW)
-      ./cli-dashboard.sh bc --refresh 3              # Short alias with custom refresh
-      ./cli-dashboard.sh status --detailed           # All services status
-      ./cli-dashboard.sh health --verbose            # Detailed health check
-      ./cli-dashboard.sh control start Frontend      # Start specific service
-      ./cli-dashboard.sh start-all                   # Start all services
-      ./cli-dashboard.sh logs --service "Search API" --lines 100  # Service logs
-      ```
-    - **Enhanced EVTX Parser operations:**
-      ```bash
-      python3 scripts/evtx_parser_enhanced.py sample.evtx          # Parse EVTX with attack detection
-      python3 scripts/evtx_parser_enhanced.py sample.evtx --attack-only --output results.json  # Attack-focused analysis
-      python3 scripts/test_enhanced_evtx_pipeline.py --samples-path /path/to/EVTX-ATTACK-SAMPLES  # Test against attack samples
-      ```
-    - **Blessed-Contrib Rich Dashboard Features (NEW):**
-      - **Rich Widgets**: Line charts, gauges, sparklines, LCD displays, bar charts, tables, log streams
-      - **Nerd Font Support**: Enhanced Unicode icons with graceful ASCII fallback
-      - **Responsive Design**: Adaptive grid layouts scaling from 1080p to 4K terminals
-      - **Interactive Controls**: F-key shortcuts, panel navigation, service management
-      - **Real-time Visualizations**: CPU trends, network traffic, events per second, alerts
-      - **Comprehensive Documentation**: `cli-dashboard/BLESSED_CONTRIB_DASHBOARD.md`
-    - **Enhanced EVTX Parser Features (NEW):**
-      - **MITRE ATT&CK Detection**: Automatic technique identification from Sysmon RuleName fields
-      - **Attack Pattern Recognition**: 50+ regex patterns for malicious behavior detection  
-      - **Risk Scoring Algorithm**: Intelligent threat prioritization with confidence scoring
-      - **Comprehensive Sysmon Support**: Full coverage of Events 1-29 with enhanced field extraction
-      - **Real-time Processing**: Configurable batch processing with SecureWatch integration
-      - **Web-based Upload**: Frontend component for instant EVTX file parsing and analysis
+### Data Flow
+```
+Data Sources → Ingestion → TimescaleDB → Processing → Visualization
+     ↓             ↓            ↓            ↓             ↓
+  Agent/HEC    Parsing    Extended Schema  KQL/Rules   Dashboard
+```
 
-## 6. Code Style and Contribution Guidelines
-- **Formatting conventions:**
-    - **ESLint:** The project is configured with ESLint (`npm run lint`) to enforce code style and catch errors. Refer to the ESLint configuration (`eslint.config.mjs` and potentially parts of `package.json`) for specific rules.
-    - **TypeScript:** Follow standard TypeScript best practices for type safety and code organization.
-    - **Tailwind CSS:** Adhere to utility-first principles when styling components.
-    - **Naming Conventions:** Observe existing patterns in the codebase (e.g., component naming `PascalCase.tsx`, variable naming `camelCase`).
-    - *(If a more specific formatter like Prettier is adopted, this section should be updated.)*
-- **Branching and PR rules:**
-    - Refer to the "Contributing" section in the main `README.md` file for guidelines on forking, branching (`feature/new-feature`), committing, pushing, and creating Pull Requests.
-- **General Guidelines:**
-    - Write clear and concise commit messages.
-    - Ensure new code is adequately commented, especially for complex logic.
-    - If adding new features, consider if corresponding tests are needed.
+### Current Status (June 2025)
+- ✅ **All 8 services operational** (100% platform health)
+- ✅ **End-to-end pipeline verified**: Agent → Ingestion → DB → API → Frontend
+- ✅ **Frontend-backend communication fixed**: API authentication handling
+- ✅ **React hydration errors resolved**: SSR compatibility fixes
+- ✅ **Official branding added**: SecureWatch logo integrated
+- ✅ **AWS documentation added**: EC2 free tier testing guide
+- ✅ **Git repository updated**: All changes pushed to GitHub
 
-## 7. Security and Privacy Rules
-- **Sensitive files and data:**
-    - While real Windows Event Logs can contain sensitive information, this project currently uses **mock data** located in `lib/data/` and `src/lib/data/` (e.g., `mock_log_entries.json`). There should be no real sensitive user or system data in the repository.
-    - Avoid committing any actual log files or sensitive production data to the repository.
-    - Be mindful of the types of information that would be sensitive if this project were to connect to live systems (e.g., usernames, IP addresses, machine names, specific activities).
-- **Secrets:**
-    - As per the `README.md`, no environment variables or secrets are required for the basic functionality of this project, as it relies on mock data.
-    - If the project is extended to connect to real services or APIs that require authentication, ensure that secrets (API keys, passwords, etc.) are managed securely (e.g., via environment variables, a secrets management system) and are **never** hardcoded or committed to the repository.
-    - Do not add any `.env` files containing real secrets to version control. Ensure `.env` is listed in `.gitignore` if used for local development with sensitive values.
-- **Tool Usage Safety:**
-    - When using tools like Bash, be extremely careful with commands that could lead to data leakage or unauthorized access if the project were handling real data (e.g., `curl`, `scp`, network utilities). Since it's mock data, the risk is low, but good practices should be maintained.
+### Extended Schema Features
+- **100+ normalized fields** for comprehensive security analysis
+- **Threat intelligence** correlation fields
+- **Behavioral analytics** support
+- **Geolocation tracking**
+- **Compliance mappings**
+- **Machine learning** integration points
 
-## 8. Sample Prompts and Tasks
-These are examples of requests that might be made for this project.
+## 5. How to Run, Build, and Test
 
-- **Code Generation & Refactoring:**
-    - "Create a new React component named `EventSummaryCard` in `src/components/dashboard/` that takes `title` and `count` as props and displays them in a styled card."
-    - "Refactor the `DashboardPage` component (`src/app/page.tsx`) to fetch its data from a new (hypothetical) API endpoint `/api/dashboard-summary` instead of using hardcoded content."
-    - "Add a new page at `/app/threat-intel/page.tsx` that displays information from `src/lib/threat_intel/otx_feed.ts`. Include a basic table layout."
-    - "Update the `TotalEventsWidget.tsx` to include a percentage change from the previous day (mock data for previous day is fine)."
-    - "Convert the `LogSourceSelector.tsx` component to use `useReducer` for state management instead of multiple `useState` hooks."
+### Prerequisites
+- Node.js 18.x or later (v24.1.0 tested)
+- pnpm 8.x or later
+- Docker and Docker Compose
+- Python 3.12+ (for agent)
+- Git
+- 8GB+ RAM recommended
+- macOS/Linux (Windows via WSL2)
 
-- **Analysis & Understanding:**
-    - "Explain the purpose of the `src/lib/data/windows_event_ids.json` file and how it's used in the application."
-    - "What are the key responsibilities of the `Sidebar.tsx` and `Header.tsx` components in `src/components/layout/`?"
-    - "Describe the data flow for displaying critical alerts on the dashboard."
-    - "How is mock data loaded and utilized in the `RecentLogSourcesWidget.tsx`?"
+### Quick Start - Enterprise Mode (Recommended)
+```bash
+# Clone and setup
+git clone https://github.com/yourusername/SecureWatch.git
+cd SecureWatch
+pnpm install
 
-- **Testing:**
-    - "Write unit tests for the `src/lib/utils/exportUtils.ts` module. Ensure all functions are covered."
-    - "Add a basic test case for the `CriticalAlertsWidget` component to ensure it renders correctly with mock data."
+# Start everything with one command
+./start-services.sh
 
-- **New Features (Conceptual):**
-    - "Outline the steps to add a feature that allows users to save their filter settings in the Event Explorer (`src/app/explorer/page.tsx`)."
-    - "Design a new component that visualizes event frequency over time using Recharts, similar to `EventsOverTimeChart.tsx` but for a different data aspect."
+# Access the platform
+open http://localhost:4000
 
-- **Tool Usage:**
-    - "Run the linter and report any errors or warnings." (`npm run lint`)
-    - "If I add a new dependency `some-package`, how would I install it?" (`npm install some-package`)
+# Monitor services
+./cli-dashboard.sh enhanced
+```
 
-- **Expected outputs:**
-    - For code generation, provide complete, well-formatted TypeScript/TSX code that adheres to existing project conventions.
-    - For analysis, provide clear, concise explanations.
-    - For new features, provide a plan or high-level design.
-    - Ensure any new components or pages are integrated appropriately (e.g., added to routing if necessary, imported correctly).
+### Environment Variables (Required)
+```bash
+# Create .env file in project root
+JWT_ACCESS_SECRET="[secure-random-secret]"
+JWT_REFRESH_SECRET="[secure-random-secret]"
+MFA_ENCRYPTION_KEY="[32-byte-base64-key]"
+REDIS_URL="redis://localhost:6379"
+REDIS_PASSWORD="securewatch_dev"
+DB_PASSWORD="securewatch_dev"
+```
+
+### Manual Startup (Advanced)
+```bash
+# 1. Start infrastructure
+docker compose -f docker-compose.dev.yml up -d
+
+# 2. Initialize database
+make db-init
+
+# 3. Start services individually
+make start-service s=search-api      # Port 4004
+make start-service s=log-ingestion   # Port 4002
+make start-service s=correlation-engine # Port 4005
+make start-service s=analytics-engine # Port 4009
+make start-service s=auth-service    # Port 4006
+make start-service s=hec-service     # Port 8888
+make start-service s=query-processor # Port 4008
+make start-service s=mcp-marketplace # Port 4010
+
+# 4. Start frontend
+cd frontend && pnpm run dev
+
+# 5. Start agent (optional)
+make start-agent
+```
+
+### Service Management
+```bash
+# Using Makefile (recommended)
+make status              # Check all services
+make restart s=frontend  # Restart specific service
+make logs s=search-api   # View service logs
+make stop-all           # Stop everything
+make clean              # Clean build artifacts
+
+# Using scripts
+./stop-services.sh      # Graceful shutdown
+./start-services.sh     # Start with health checks
+
+# Using CLI dashboard
+./cli-dashboard.sh control start "Search API"
+./cli-dashboard.sh control stop all
+./cli-dashboard.sh logs --service "Analytics Engine"
+```
+
+### Build and Test Commands
+```bash
+# Development
+pnpm run dev            # Start all services in dev mode
+pnpm run build          # Production build
+pnpm run lint           # Run ESLint
+pnpm run typecheck      # TypeScript validation
+
+# Testing
+pnpm run test           # Unit tests
+pnpm run test:e2e       # End-to-end tests
+pnpm run test:coverage  # Coverage report
+
+# Service-specific
+cd apps/search-api && pnpm run test
+cd apps/correlation-engine && pnpm run test
+```
+
+### Health Monitoring
+```bash
+# Platform health
+curl http://localhost:4000/api/health
+
+# Individual services
+curl http://localhost:4004/health  # Search API
+curl http://localhost:4002/health  # Log Ingestion
+curl http://localhost:4005/health  # Correlation Engine
+curl http://localhost:4009/health  # Analytics Engine
+curl http://localhost:4006/health  # Auth Service
+curl http://localhost:8888/health  # HEC Service
+curl http://localhost:4008/health  # Query Processor
+curl http://localhost:4010/health  # MCP Marketplace
+
+# Database health
+curl http://localhost:4002/api/db/health
+
+# Infrastructure
+docker compose -f docker-compose.dev.yml ps
+
+# Performance metrics
+curl http://localhost:4009/api/v1/analytics/metrics
+curl http://localhost:4008/api/jobs/stats
+```
+
+## 6. Development Workflow
+
+### Using Makefile Commands
+The project includes a comprehensive Makefile with 30+ commands:
+
+```bash
+# Service management
+make up                 # Start all services
+make down              # Stop all services  
+make restart s=frontend # Restart specific service
+make status            # Check service health
+make logs s=search-api # View service logs
+
+# Development
+make dev               # Start in development mode
+make build             # Build all services
+make clean             # Clean build artifacts
+make test              # Run all tests
+
+# Database
+make db-init           # Initialize database
+make db-migrate        # Run migrations
+make db-reset          # Reset database
+
+# Monitoring
+make dashboard         # Open CLI dashboard
+make monitor           # Real-time monitoring
+make health            # Health check all services
+
+# Troubleshooting
+make debug s=analytics-engine  # Debug specific service
+make fix-ports         # Fix port conflicts
+make clean-logs        # Clean log files
+```
+
+### CLI Dashboard Usage
+```bash
+# Enhanced dashboard with service control
+./cli-dashboard.sh enhanced
+
+# Blessed-contrib rich widgets dashboard
+./cli-dashboard.sh blessed-contrib
+
+# Short aliases
+./cli-dashboard.sh bc --refresh 3
+
+# Service control
+./cli-dashboard.sh control start "Frontend"
+./cli-dashboard.sh control stop "Analytics Engine"
+./cli-dashboard.sh control restart all
+
+# Status and health
+./cli-dashboard.sh status --detailed
+./cli-dashboard.sh health --verbose
+
+# Logs viewing
+./cli-dashboard.sh logs --service "Search API" --lines 100
+```
+
+### Git Workflow
+```bash
+# Feature development
+git checkout -b feature/your-feature
+# Make changes
+git add .
+git commit -m "feat: Add new feature"
+git push origin feature/your-feature
+
+# Hotfix
+git checkout -b hotfix/fix-issue
+# Make fixes
+git add .
+git commit -m "fix: Resolve issue"
+git push origin hotfix/fix-issue
+```
+
+## 7. Troubleshooting Guide
+
+### Common Issues and Solutions
+
+#### Services Not Starting
+```bash
+# Check port availability
+lsof -i :4000-4010
+
+# Fix port conflicts
+make fix-ports
+
+# Check Docker
+docker compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml logs
+
+# Reset and restart
+make clean
+make db-reset
+./start-services.sh
+```
+
+#### Frontend Issues
+```bash
+# Clear Next.js cache
+rm -rf frontend/.next
+cd frontend && pnpm run dev
+
+# Check API connectivity
+curl -I http://localhost:4000/api/health
+
+# Verify backend services
+make status
+```
+
+#### Database Connection Issues
+```bash
+# Check PostgreSQL
+docker exec -it securewatch_postgres psql -U securewatch -c "\l"
+
+# Verify credentials
+echo $DB_PASSWORD  # Should be "securewatch_dev"
+
+# Reinitialize database
+make db-reset
+make db-init
+```
+
+#### Agent Not Collecting Logs
+```bash
+# Check agent status
+ps aux | grep event_log_agent.py
+
+# Restart agent
+make stop-agent
+make start-agent
+
+# Check agent logs
+tail -f /tmp/agent.log
+```
+
+### Performance Optimization
+```bash
+# Enable continuous aggregates
+docker exec -i securewatch_postgres psql -U securewatch -d securewatch < infrastructure/database/continuous_aggregates.sql
+
+# Monitor query performance
+curl http://localhost:4009/api/v1/analytics/performance
+
+# Check cache hit rates
+curl http://localhost:4009/api/v1/analytics/cache-stats
+```
+
+## 8. API Documentation
+
+### Authentication
+All API endpoints require JWT authentication except health checks:
+```bash
+# Get auth token
+curl -X POST http://localhost:4006/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@securewatch.io","password":"admin123"}'
+
+# Use token in requests
+curl http://localhost:4004/api/v1/search \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### Key API Endpoints
+
+#### Search API (Port 4004)
+- `GET /api/v1/search` - KQL search
+- `GET /api/v1/search/fields` - Available fields
+- `GET /api/v1/search/saved` - Saved searches
+- `POST /api/v1/search/export` - Export results
+
+#### Analytics Engine (Port 4009)
+- `GET /api/v1/analytics/dashboard` - Dashboard data
+- `GET /api/v1/analytics/widgets` - Widget configurations
+- `GET /api/v1/analytics/metrics` - Performance metrics
+- `POST /api/v1/analytics/query` - Custom analytics
+
+#### Correlation Engine (Port 4005)
+- `GET /api/v1/rules` - List correlation rules
+- `POST /api/v1/rules` - Create rule
+- `GET /api/v1/incidents` - Active incidents
+- `POST /api/v1/rules/test` - Test rule
+
+#### HEC Service (Port 8888)
+- `POST /services/collector/event` - Splunk-compatible event ingestion
+- `POST /services/collector/raw` - Raw data ingestion
+- `GET /services/collector/health` - HEC health status
+
+## 9. Cloud Deployment
+
+### AWS EC2 Deployment
+The project includes comprehensive AWS deployment documentation:
+- See `docs/aws-ec2-free-tier-tutorial.md` for EC2 setup
+- Supports Windows Server, Ubuntu, and Amazon Linux instances
+- Includes CloudWatch agent configuration for log forwarding
+- Cost optimization strategies for free tier usage
+
+### Docker Production Deployment
+```bash
+# Build production images
+docker compose -f docker-compose.yml build
+
+# Deploy with proper environment
+docker compose -f docker-compose.yml up -d
+
+# Scale services
+docker compose -f docker-compose.yml up -d --scale log-ingestion=3
+```
+
+### Kubernetes Deployment
+```bash
+# Apply configurations
+kubectl apply -f infrastructure/kubernetes/namespace.yaml
+kubectl apply -f infrastructure/kubernetes/
+
+# Check deployment
+kubectl get pods -n securewatch
+kubectl get services -n securewatch
+```
+
+## 10. Security Considerations
+
+### Production Security Checklist
+- [ ] Change all default passwords
+- [ ] Enable TLS for all services
+- [ ] Configure firewall rules
+- [ ] Enable audit logging
+- [ ] Set up backup procedures
+- [ ] Configure rate limiting
+- [ ] Enable MFA for admin accounts
+- [ ] Regular security updates
+- [ ] Monitor for vulnerabilities
+- [ ] Implement network segmentation
+
+### Secret Management
+```bash
+# Generate secure secrets
+openssl rand -base64 32  # For JWT secrets
+openssl rand -base64 24  # For encryption keys
+
+# Store in environment
+export JWT_ACCESS_SECRET="your-generated-secret"
+export MFA_ENCRYPTION_KEY="your-generated-key"
+```
+
+## 11. Contributing
+
+### Code Style
+- TypeScript with strict mode
+- ESLint + Prettier formatting
+- Conventional commits
+- Comprehensive JSDoc comments
+- Unit tests for new features
+
+### Pull Request Process
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'feat: Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request with detailed description
+
+### Development Guidelines
+- Follow existing patterns
+- Maintain backward compatibility
+- Add tests for new features
+- Update documentation
+- Run full test suite before PR
+
+## 12. Support and Resources
+
+### Documentation
+- Project README: `/README.md`
+- API Documentation: `/docs/API_GUIDE.md`
+- Deployment Guide: `/docs/DEPLOYMENT_GUIDE.md`
+- Performance Guide: `/docs/PERFORMANCE_OPTIMIZATION_GUIDE.md`
+- AWS Tutorial: `/docs/aws-ec2-free-tier-tutorial.md`
+
+### Community
+- GitHub Issues: Report bugs and request features
+- Discussions: Architecture and feature discussions
+- Wiki: Additional guides and tutorials
+
+### License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## Recent Updates Log
+
+### June 7, 2025
+- ✅ Completed v2.1.0 architecture consolidation (95k+ lines removed)
+- ✅ Fixed all service operational issues (8/8 services running)
+- ✅ Resolved frontend-backend communication errors
+- ✅ Fixed React hydration mismatches
+- ✅ Added official SecureWatch logo
+- ✅ Added AWS EC2 free tier documentation
+- ✅ Updated all documentation to reflect current state
+- ✅ All changes committed and pushed to GitHub
+
+### Version History
+- **v2.1.0** - Major consolidation and cleanup
+- **v2.0.0** - Enhanced enterprise features
+- **v1.9.0** - Performance optimizations
+- **v1.8.0** - Correlation engine integration
+- **v1.7.0** - CLI dashboard enhancement
+- **v1.6.0** - TimescaleDB integration
+- **v1.5.0** - KQL engine implementation
+
+---
+
+*Last updated: June 7, 2025*

@@ -51,28 +51,36 @@ This directory contains comprehensive documentation for the SecureWatch SIEM pla
 
 ## 🔥 Latest Updates & Key Features
 
-### 🛡️ Security Update v1.13.0 (June 6, 2025) 🚨
-**CRITICAL SECURITY FIXES - ALL P0 VULNERABILITIES RESOLVED**
+### 🏗️ Architecture Consolidation v2.1.0 (June 7, 2025) 🚀
+**MAJOR CONSOLIDATION COMPLETED - 95,000+ LINES OF DUPLICATE CODE REMOVED**
 
-✅ **Authentication Security Hardened:**
-- Fixed hardcoded JWT secrets vulnerability
-- Implemented secure MFA encryption key management
-- Added complete Redis-based MFA storage system
-- Fixed token refresh permission vulnerability
-- Implemented comprehensive API key validation
+✅ **Service Architecture Optimized:**
+- Consolidated from 12+ services to 8 core services
+- Merged analytics-api functionality into analytics-engine (Port 4009)
+- Eliminated duplicate frontend implementations
+- Standardized all packages to @securewatch/* naming convention
+- Updated all services to version 1.9.0
 
-✅ **Multi-tenant Security:**
-- Added organization ID validation in search API
-- Prevented cross-tenant data access vulnerabilities
-- Enhanced audit logging for security events
+✅ **Build System Fixes:**
+- Resolved all TypeScript build errors across packages
+- Fixed React hydration mismatches in frontend
+- Eliminated duplicate export conflicts
+- Improved build performance and reliability
 
-✅ **Production Readiness:**
-- Removed all development-only security bypasses
-- Added startup validation for required security environment variables
-- Implemented proper error handling without information leakage
+✅ **Enterprise Features Preserved:**
+- Maintained all 25+ security modules
+- Retained 50+ enterprise use cases
+- Enhanced performance with TanStack Virtual
+- Professional dark theme and branding
 
-**📋 Files Updated:** 6 authentication & authorization modules
-**🔍 Detailed Analysis:** See [SECUREWATCH_BUG_ANALYSIS.md](SECUREWATCH_BUG_ANALYSIS.md)
+✅ **Infrastructure Improvements:**
+- Added comprehensive Makefile with 30+ commands
+- Enhanced CLI dashboard with service control
+- Improved Docker configurations with resource limits
+- Updated documentation to reflect current architecture
+
+**📋 Current Service Count:** 8 core services (down from 12+)
+**🔍 Architecture Details:** See [MONOREPO_SETUP.md](MONOREPO_SETUP.md)
 
 ### Performance & Scalability Optimizations (June 2025) 🆕
 Enterprise-grade performance enhancements for handling large-scale SIEM operations:

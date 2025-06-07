@@ -1,86 +1,156 @@
-# 🚀 SecureWatch Quick Start
+# 🚀 SecureWatch Quick Start - v2.1.0
 
-## ✅ Setup Complete!
+## ✅ Platform Ready!
 
-Your SecureWatch SIEM platform is now fully configured with:
-- ✅ Supabase authentication (GitHub OAuth)
-- ✅ JWT verification in backend
-- ✅ Frontend with auth components
-- ✅ API bridge for secure communication
+Your SecureWatch SIEM platform v2.1.0 is fully consolidated with:
+- ✅ 8 core microservices (optimized from 12+)
+- ✅ Enterprise Next.js frontend with authentication
+- ✅ Consolidated analytics engine with dashboard APIs
+- ✅ Production-ready TimescaleDB with performance optimizations
+- ✅ Enhanced CLI dashboard for monitoring
 
 ## 🎯 Quick Start
 
-### One Command to Run Everything:
+### Option 1: Enterprise Startup (Recommended)
 ```bash
 cd /Users/ian/Scripts/SecureWatch
-./start-dev.sh
+
+# Start everything with health monitoring
+./start-services.sh
+
+# Access the platform
+open http://localhost:4000
+
+# Monitor services with CLI dashboard
+./cli-dashboard.sh enhanced
 ```
 
-This will:
-1. Install dependencies if needed
-2. Start backend on http://localhost:3003
-3. Start frontend on http://localhost:4001
-
-### Manual Start (Two Terminals):
+### Option 2: Using Makefile
 ```bash
-# Terminal 1: Backend
-cd /Users/ian/Scripts/SecureWatch
-PORT=3003 npm run dev
+# Start all services
+make up
 
-# Terminal 2: Frontend
-cd /Users/ian/Scripts/SecureWatch/frontend
-PORT=4001 npm run dev
+# Check service health
+make status
+
+# Access monitoring dashboard
+make dashboard
 ```
 
-## 🧪 Test Authentication
+### Option 3: Manual Service Management
+```bash
+# Start infrastructure
+docker compose -f docker-compose.dev.yml up -d
 
-1. **Open Frontend**: http://localhost:4001
-2. **Click "Sign in with GitHub"** in the header
-3. **Authorize the app** on GitHub
-4. **Test Backend Connection**: Go to http://localhost:4001/auth-test
-5. **Click "Test Backend Authentication"** to verify JWT flow
+# Start services individually with pnpm
+cd apps/search-api && pnpm run dev          # Port 4004
+cd apps/auth-service && pnpm run dev        # Port 4006  
+cd apps/log-ingestion && pnpm run dev       # Port 4002
+cd apps/analytics-engine && pnpm run dev    # Port 4009
+cd apps/correlation-engine && pnpm run dev  # Port 4005
+cd apps/query-processor && pnpm run dev     # Port 4008
+cd apps/mcp-marketplace && pnpm run dev     # Port 4010
+cd apps/hec-service && pnpm run dev         # Port 8888
 
-## 📁 Key Files
+# Start frontend
+cd frontend && pnpm run dev                  # Port 4000
+```
+
+## 🏗️ Current Architecture (v2.1.0)
+
+### 8 Core Services
+| Service | Port | Purpose |
+|---------|------|---------|
+| Frontend | 4000 | Enterprise Next.js application |
+| Log Ingestion | 4002 | Data ingestion and processing |
+| Search API | 4004 | KQL queries and search |
+| Correlation Engine | 4005 | Real-time correlation and rules |
+| Auth Service | 4006 | Authentication and authorization |
+| Query Processor | 4008 | Async job processing |
+| Analytics Engine | 4009 | Dashboard APIs (consolidated) |
+| MCP Marketplace | 4010 | MCP integrations |
+| HEC Service | 8888 | Splunk-compatible HTTP Event Collector |
+
+## 🔍 Verify Service Health
+
+### Quick Health Check
+```bash
+# Check all services at once
+make status
+
+# Individual service checks
+curl http://localhost:4000/api/health  # Frontend
+curl http://localhost:4002/health      # Log Ingestion
+curl http://localhost:4004/health      # Search API
+curl http://localhost:4005/health      # Correlation Engine
+curl http://localhost:4006/health      # Auth Service
+curl http://localhost:4008/health      # Query Processor
+curl http://localhost:4009/health      # Analytics Engine
+curl http://localhost:4010/health      # MCP Marketplace
+curl http://localhost:8888/health      # HEC Service
+```
+
+## 🎯 First Steps
+
+1. **Access Platform**: Open http://localhost:4000
+2. **Upload Data**: Go to Settings → Log Sources
+3. **Search Events**: Use the Explorer tab with KQL queries
+4. **View Analytics**: Check the Dashboard for real-time metrics
+5. **Monitor Services**: Use `./cli-dashboard.sh enhanced`
+
+## 📁 Key Configuration Files
 
 ```
 SecureWatch/
-├── .env.local                    # Backend env (✅ configured)
-├── frontend/.env.local           # Frontend env (✅ configured)
-├── src/lib/auth.ts              # JWT verification
-├── src/middleware.ts            # Auth middleware
-├── frontend/components/header.tsx # Auth UI
-├── frontend/lib/api-service.ts   # API client
-└── start-dev.sh                 # Dev server script
+├── .env                         # Environment variables (required)
+├── docker-compose.dev.yml       # Infrastructure services
+├── start-services.sh           # Enterprise startup script
+├── Makefile                    # 30+ developer commands
+├── turbo.json                  # Build pipeline config
+├── pnpm-workspace.yaml         # Monorepo workspace
+├── frontend/                   # Next.js application
+├── apps/                       # 8 microservices
+└── infrastructure/             # Database schemas & configs
 ```
-
-## 🔍 Verify Everything Works
-
-1. **Frontend Auth**: You should see your email after login
-2. **Backend API Test**: Should return success with user info
-3. **Console**: No CORS or auth errors
 
 ## 🛠️ Troubleshooting
 
-### "Failed to fetch JWKS"
-- Check if backend is running on port 3000
-- Verify Supabase URL in .env.local
+### Services Not Starting
+```bash
+# Check port conflicts
+make fix-ports
 
-### "Authentication required"
-- Make sure you're logged in via GitHub
-- Check browser DevTools for JWT token
+# Reset and restart
+make clean
+./start-services.sh
+```
 
-### CORS Issues
-- Frontend must run on different port than backend
-- Use the start-dev.sh script which sets PORT=4001
+### Database Issues
+```bash
+# Reset database
+make db-reset
+make db-init
+```
+
+### Build Errors
+```bash
+# Clean and rebuild
+pnpm run clean
+pnpm install
+pnpm run build
+```
 
 ## 🎉 Success!
 
-Your SecureWatch SIEM is ready! The authentication pipeline is:
-```
-GitHub → Supabase → JWT → Frontend → Backend API → Protected Resources
-```
+Your SecureWatch SIEM v2.1.0 is ready! The platform provides:
+- **Enterprise-grade** SIEM capabilities
+- **Splunk-compatible** data ingestion
+- **Real-time** correlation and alerting
+- **Advanced analytics** with KQL support
+- **Professional UI** with dark theme
 
-Next steps:
-- Explore the event logger features
-- Build custom dashboards
-- Add more protected API endpoints
+### Next Steps:
+- Explore the enhanced dashboard features
+- Set up correlation rules for threat detection
+- Configure data sources and ingestion
+- Use the CLI dashboard for monitoring

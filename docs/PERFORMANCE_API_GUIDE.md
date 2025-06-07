@@ -2,10 +2,10 @@
 
 ## Overview
 
-SecureWatch includes two new performance-focused microservices designed to handle enterprise-scale SIEM operations:
+SecureWatch includes performance-focused microservices designed to handle enterprise-scale SIEM operations (v2.1.0 consolidated architecture):
 
 1. **Query Processor Service** (Port 4008) - Async job processing for long-running queries
-2. **Analytics API Service** (Port 4009) - Specialized fast endpoints for dashboard widgets
+2. **Analytics Engine** (Port 4009) - Consolidated analytics + dashboard APIs (merged from analytics-api)
 
 ## Query Processor Service (Port 4008)
 
@@ -145,7 +145,9 @@ socket.on('job:completed', (data) => {
 socket.emit('subscribe:job', 'abc123');
 ```
 
-## Analytics API Service (Port 4009)
+## Analytics Engine (Port 4009)
+
+> **Note**: As of v2.1.0, the Analytics Engine is the consolidated service that merged analytics-api functionality, providing both analytics processing and dashboard APIs in a single optimized service.
 
 ### Base URL
 ```
@@ -310,7 +312,7 @@ Both services provide built-in API documentation:
 # Query Processor API docs
 curl http://localhost:4008/api/docs
 
-# Analytics API docs  
+# Analytics Engine docs  
 curl http://localhost:4009/api/docs
 ```
 
@@ -318,7 +320,7 @@ curl http://localhost:4009/api/docs
 
 ### Caching Strategy
 
-The Analytics API implements intelligent caching with different TTL values:
+The Analytics Engine implements intelligent caching with different TTL values:
 
 - **Critical Alerts**: 15 seconds (high refresh rate)
 - **Total Events**: 30 seconds
@@ -330,7 +332,7 @@ The Analytics API implements intelligent caching with different TTL values:
 ### Rate Limiting
 
 Both services include rate limiting:
-- **Analytics API**: 100 requests/minute per IP
+- **Analytics Engine**: 100 requests/minute per IP
 - **Query Processor**: Configurable per endpoint
 
 ### Multi-tenancy
