@@ -138,6 +138,46 @@ services:
       timeout: 10s
       retries: 3
 
+  # Education Service
+  education-service:
+    build:
+      context: .
+      dockerfile: ./apps/education-service/Dockerfile
+    container_name: securewatch_education
+    ports:
+      - "4011:4011"
+    environment:
+      - PORT=4011
+      - NODE_ENV=production
+      - DB_TYPE=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=eventlogger
+      - DB_PASSWORD=localdevpassword
+      - DB_NAME=securewatch_education
+      - JWT_ACCESS_SECRET=education-service-jwt-secret
+      - FRONTEND_URL=http://localhost:4000
+      - LOG_LEVEL=info
+      - ENROLLMENT_REQUIRED=false
+      - ALLOW_GUEST_ACCESS=true
+      - ENABLE_CERTIFICATIONS=true
+      - ENABLE_LABS=true
+      - ENABLE_ASSESSMENTS=true
+      - MAX_ENROLLMENTS_PER_USER=20
+      - MAX_LAB_DURATION=14400
+      - LAB_DEFAULT_ENVIRONMENT=docker
+      - LAB_CPU_LIMIT=1
+      - LAB_MEMORY_LIMIT=1Gi
+      - LAB_STORAGE_LIMIT=10Gi
+    depends_on:
+      - db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4011/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   pgdata_eventlog: # Defines the named volume for data persistence
     driver: local

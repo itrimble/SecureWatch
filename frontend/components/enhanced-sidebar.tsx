@@ -97,6 +97,7 @@ export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
 
   // System Administration (Splunk Settings)
   const systemAdmin = [
+    { id: "education", label: "Education Center", icon: BookOpen, tooltip: "Training, certifications, and learning paths", href: "/education" },
     { id: "marketplace", label: "Solutions Marketplace", icon: Package, tooltip: "Browse and install security content packs", href: "/marketplace" },
     { id: "user-management", label: "Users & Roles", icon: UserCog, tooltip: "User administration and RBAC", href: "/settings/admin-users" },
     { id: "authentication", label: "Authentication", icon: Lock, tooltip: "SSO and authentication settings" },
