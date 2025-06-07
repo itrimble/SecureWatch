@@ -70,11 +70,11 @@ export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
 
   // Security Solutions (Splunk Security Apps equivalent)
   const securitySolutions = [
-    { id: "incident-response", label: "Incident Investigation", icon: Zap, tooltip: "Security incident management", badge: 5, badgeType: "high" },
-    { id: "threat-hunting", label: "Threat Hunting", icon: Radar, tooltip: "Proactive threat detection" },
-    { id: "ueba", label: "User Behavior Analytics", icon: Brain, tooltip: "UEBA and insider threat detection" },
-    { id: "compliance", label: "Compliance", icon: Lock, tooltip: "Regulatory compliance monitoring" },
-    { id: "vulnerability", label: "Vulnerability Management", icon: Bug, tooltip: "Security vulnerability tracking" },
+    { id: "incident-response", label: "Incident Investigation", icon: Zap, tooltip: "Security incident management", badge: 5, badgeType: "high", href: "/incident-investigation" },
+    { id: "threat-hunting", label: "Threat Hunting", icon: Radar, tooltip: "Proactive threat detection", href: "/explorer" },
+    { id: "ueba", label: "User Behavior Analytics", icon: Brain, tooltip: "UEBA and insider threat detection", href: "/visualizations" },
+    { id: "compliance", label: "Compliance", icon: Lock, tooltip: "Regulatory compliance monitoring", href: "/visualizations" },
+    { id: "vulnerability", label: "Vulnerability Management", icon: Bug, tooltip: "Security vulnerability tracking", href: "/visualizations" },
     { id: "correlation", label: "Correlation Search", icon: GitBranch, tooltip: "Event correlation and rules", badge: 7, badgeType: "medium", href: "/correlation" },
   ]
 
@@ -137,11 +137,12 @@ export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
       <Button
         variant="ghost"
         size={isCollapsed ? "icon" : "default"}
-        onClick={() => handleNavigation(item)}
+        onClick={item.href ? undefined : () => handleNavigation(item)}
         className={cn(
           "w-full justify-start interactive-element",
           isCollapsed ? "px-2" : "px-3",
           isActive ? "nav-active" : "nav-inactive",
+          "transition-all duration-200 hover:bg-accent/80"
         )}
       >
         <item.icon className={cn("h-5 w-5", !isCollapsed && "mr-3")} />
@@ -166,7 +167,7 @@ export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
         <Tooltip>
           <TooltipTrigger asChild>
             {item.href ? (
-              <Link href={item.href} className="w-full">
+              <Link href={item.href} className="w-full block">
                 {content}
               </Link>
             ) : (
