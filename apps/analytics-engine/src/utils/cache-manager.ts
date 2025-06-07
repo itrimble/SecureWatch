@@ -542,4 +542,3 @@ export class CacheManager {
   }
 }
 
-export { CacheManager };

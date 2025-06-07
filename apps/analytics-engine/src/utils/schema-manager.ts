@@ -673,5 +673,3 @@ export class SchemaManager {
     return schema.version;
   }
 }
-
-export { SchemaManager };

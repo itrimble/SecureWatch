@@ -11,7 +11,7 @@ import { MCPMarketplaceService } from './services/marketplace.service.js'
 import { logger } from './utils/logger.js'
 
 const app: express.Application = express()
-const PORT = process.env.MCP_MARKETPLACE_PORT || 4006
+const PORT = process.env.MCP_MARKETPLACE_PORT || 4010
 
 // Middleware
 app.use(helmet())

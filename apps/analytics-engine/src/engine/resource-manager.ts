@@ -550,12 +550,3 @@ interface CleanupResult {
   memoryFreed: number;
   timestamp: Date;
 }
-
-export { 
-  AdvancedResourceManager, 
-  ResourceConfig, 
-  ResourceAllocation, 
-  ResourceUsage, 
-  HealthStatus, 
-  CleanupResult 
-};

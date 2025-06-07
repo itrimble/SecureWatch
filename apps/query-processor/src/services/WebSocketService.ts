@@ -3,7 +3,7 @@
 
 import WebSocket from 'ws';
 import { createServer } from 'http';
-import Redis from 'redis';
+import { createClient } from 'redis';
 import { logger } from '../utils/logger';
 import { WebSocketMessage } from '../types';
 
@@ -29,8 +29,8 @@ export class WebSocketService {
 
     try {
       // Initialize Redis subscriber for job updates
-      this.redis = Redis.createClient({
-        url: process.env.REDIS_URL || 'redis://localhost:6379',
+      this.redis = createClient({
+        url: process.env.REDIS_URL || 'redis://:securewatch_dev@localhost:6379',
       });
       await this.redis.connect();
 

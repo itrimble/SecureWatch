@@ -659,4 +659,3 @@ normalized_events
   }
 }
 
-export { QueryLibrary };

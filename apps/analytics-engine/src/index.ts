@@ -59,7 +59,7 @@ const CONFIG = {
     port: parseInt(process.env.DB_PORT || '5432', 10),
     database: process.env.DB_NAME || 'securewatch',
     user: process.env.DB_USER || 'securewatch',
-    password: process.env.DB_PASSWORD || 'securewatch',
+    password: process.env.DB_PASSWORD || 'securewatch_dev',
     max: parseInt(process.env.DB_POOL_SIZE || '20', 10),
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000
@@ -69,7 +69,7 @@ const CONFIG = {
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
-    password: process.env.REDIS_PASSWORD,
+    password: process.env.REDIS_PASSWORD || 'securewatch_dev',
     db: parseInt(process.env.REDIS_DB || '0', 10),
     retryDelayOnFailover: 100,
     enableReadyCheck: true,

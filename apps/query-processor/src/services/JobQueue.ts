@@ -2,7 +2,7 @@
 // Handles async query execution with priority queues and retry logic
 
 import Bull from 'bull';
-import Redis from 'redis';
+import { createClient } from 'redis';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger';
 import { QueryJob, JobStatus, JobPriority, JobProgress, QueryResult } from '../types';
@@ -14,8 +14,8 @@ export class JobQueue {
 
   constructor() {
     // Initialize Redis connection
-    this.redis = Redis.createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
+    this.redis = createClient({
+      url: process.env.REDIS_URL || 'redis://:securewatch_dev@localhost:6379',
       retry_delay_on_failure: 1000,
       retry_unfulfilled_commands: true,
     });
@@ -25,7 +25,7 @@ export class JobQueue {
       redis: {
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT || '6379', 10),
-        password: process.env.REDIS_PASSWORD,
+        password: process.env.REDIS_PASSWORD || 'securewatch_dev',
         db: parseInt(process.env.REDIS_DB || '0', 10),
       },
       defaultJobOptions: {

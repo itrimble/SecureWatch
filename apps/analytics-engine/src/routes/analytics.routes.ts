@@ -647,4 +647,3 @@ export class AnalyticsRoutes {
   }
 }
 
-export { AnalyticsRoutes };

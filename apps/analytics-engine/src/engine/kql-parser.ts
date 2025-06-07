@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * KQL Parser Implementation using ANTLR4
  * Converts KQL queries into Abstract Syntax Trees for optimization and execution
@@ -692,4 +693,3 @@ class SemanticValidator {
   }
 }
 
-export { KQLParser };

@@ -10,7 +10,7 @@ export class APIService {
   private backendURL: string
 
   constructor() {
-    this.backendURL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:4003/api'
+    this.backendURL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:4009/api'
   }
 
   private async getAuthToken(): Promise<string | null> {

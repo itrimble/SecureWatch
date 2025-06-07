@@ -23,7 +23,7 @@ export class DatabaseService {
       port: parseInt(process.env.DB_PORT || '5432'),
       database: process.env.DB_NAME || 'securewatch',
       user: process.env.DB_USER || 'securewatch',
-      password: process.env.DB_PASSWORD || 'securewatch123',
+      password: process.env.DB_PASSWORD || 'securewatch_dev',
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 2000,
@@ -37,6 +37,20 @@ export class DatabaseService {
    */
   private async initializeTables(): Promise<void> {
     try {
+      // Check if tables already exist
+      const tableCheck = await this.pool.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'mcp_marketplace_entries'
+        )
+      `);
+      
+      if (tableCheck.rows[0].exists) {
+        logger.info('Database tables already exist, skipping initialization');
+        return;
+      }
+      
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS mcp_marketplace_entries (
           id VARCHAR(255) PRIMARY KEY,

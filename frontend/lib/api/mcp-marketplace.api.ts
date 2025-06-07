@@ -3,7 +3,7 @@
  * Connects to the live MCP marketplace service
  */
 
-const MCP_API_BASE = process.env.NEXT_PUBLIC_MCP_API_URL || 'http://localhost:4006/api'
+const MCP_API_BASE = process.env.NEXT_PUBLIC_MCP_API_URL || 'http://localhost:4010/api'
 
 export interface MCPApiResponse<T = any> {
   success: boolean

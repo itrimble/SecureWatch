@@ -631,5 +631,3 @@ class SQLBuilder {
     return `\"${identifier.replace(/\"/g, '\"\"')}\"`;
   }
 }
-
-export { QueryPlanner };
