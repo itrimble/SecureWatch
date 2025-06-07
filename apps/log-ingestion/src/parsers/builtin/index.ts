@@ -5,6 +5,9 @@ export { WindowsSecurityEventParser } from './WindowsSecurityEventParser';
 export { SysmonEventParser } from './SysmonEventParser';
 export { GenericSyslogParser } from './GenericSyslogParser';
 export { ApacheAccessLogParser } from './ApacheAccessLogParser';
+export { PaloAltoFirewallParser } from './PaloAltoFirewallParser';
+export { CiscoASAFirewallParser } from './CiscoASAFirewallParser';
+export { FortiGateFirewallParser } from './FortiGateFirewallParser';
 
 // Additional parsers - simplified implementations for demo
 export class LinuxAuthLogParser {
@@ -158,16 +161,17 @@ export class Office365AuditParser {
   }
 }
 
-export class PaloAltoFirewallParser {
-  id = 'paloalto-pan-os';
-  name = 'Palo Alto PAN-OS Firewall Parser';
+// Legacy simplified PAN-OS parser - replaced by comprehensive implementation
+export class PaloAltoFirewallParserLegacy {
+  id = 'paloalto-pan-os-legacy';
+  name = 'Palo Alto PAN-OS Firewall Parser (Legacy)';
   vendor = 'Palo Alto Networks';
   logSource = 'pan:traffic';
   version = '1.0.0';
   format = 'syslog' as const;
   category = 'network' as const;
-  priority = 80;
-  enabled = true;
+  priority = 70; // Lower priority than comprehensive parser
+  enabled = false; // Disabled in favor of comprehensive parser
 
   validate(rawLog: string): boolean {
     return rawLog.includes(',TRAFFIC,') || rawLog.includes('PAN-OS');
