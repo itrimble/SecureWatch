@@ -1,22 +1,40 @@
 # SecureWatch - Enterprise SIEM Platform
 
-![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
-![Live Pipeline](https://img.shields.io/badge/pipeline-live-success.svg)
-![Data Ingestion](https://img.shields.io/badge/ingestion-splunk--compatible-orange.svg)
-![Architecture](https://img.shields.io/badge/architecture-consolidated-success.svg)
+<p align="center">
+  <img src="frontend/public/securewatch-logo.svg" alt="SecureWatch Logo" width="200">
+</p>
 
 <p align="center">
-  <img src="frontend/public/images/siem-interface.png" alt="SecureWatch SIEM Interface" width="800">
+  <strong>Enterprise-Grade Security Information and Event Management Platform</strong>
+</p>
+
+<p align="center">
+  <img alt="Version" src="https://img.shields.io/badge/version-2.1.0-blue.svg">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg">
+  <img alt="Build Status" src="https://img.shields.io/badge/build-passing-brightgreen.svg">
+  <img alt="Architecture" src="https://img.shields.io/badge/architecture-consolidated-success.svg">
+  <img alt="Services" src="https://img.shields.io/badge/services-8%20core-orange.svg">
+  <img alt="Data Ingestion" src="https://img.shields.io/badge/ingestion-splunk--compatible-orange.svg">
+</p>
+
+<p align="center">
+  <img src="docs/CleanShot 2025-06-07 at 13.26.30.png" alt="SecureWatch SIEM Interface" width="800">
 </p>
 
 ## 🚀 Enterprise-Grade Security Platform
 
 SecureWatch is a comprehensive Security Information and Event Management (SIEM) platform that rivals enterprise solutions like Splunk, Sentinel, and QRadar. Built for modern security operations, it provides advanced threat detection, real-time analytics, and comprehensive data ingestion capabilities.
 
-**🔥 Latest Release: Splunk-Compatible Data Ingestion System**  
-Complete enterprise-grade data ingestion with HTTP Event Collector (HEC), universal syslog support, file upload API, and enhanced agent capabilities.
+**🔥 Latest Release v2.1.0: Major Architecture Consolidation**  
+**95,000+ lines of duplicate code eliminated** • **12+ services consolidated to 8 core services** • **Single enterprise frontend** • **Enhanced performance** • **Fixed React hydration issues** • **Professional dark theme with official branding**
+
+### 🎯 What's New in v2.1.0
+- ✅ **Architecture Consolidation**: Streamlined from 12+ services to 8 core microservices
+- ✅ **Performance Optimized**: Analytics engine consolidated, eliminated port conflicts  
+- ✅ **Frontend Enhanced**: Single enterprise implementation with all features preserved
+- ✅ **Documentation Cleanup**: Comprehensive docs update with 13 obsolete files archived
+- ✅ **Build System Fixed**: All TypeScript compilation issues resolved
+- ✅ **UI Improvements**: Fixed hydration mismatches, enhanced navigation consistency
 
 ## ⭐ Key Features
 
@@ -44,45 +62,52 @@ Complete enterprise-grade data ingestion with HTTP Event Collector (HEC), univer
 - **Audit Trail**: Complete activity logging and forensic capabilities
 - **Data Retention**: Configurable retention policies with hot/cold storage
 
-## 🏗️ Architecture
+## 🏗️ Architecture v2.1.0 - Consolidated & Optimized
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│              SecureWatch SIEM Platform v2.1                    │
+│          SecureWatch SIEM Platform v2.1.0 (8 Core Services)    │
 ├─────────────────────────────────────────────────────────────────┤
-│  Data Ingestion Layer                                          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────┐  │
-│  │ HEC Service │ │   Syslog    │ │ File Upload │ │  Agents  │  │
-│  │   (8888)    │ │ (514,601,   │ │     API     │ │(Enhanced)│  │
-│  │             │ │    6514)    │ │   (4000)    │ │          │  │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────┘  │
-├─────────────────────────────────────────────────────────────────┤
-│  Processing & Analytics Layer                                  │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────┐  │
-│  │Log Ingestion│ │Correlation  │ │ Analytics   │ │  Query   │  │
-│  │   (4002)    │ │ Engine      │ │   Engine    │ │Processor │  │
-│  │             │ │   (4005)    │ │   (4009)    │ │  (4008)  │  │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────┘  │
-├─────────────────────────────────────────────────────────────────┤
-│  Storage Layer                                                 │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐              │
-│  │TimescaleDB  │ │   Kafka     │ │   Redis     │              │
-│  │  (5432)     │ │   (9092)    │ │   (6379)    │              │
-│  └─────────────┘ └─────────────┘ └─────────────┘              │
-├─────────────────────────────────────────────────────────────────┤
-│  API & Services Layer                                          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────┐  │
-│  │ Search API  │ │ Auth Service│ │     MCP     │ │   Rule   │  │
-│  │   (4004)    │ │   (4006)    │ │ Marketplace │ │ Ingestor │  │
-│  │             │ │             │ │   (4010)    │ │  (4011)  │  │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────┘  │
-├─────────────────────────────────────────────────────────────────┤
-│  Frontend Layer                                                │
+│  🌐 Frontend Layer (Single Enterprise Implementation)           │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │                    Next.js Frontend (4000)                  │ │
-│  │         Enterprise UI with Real-time Dashboards             │ │
+│  │                 Next.js 15 Enterprise Frontend (4000)       │ │
+│  │    🎨 Professional Dark Theme • 📱 Responsive Design        │ │
+│  │    🔧 Fixed Hydration • 🏢 Official SecureWatch Branding    │ │
 │  └────────────────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────────────┤
+│  📡 Data Ingestion Layer (Multi-Protocol Support)              │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────┐  │
+│  │ HEC Service │ │   Syslog    │ │ File Upload │ │  Python  │  │
+│  │ Splunk API  │ │ UDP/TCP/TLS │ │  Drag&Drop  │ │  Agent   │  │
+│  │   (8888)    │ │(514,601,6514│ │   via Web   │ │ Enhanced │  │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│  ⚡ Core Processing Services (Consolidated Architecture)        │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────┐  │
+│  │Log Ingestion│ │Search & KQL │ │Correlation  │ │Analytics │  │
+│  │Multi-Format │ │   Engine    │ │   Engine    │ │ Engine   │  │
+│  │   (4002)    │ │   (4004)    │ │   (4005)    │ │ (4009)📊 │  │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────┘  │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────┐  │
+│  │Auth Service │ │Query        │ │    MCP      │ │   CLI    │  │
+│  │JWT/MFA/RBAC │ │Processor    │ │Marketplace  │ │Dashboard │  │
+│  │   (4006)    │ │   (4008)    │ │   (4010)    │ │Enhanced  │  │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│  💾 Storage & Infrastructure Layer                             │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────┐  │
+│  │TimescaleDB  │ │   Redis     │ │    Kafka    │ │OpenSearch│  │
+│  │Time-Series  │ │Cache/Queue  │ │  Streaming  │ │Full-Text │  │
+│  │  (5432)     │ │   (6379)    │ │   (9092)    │ │  (9200)  │  │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────┘  │
 └─────────────────────────────────────────────────────────────────┘
+
+✨ Key Improvements in v2.1.0:
+• 🏗️  Consolidated Architecture: 8 services (down from 12+)
+• 📊 Analytics Engine: Merged analytics-api for better performance  
+• 🎨 Single Frontend: Eliminated duplicate implementations
+• 🔧 Build System: All TypeScript issues resolved
+• 📚 Documentation: Comprehensive cleanup and archival
 ```
 
 ## 🚀 Quick Start
@@ -95,26 +120,35 @@ Complete enterprise-grade data ingestion with HTTP Event Collector (HEC), univer
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/your-org/SecureWatch.git
+git clone https://github.com/itrimble/SecureWatch.git
 cd SecureWatch
 ```
 
 ### 2. Start Platform
 ```bash
-# Enterprise startup (recommended)
-./start.sh
+# Enterprise startup with health monitoring (recommended)
+./start-services.sh
+
+# OR using Makefile commands
+make up              # Start all services
+make status          # Check service health  
+make dashboard       # Launch CLI monitoring
 
 # OR manual startup
-docker compose up -d
+docker compose -f docker-compose.dev.yml up -d
 pnpm install
 pnpm run dev
 ```
 
 ### 3. Access Interfaces
-- **Web Interface**: http://localhost:4000
-- **HEC Service**: http://localhost:8888
-- **Search API**: http://localhost:4004
-- **Correlation Engine**: http://localhost:4005
+- **🌐 Web Interface**: http://localhost:4000 (Enterprise Next.js UI)
+- **🔍 Search & KQL**: http://localhost:4004 (Query engine)
+- **🔗 Correlation Engine**: http://localhost:4005 (Rules & incidents)
+- **🔐 Auth Service**: http://localhost:4006 (JWT/MFA/RBAC)
+- **⚡ Query Processor**: http://localhost:4008 (Async jobs)
+- **📊 Analytics Engine**: http://localhost:4009 (Dashboards & widgets)
+- **🛒 MCP Marketplace**: http://localhost:4010 (Integrations)
+- **📡 HEC Service**: http://localhost:8888 (Splunk-compatible API)
 
 ### 4. Start Data Collection
 ```bash
@@ -239,11 +273,19 @@ SecurityEvent
 # Platform health
 curl http://localhost:4000/api/health
 
-# Service-specific health
-curl http://localhost:8888/health      # HEC
+# All 8 core services health checks
 curl http://localhost:4002/health      # Log Ingestion
-curl http://localhost:4004/health      # Search API
-curl http://localhost:4005/health      # Correlation
+curl http://localhost:4004/health      # Search API & KQL Engine
+curl http://localhost:4005/health      # Correlation Engine
+curl http://localhost:4006/health      # Auth Service
+curl http://localhost:4008/health      # Query Processor
+curl http://localhost:4009/health      # Analytics Engine (Consolidated)
+curl http://localhost:4010/health      # MCP Marketplace
+curl http://localhost:8888/health      # HEC Service
+
+# Using Makefile for comprehensive health checks
+make status                            # All services health summary
+make health                           # Detailed health report
 ```
 
 ### Performance Metrics
@@ -257,17 +299,22 @@ curl http://localhost:4002/adapters/syslog/stats
 curl http://localhost:8888/admin/stats
 ```
 
-### CLI Dashboard
+### Enhanced CLI Dashboard v2.0
 ```bash
-# Enhanced terminal dashboard
+# Enhanced terminal dashboard with service monitoring
 ./cli-dashboard.sh enhanced
 
-# Rich widgets dashboard
+# Rich widgets dashboard with charts and graphs
 ./cli-dashboard.sh blessed-contrib
 
-# Service control
-./cli-dashboard.sh control start HEC
-./cli-dashboard.sh logs --service "Search API"
+# Service control capabilities
+./cli-dashboard.sh control start "Analytics Engine"
+./cli-dashboard.sh control stop "Query Processor" 
+./cli-dashboard.sh control restart all
+
+# Real-time logs viewing
+./cli-dashboard.sh logs --service "Search API" --lines 100
+./cli-dashboard.sh status --detailed
 ```
 
 ## 🏢 Enterprise Deployment
@@ -329,18 +376,26 @@ kubectl apply -f infrastructure/kubernetes/securewatch-platform.yaml
 
 ### Local Development
 ```bash
-# Install dependencies
+# Install dependencies (monorepo with workspaces)
 pnpm install
 
-# Start development services
-./start-dev.sh
+# Start development services with monitoring
+./start-services.sh --debug
 
-# Run tests
-pnpm test
-pnpm test:e2e
+# Using Makefile for development
+make dev                # Start in development mode
+make build              # Build all services and packages
+make test               # Run test suites
+make clean              # Clean build artifacts
 
-# Build for production
-pnpm build
+# Individual service development
+cd apps/analytics-engine && pnpm run dev
+cd frontend && pnpm run dev
+
+# Turborepo commands for monorepo
+pnpm run build          # Build all packages in dependency order
+pnpm run typecheck      # TypeScript validation across workspaces
+pnpm run lint           # ESLint across all packages
 ```
 
 ### Contributing
@@ -438,8 +493,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ for the cybersecurity community**
 
-[![Stars](https://img.shields.io/github/stars/your-org/SecureWatch?style=social)](https://github.com/your-org/SecureWatch)
-[![Forks](https://img.shields.io/github/forks/your-org/SecureWatch?style=social)](https://github.com/your-org/SecureWatch)
-[![Contributors](https://img.shields.io/github/contributors/your-org/SecureWatch)](https://github.com/your-org/SecureWatch/graphs/contributors)
+[![Stars](https://img.shields.io/github/stars/itrimble/SecureWatch?style=social)](https://github.com/itrimble/SecureWatch)
+[![Forks](https://img.shields.io/github/forks/itrimble/SecureWatch?style=social)](https://github.com/itrimble/SecureWatch)
+[![Contributors](https://img.shields.io/github/contributors/itrimble/SecureWatch)](https://github.com/itrimble/SecureWatch/graphs/contributors)
 
 > **Enterprise-grade SIEM platform with Splunk-compatible data ingestion, real-time analytics, and comprehensive threat detection capabilities** 🚀
