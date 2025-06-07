@@ -7,5 +7,14 @@ import {
 } from 'next-themes'
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+  return (
+    <NextThemesProvider 
+      {...props}
+      // Prevent hydration mismatches
+      disableTransitionOnChange={false}
+      enableColorScheme={false}
+    >
+      {children}
+    </NextThemesProvider>
+  )
 }

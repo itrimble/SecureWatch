@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Sun, Moon, Monitor } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,12 @@ import { Badge } from '@/components/ui/badge'
 
 export function ThemeToggle() {
   const { theme, setTheme, systemTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const getThemeIcon = (currentTheme: string | undefined) => {
     switch (currentTheme) {
@@ -34,6 +40,16 @@ export function ThemeToggle() {
       default:
         return 'System'
     }
+  }
+
+  // Prevent hydration mismatch by showing fallback until mounted
+  if (!mounted) {
+    return (
+      <Button variant="outline" size="sm" className="w-auto">
+        <Monitor className="h-4 w-4" />
+        <span className="ml-2 hidden sm:inline-block">System</span>
+      </Button>
+    )
   }
 
   return (
