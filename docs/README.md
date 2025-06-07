@@ -119,7 +119,7 @@ Enterprise-grade performance enhancements for handling large-scale SIEM operatio
 - **Continuous Aggregate Queries**: Direct access to pre-computed metrics
 - **Rate Limiting**: Built-in protection (100 requests/minute per IP)
 - **Performance Monitoring**: Real-time cache hit rates and system metrics
-- **Implementation**: `/apps/analytics-api/` - Complete microservice with specialized endpoints
+- **Implementation**: `/apps/analytics-engine/` - Consolidated microservice with specialized endpoints
   - Dashboard endpoints: `/api/dashboard/*` (realtime-overview, hourly-trends, etc.)
   - Widget endpoints: `/api/widgets/*` (total-events, critical-alerts, etc.)
 

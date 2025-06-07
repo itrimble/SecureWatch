@@ -5,7 +5,7 @@
 This comprehensive security-focused bug analysis reveals critical vulnerabilities and operational issues across the SecureWatch SIEM platform. **5 critical security vulnerabilities** and **12 high-priority bugs** require immediate attention to prevent security breaches and ensure production readiness.
 
 **Services Status:**
-- ✅ **Running**: frontend:4000, search-api:4004, log-ingestion:4002, auth-service:4006, analytics-api:4009
+- ✅ **Running**: frontend:4000, search-api:4004, log-ingestion:4002, auth-service:4006, analytics-engine:4009
 - ❌ **Failing**: query-processor:4008, correlation-engine:4005, mcp-marketplace:4010
 
 ---
@@ -50,7 +50,7 @@ This comprehensive security-focused bug analysis reveals critical vulnerabilitie
 - `apps/log-ingestion/src/integration-service.ts` - Replaced console logging with winston
 - `apps/analytics-engine/src/routes/analytics.routes.ts` - Added logger and fixed console statements
 - `apps/log-ingestion/src/sources/syslog-source.ts` - Replaced console logging with winston
-- `apps/analytics-api/src/index.ts` - Fixed error information leakage
+- `apps/analytics-engine/src/index.ts` - Fixed error information leakage
 - `apps/query-processor/src/index.ts` - Fixed error information leakage
 - `apps/mcp-marketplace/src/index.ts` - Fixed error information leakage
 - `apps/search-api/src/middleware/auth.ts` - Removed development security bypass
@@ -129,7 +129,7 @@ Error: Cannot find module '../utils/logger'
 **Fix**: Create missing logger utility or fix import path
 
 ### 7. **Analytics API Missing Database Aggregates**
-**Location**: `/tmp/analytics-api.log:9-14`
+**Location**: `/tmp/analytics-engine.log:9-14`
 ```
 Missing continuous aggregates: realtime_security_events, hourly_security_metrics, 
 daily_security_summary, source_health_metrics, alert_performance_metrics
@@ -163,7 +163,7 @@ error: process.env.NODE_ENV === 'development' ? err.message : undefined
 **Fix**: Implement proper error sanitization
 
 ### 11. **Insecure Default Database Password**
-**Location**: Previously fixed in analytics-api, but pattern exists
+**Location**: Previously fixed in analytics-engine, but pattern exists
 ```typescript
 password: process.env.DB_PASSWORD || 'securewatch'
 ```

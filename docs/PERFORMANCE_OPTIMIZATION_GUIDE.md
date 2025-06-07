@@ -152,14 +152,14 @@ POST /api/jobs/:id/cancel      // Cancel running job
 GET  /api/jobs/list            // List user jobs
 ```
 
-### 4. Specialized Analytics-API Service
+### 4. Consolidated Analytics Engine Service
 
 **Problem**: Generic `/query` endpoint too slow for dashboard widgets.
 
-**Solution**: Dedicated analytics-api service with optimized endpoints
+**Solution**: Consolidated analytics-engine service with optimized endpoints
 
 #### Implementation Details
-- **Service**: `/apps/analytics-api/` (Port 4009)
+- **Service**: `/apps/analytics-engine/` (Port 4009) - Consolidated from analytics-api
 - **Caching**: NodeCache with endpoint-specific TTL
 - **Rate Limiting**: 100 requests/minute per IP
 - **Monitoring**: Built-in performance metrics
@@ -332,7 +332,7 @@ const cacheTTL = {
    
    # Start performance services
    cd apps/query-processor && npm run dev
-   cd apps/analytics-api && npm run dev
+   cd apps/analytics-engine && npm run dev
    ```
 
 ## Troubleshooting

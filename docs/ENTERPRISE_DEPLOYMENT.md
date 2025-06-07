@@ -6,19 +6,22 @@
 
 This guide provides comprehensive instructions for deploying SecureWatch SIEM platform in enterprise environments with enterprise-grade resilience, monitoring, and scalability.
 
-## 🏗️ Architecture Summary
+## 🏗️ Architecture Summary (v2.1.0 Consolidated)
 
 ```
-┌─────────────────┬──────┬─────────────────────────────────┐
-│ Component       │ Port │ Status                          │
-├─────────────────┼──────┼─────────────────────────────────┤
-│ Frontend        │ 4000 │ ✅ Production Ready             │
-│ Auth Service    │ 4001 │ ⚠️  Ready (OAuth integration)   │
-│ Log Ingestion   │ 4002 │ ✅ Processing 15 events/batch   │
-│ API Gateway     │ 4003 │ ⚠️  Ready (not integrated)     │
-│ Search API      │ 4004 │ ✅ KQL engine operational       │
-│ Analytics       │ 4005 │ ⚠️  Ready (ML capabilities)     │
-└─────────────────┴──────┴─────────────────────────────────┘
+┌─────────────────────┬──────┬─────────────────────────────────┐
+│ Component           │ Port │ Status                          │
+├─────────────────────┼──────┼─────────────────────────────────┤
+│ Frontend            │ 4000 │ ✅ Production Ready             │
+│ Log Ingestion       │ 4002 │ ✅ Multi-format processing      │
+│ Search API          │ 4004 │ ✅ KQL engine operational       │
+│ Correlation Engine  │ 4005 │ ✅ Real-time correlation        │
+│ Auth Service        │ 4006 │ ✅ OAuth, JWT, MFA ready        │
+│ Query Processor     │ 4008 │ ✅ Async job processing         │
+│ Analytics Engine    │ 4009 │ ✅ Consolidated dashboards      │
+│ MCP Marketplace     │ 4010 │ ✅ Integration ready            │
+│ HEC Service         │ 8888 │ ✅ Splunk-compatible            │
+└─────────────────────┴──────┴─────────────────────────────────┘
 ```
 
 ## 🚀 Quick Production Deployment

@@ -542,7 +542,7 @@ graph TB
     subgraph "Application Layer"
         subgraph "Frontend Cluster"
             FE1[Frontend-1<br/>Next.js<br/>Port 4000]
-            FE2[Frontend-2<br/>Next.js<br/>Port 4001]
+            FE2[Frontend-2<br/>Next.js<br/>Port 4000]
             FE3[Frontend-3<br/>Next.js<br/>Port 4002]
         end
         
@@ -559,11 +559,11 @@ graph TB
             
             subgraph "Ingestion Service Cluster"
                 IN1[Ingestion-1<br/>Port 4002]
-                IN2[Ingestion-2<br/>Port 4003]
+                IN2[Ingestion-2<br/>Port 4002]
             end
             
             subgraph "Specialized Services"
-                AUTH[Auth Service<br/>JWT/OAuth<br/>Port 4007]
+                AUTH[Auth Service<br/>JWT/OAuth<br/>Port 4006]
                 ALERT[Alert Service<br/>Rule Engine<br/>Port 4008]
                 REPORT[Report Service<br/>Scheduler<br/>Port 4009]
             end
