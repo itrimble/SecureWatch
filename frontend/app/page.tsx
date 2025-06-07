@@ -22,7 +22,6 @@ import {
   ChevronRight,
   CheckCircle,
   XCircle,
-  ExclamationTriangle,
   Zap,
   Globe,
   TrendingUp,
@@ -94,9 +93,11 @@ const mockServices = [
 export default function HomePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
+    // Initialize current time on client side only to avoid hydration mismatch
+    setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
@@ -120,7 +121,7 @@ export default function HomePage() {
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'critical': return <XCircle className="w-4 h-4 text-alert-critical" />;
-      case 'high': return <ExclamationTriangle className="w-4 h-4 text-alert-high" />;
+      case 'high': return <AlertTriangle className="w-4 h-4 text-alert-high" />;
       default: return <AlertTriangle className="w-4 h-4 text-alert-medium" />;
     }
   };
@@ -128,7 +129,7 @@ export default function HomePage() {
   const getServiceStatusIcon = (status: string) => {
     switch (status) {
       case 'healthy': return <CheckCircle className="w-4 h-4 text-alert-success" />;
-      case 'warning': return <ExclamationTriangle className="w-4 h-4 text-alert-medium" />;
+      case 'warning': return <AlertTriangle className="w-4 h-4 text-alert-medium" />;
       case 'error': return <XCircle className="w-4 h-4 text-alert-critical" />;
       default: return <XCircle className="w-4 h-4 text-muted-foreground" />;
     }
@@ -201,7 +202,7 @@ export default function HomePage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Security Operations Center</h1>
           <p className="text-gray-400">
-            Welcome back! Current time: {currentTime.toLocaleString()}
+            Welcome back! Current time: {currentTime ? currentTime.toLocaleString() : 'Loading...'}
           </p>
         </div>
 

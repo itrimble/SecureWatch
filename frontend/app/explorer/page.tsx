@@ -248,7 +248,7 @@ export default function ExplorerPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchStatus, setSearchStatus] = useState<'idle' | 'running' | 'completed' | 'error'>('idle');
   const [selectedTimeRange, setSelectedTimeRange] = useState('24h');
-  const [customTimeRange, setCustomTimeRange] = useState({ start: new Date(), end: new Date() });
+  const [customTimeRange, setCustomTimeRange] = useState<{ start: Date | null, end: Date | null }>({ start: null, end: null });
   const [isCustomTimeOpen, setIsCustomTimeOpen] = useState(false);
   const [searchResults, setSearchResults] = useState(mockSearchResults);
   const [queryHistory, setQueryHistory] = useState<string[]>([]);
@@ -268,6 +268,11 @@ export default function ExplorerPage() {
     return () => {
       isMountedRef.current = false;
     };
+  }, []);
+
+  useEffect(() => {
+    // Initialize custom time range on client side to avoid hydration mismatch
+    setCustomTimeRange({ start: new Date(), end: new Date() });
   }, []);
 
   useEffect(() => {
@@ -597,7 +602,10 @@ export default function ExplorerPage() {
                       <div className="space-y-2">
                         <Calendar
                           mode="range"
-                          selected={{ from: customTimeRange.start, to: customTimeRange.end }}
+                          selected={{ 
+                            from: customTimeRange.start || undefined, 
+                            to: customTimeRange.end || undefined 
+                          }}
                           onSelect={(range) => {
                             if (range?.from && range?.to) {
                               setCustomTimeRange({ start: range.from, end: range.to });
