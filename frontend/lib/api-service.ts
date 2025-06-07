@@ -15,8 +15,20 @@ export class APIService {
 
   private async getAuthToken(): Promise<string | null> {
     const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    return session?.access_token || null
+    
+    // If Supabase is not configured, return null (no auth required)
+    if (!supabase) {
+      return null
+    }
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      return session?.access_token || null
+    } catch (error) {
+      // If authentication fails, continue without auth
+      console.warn('Authentication failed, continuing without auth:', error)
+      return null
+    }
   }
 
   async request<T = any>(endpoint: string, options: ApiOptions = {}): Promise<T> {
