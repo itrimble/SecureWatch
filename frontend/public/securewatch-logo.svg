@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="240" viewBox="0 0 200 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shield Shape -->
+  <path d="M100 10 L180 50 L180 130 C180 180 100 210 100 210 C100 210 20 180 20 130 L20 50 L100 10 Z" fill="#1a2f5a" stroke="#1a2f5a" stroke-width="2"/>
+  
+  <!-- Circuit Pattern Left -->
+  <path d="M30 60 L30 80 L40 90 L40 110 M35 70 L45 70 M45 100 L55 100" stroke="#4a5f8a" stroke-width="2" fill="none" opacity="0.6"/>
+  <circle cx="30" cy="60" r="3" fill="#4a5f8a" opacity="0.6"/>
+  <circle cx="40" cy="90" r="3" fill="#4a5f8a" opacity="0.6"/>
+  <circle cx="40" cy="110" r="3" fill="#4a5f8a" opacity="0.6"/>
+  
+  <!-- Circuit Pattern Right -->
+  <path d="M170 60 L170 80 L160 90 L160 110 M165 70 L155 70 M155 100 L145 100" stroke="#4a5f8a" stroke-width="2" fill="none" opacity="0.6"/>
+  <circle cx="170" cy="60" r="3" fill="#4a5f8a" opacity="0.6"/>
+  <circle cx="160" cy="90" r="3" fill="#4a5f8a" opacity="0.6"/>
+  <circle cx="160" cy="110" r="3" fill="#4a5f8a" opacity="0.6"/>
+  
+  <!-- SW Text -->
+  <text x="100" y="90" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="white">SW</text>
+  
+  <!-- SecureWatch Text -->
+  <text x="100" y="170" font-family="Arial, sans-serif" font-size="32" font-weight="600" text-anchor="middle" fill="#1a2f5a">SecureWatch</text>
+  
+  <!-- Globe/Security Icon in O -->
+  <circle cx="100" cy="156" r="8" fill="none" stroke="#1a2f5a" stroke-width="2"/>
+  <circle cx="100" cy="156" r="3" fill="#1a2f5a"/>
+  
+  <!-- SIEM Text -->
+  <text x="100" y="210" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="middle" fill="#4a5f8a" letter-spacing="4">SIEM</text>
+</svg>
