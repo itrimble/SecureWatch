@@ -6,7 +6,7 @@ export declare class ValidationMiddleware {
     private maxEventsPerBatch;
     constructor(maxEventSize?: number, maxBatchSize?: number, maxEventsPerBatch?: number);
     private hecEventSchema;
-    private hecBatchSchema;
+    private get hecBatchSchema();
     getQueryValidation(): ValidationChain[];
     checkRequestSize: (req: Request, res: Response, next: NextFunction) => void;
     validateSingleEvent: (req: Request, res: Response, next: NextFunction) => void;

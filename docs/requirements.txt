@@ -1,0 +1,13 @@
+# Documentation dependencies for ReadTheDocs
+sphinx>=7.0
+furo>=2024.1.29
+myst-parser>=2.0
+sphinx-copybutton>=0.5.2
+sphinx-tabs>=3.4.5
+sphinxcontrib-mermaid>=0.9.2
+sphinx-design>=0.5.0
+
+# Optional dependencies for enhanced features
+sphinx-autobuild>=2021.3.14
+sphinx-external-toc>=1.0.1
+sphinxext-opengraph>=0.9.1

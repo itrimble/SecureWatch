@@ -18,7 +18,7 @@ import {
   Moon,
   User,
   Star,
-  DocumentText,
+  FileText,
   ChevronRight,
   CheckCircle,
   XCircle,
@@ -28,11 +28,13 @@ import {
   Clock,
   AlertTriangle,
   Server,
-  Eye
+  Eye,
+  Target
 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { FirstRunExperience } from '@/components/onboarding/first-run-experience';
 
 // Mock data for demonstration
 const mockAlertData = [
@@ -138,7 +140,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Top Navigation Bar */}
-      <header className="bg-card border-b border-border px-6 py-4">
+      <header className="bg-card border-b border-border px-6 py-4 main-navigation">
         <div className="flex items-center justify-between">
           {/* Left: Logo + Global Search */}
           <div className="flex items-center space-x-6">
@@ -147,7 +149,7 @@ export default function HomePage() {
               <span className="text-xl font-bold text-foreground">SecureWatch</span>
             </div>
             
-            <form onSubmit={handleSearch} className="flex items-center">
+            <form onSubmit={handleSearch} className="flex items-center global-search">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
@@ -200,16 +202,40 @@ export default function HomePage() {
       <main className="p-6">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Security Operations Center</h1>
-          <p className="text-gray-400">
-            Welcome back! Current time: {currentTime ? currentTime.toLocaleString() : 'Loading...'}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Security Operations Center</h1>
+              <p className="text-gray-400">
+                Welcome back! Current time: {currentTime ? currentTime.toLocaleString() : 'Loading...'}
+              </p>
+            </div>
+            
+            {/* Quick Start CTA */}
+            <Card className="bg-gradient-to-r from-blue-600 to-purple-600 border-0 text-white quick-start-cta">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div>
+                    <h3 className="font-semibold text-sm">New to SecureWatch?</h3>
+                    <p className="text-xs opacity-90">Start with our interactive guide</p>
+                  </div>
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={() => router.push('/quick-start')}
+                  >
+                    <Target className="w-4 h-4 mr-2" />
+                    Quick Start
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Row 1: Key Security Posture & System Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Critical Alerts Today */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-gray-800 border-gray-700 critical-alerts-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
                 <Shield className="w-5 h-5 mr-2 text-red-400" />
@@ -255,7 +281,7 @@ export default function HomePage() {
           </Card>
 
           {/* Data Ingestion Status */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-gray-800 border-gray-700 data-ingestion-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
                 <Database className="w-5 h-5 mr-2 text-blue-400" />
@@ -310,7 +336,7 @@ export default function HomePage() {
           </Card>
 
           {/* Platform Health */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-gray-800 border-gray-700 platform-health-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
                 <Heart className="w-5 h-5 mr-2 text-green-400" />
@@ -352,7 +378,7 @@ export default function HomePage() {
         {/* Row 2: Recent Activity & Threat Intelligence */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Recent Critical Alerts Feed */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-gray-800 border-gray-700 recent-alerts-feed">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
                 <Zap className="w-5 h-5 mr-2 text-yellow-400" />
@@ -388,7 +414,7 @@ export default function HomePage() {
           </Card>
 
           {/* Threat Intelligence Overview */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-gray-800 border-gray-700 threat-intelligence-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
                 <Globe className="w-5 h-5 mr-2 text-purple-400" />
@@ -491,10 +517,10 @@ export default function HomePage() {
           </Card>
 
           {/* Saved Searches */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-gray-800 border-gray-700 quick-hunt-searches">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
-                <DocumentText className="w-5 h-5 mr-2 text-green-400" />
+                <FileText className="w-5 h-5 mr-2 text-green-400" />
                 Quick Hunt Searches
               </CardTitle>
             </CardHeader>
@@ -527,6 +553,9 @@ export default function HomePage() {
           </Card>
         </div>
       </main>
+      
+      {/* First Run Experience */}
+      <FirstRunExperience />
     </div>
   );
 }

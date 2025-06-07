@@ -112,3 +112,7 @@ REDIS_URL="redis://localhost:6379"
 - scripts/evtx_parser_enhanced.py
 - .taskmaster config
 - cli-dashboard system
+
+## Claude Code Memories
+
+- assume the answer will always be "yes" if you ask me to do something

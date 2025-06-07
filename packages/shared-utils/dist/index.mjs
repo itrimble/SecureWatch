@@ -62,8 +62,51 @@ var ALERT_SEVERITY = {
   HIGH: "high",
   CRITICAL: "critical"
 };
+
+// src/circuit-breaker.ts
+var CircuitBreaker = class {
+  constructor(threshold = 5, timeout = 6e4) {
+    this.threshold = threshold;
+    this.timeout = timeout;
+  }
+  failureCount = 0;
+  lastFailureTime = 0;
+  state = "CLOSED";
+  async execute(fn) {
+    if (this.state === "OPEN") {
+      if (Date.now() - this.lastFailureTime > this.timeout) {
+        this.state = "HALF_OPEN";
+      } else {
+        throw new Error("Circuit breaker is OPEN");
+      }
+    }
+    try {
+      const result = await fn();
+      this.onSuccess();
+      return result;
+    } catch (error) {
+      this.onFailure();
+      throw error;
+    }
+  }
+  onSuccess() {
+    this.failureCount = 0;
+    this.state = "CLOSED";
+  }
+  onFailure() {
+    this.failureCount++;
+    this.lastFailureTime = Date.now();
+    if (this.failureCount >= this.threshold) {
+      this.state = "OPEN";
+    }
+  }
+  getState() {
+    return this.state;
+  }
+};
 export {
   ALERT_SEVERITY,
+  CircuitBreaker,
   HTTP_STATUS_CODES,
   LOG_LEVELS,
   TIME_RANGES,

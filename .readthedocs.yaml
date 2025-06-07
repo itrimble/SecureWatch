@@ -1,0 +1,43 @@
+# ReadTheDocs configuration file for SecureWatch SIEM Platform
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+# Required
+version: 2
+
+# Set the version of Python and other tools you might need
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "3.12"
+  jobs:
+    post_create_environment:
+      # Install latest pip and setuptools for better dependency resolution
+      - pip install --upgrade pip setuptools wheel
+    post_install:
+      # Install any additional dependencies that might be needed
+      - echo "Documentation build environment ready"
+
+# Build documentation with Sphinx
+sphinx:
+  configuration: docs/conf.py
+  # Fail the build if there are any warnings
+  fail_on_warning: false
+
+# Optionally declare the Python requirements required to build your docs
+python:
+  install:
+    - requirements: docs/requirements.txt
+
+# Optional: Set the formats you want to build
+# formats:
+#   - pdf
+#   - epub
+
+# Optional: Set the version shown in the version selector
+# version: 2.1.0
+
+# Optional: Redirect configuration
+# redirects:
+#   - from: /en/latest/
+#     to: /en/stable/
+#     type: page

@@ -24,7 +24,7 @@ import {
   Monitor,
   Server,
   Terminal,
-  Window,
+  Monitor as Window,
   Globe,
   Shield,
   Database,

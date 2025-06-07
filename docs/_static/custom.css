@@ -1,0 +1,228 @@
+/* Custom CSS for SecureWatch SIEM Platform Documentation */
+
+/* Brand colors */
+:root {
+  --securewatch-primary: #2563eb;
+  --securewatch-secondary: #3b82f6;
+  --securewatch-accent: #1e40af;
+  --securewatch-success: #16a34a;
+  --securewatch-warning: #d97706;
+  --securewatch-danger: #dc2626;
+  --securewatch-dark: #1f2937;
+  --securewatch-light: #f8fafc;
+}
+
+/* Logo styling */
+.logo img {
+  max-height: 40px;
+  width: auto;
+}
+
+/* Header improvements */
+.sidebar-header {
+  background: linear-gradient(135deg, var(--securewatch-primary) 0%, var(--securewatch-secondary) 100%);
+}
+
+.sidebar-header .sidebar-header-items__start {
+  color: white;
+}
+
+/* Code blocks with copy button styling */
+.highlight {
+  position: relative;
+}
+
+.copybtn {
+  background: var(--securewatch-primary);
+  border: none;
+  color: white;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.copybtn:hover {
+  opacity: 1;
+  background: var(--securewatch-accent);
+}
+
+/* Admonition styling */
+.admonition {
+  border-left: 4px solid var(--securewatch-primary);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.admonition.tip {
+  border-left-color: var(--securewatch-success);
+}
+
+.admonition.warning {
+  border-left-color: var(--securewatch-warning);
+}
+
+.admonition.danger {
+  border-left-color: var(--securewatch-danger);
+}
+
+/* Grid card styling for better visual hierarchy */
+.sd-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid rgba(37, 99, 235, 0.1);
+}
+
+.sd-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.15);
+}
+
+.sd-card-header {
+  font-weight: 600;
+  font-size: 1.1em;
+}
+
+/* Navigation improvements */
+.toctree-wrapper .caption {
+  color: var(--securewatch-primary);
+  font-weight: 600;
+  font-size: 1.1em;
+  margin-bottom: 0.5rem;
+}
+
+/* Mermaid diagram styling */
+.mermaid {
+  text-align: center;
+  margin: 2rem 0;
+}
+
+/* Table improvements */
+table.docutils {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+table.docutils th {
+  background: var(--securewatch-primary);
+  color: white;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+table.docutils td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+table.docutils tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Code syntax highlighting improvements */
+.highlight .k { color: var(--securewatch-primary); font-weight: bold; }
+.highlight .s { color: var(--securewatch-success); }
+.highlight .c { color: #6b7280; font-style: italic; }
+.highlight .n { color: var(--securewatch-dark); }
+
+/* Search box styling */
+.search-input {
+  border: 2px solid var(--securewatch-primary);
+  border-radius: 6px;
+  padding: 0.5rem;
+}
+
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Footer improvements */
+.footer {
+  border-top: 1px solid var(--securewatch-primary);
+  margin-top: 3rem;
+  padding-top: 2rem;
+  color: #6b7280;
+}
+
+/* Version information */
+.version {
+  background: var(--securewatch-primary);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .sd-card {
+    margin-bottom: 1rem;
+  }
+  
+  .mermaid {
+    font-size: 0.8rem;
+  }
+  
+  table.docutils {
+    font-size: 0.875rem;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  table.docutils tr:hover {
+    background-color: #374151;
+  }
+  
+  .highlight .n {
+    color: #e5e7eb;
+  }
+}
+
+/* Print styles */
+@media print {
+  .sidebar, .toctree-wrapper {
+    display: none;
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+  
+  .sd-card {
+    border: 1px solid #ccc;
+    break-inside: avoid;
+  }
+}
+
+/* Accessibility improvements */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus indicators */
+a:focus, button:focus {
+  outline: 2px solid var(--securewatch-primary);
+  outline-offset: 2px;
+}
+
+/* Animation for loading states */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

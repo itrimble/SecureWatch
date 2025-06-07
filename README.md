@@ -1,5 +1,7 @@
 # SecureWatch - Enterprise SIEM Platform
 
+[![Documentation Status](https://readthedocs.org/projects/securewatch/badge/?version=latest)](https://securewatch.readthedocs.io/en/latest/?badge=latest)
+
 <p align="center">
   <img src="frontend/public/securewatch-logo.svg" alt="SecureWatch Logo" width="200">
 </p>

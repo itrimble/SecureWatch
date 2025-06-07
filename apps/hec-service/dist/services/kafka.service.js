@@ -76,8 +76,8 @@ class KafkaService {
         }
         try {
             const message = {
-                key: event.metadata.organizationId,
-                value: JSON.stringify(event),
+                key: Buffer.from(event.metadata.organizationId),
+                value: Buffer.from(JSON.stringify(event)),
                 timestamp: event.metadata.receivedAt.getTime().toString(),
                 headers: {
                     'event-type': 'hec-event',
@@ -119,8 +119,8 @@ class KafkaService {
         }
         try {
             const messages = events.map(event => ({
-                key: event.metadata.organizationId,
-                value: JSON.stringify(event),
+                key: Buffer.from(event.metadata.organizationId),
+                value: Buffer.from(JSON.stringify(event)),
                 timestamp: event.metadata.receivedAt.getTime().toString(),
                 headers: {
                     'event-type': 'hec-event',

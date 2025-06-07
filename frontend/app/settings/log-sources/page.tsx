@@ -14,7 +14,7 @@ import {
   Search,
   Filter,
   CheckCircle,
-  ExclamationTriangle,
+  AlertTriangle,
   XCircle,
   Edit as EditIcon,
   Trash as TrashIcon,
@@ -117,7 +117,7 @@ const statusConfig = {
     label: 'Healthy'
   },
   warning: { 
-    icon: ExclamationTriangle, 
+    icon: AlertTriangle, 
     color: 'text-yellow-500', 
     bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
     label: 'Warning'

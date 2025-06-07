@@ -18,15 +18,6 @@ class ValidationMiddleware {
             event: joi_1.default.any().required(),
             fields: joi_1.default.object().optional()
         });
-        this.hecBatchSchema = joi_1.default.object({
-            events: joi_1.default.array().items(this.hecEventSchema).min(1).max(this.maxEventsPerBatch).required(),
-            metadata: joi_1.default.object({
-                source: joi_1.default.string().max(255).optional(),
-                sourcetype: joi_1.default.string().max(255).optional(),
-                index: joi_1.default.string().max(255).optional(),
-                host: joi_1.default.string().max(255).optional()
-            }).optional()
-        });
         this.checkRequestSize = (req, res, next) => {
             const contentLength = parseInt(req.headers['content-length'] || '0');
             if (contentLength > this.maxBatchSize) {
@@ -111,7 +102,7 @@ class ValidationMiddleware {
         };
         this.validateBatchEvents = (req, res, next) => {
             try {
-                const errors = validationResult(req);
+                const errors = (0, express_validator_1.validationResult)(req);
                 if (!errors.isEmpty()) {
                     logger_1.default.warn('Query parameter validation failed', {
                         errors: errors.array(),
@@ -145,26 +136,26 @@ class ValidationMiddleware {
                     });
                     return;
                 }
-                const validationResult = this.validateBatchContent(value.events);
-                if (!validationResult.isValid) {
+                const batchValidationResult = this.validateBatchContent(value.events);
+                if (!batchValidationResult.isValid) {
                     logger_1.default.warn('Batch content validation failed', {
-                        errors: validationResult.errors,
+                        errors: batchValidationResult.errors,
                         eventCount: value.events.length,
-                        estimatedSize: validationResult.estimatedSize,
+                        estimatedSize: batchValidationResult.estimatedSize,
                         ip: req.clientIp,
                         tokenId: req.hecToken?.id
                     });
                     res.status(400).json({
-                        text: `Batch validation failed: ${validationResult.errors.join(', ')}`,
+                        text: `Batch validation failed: ${batchValidationResult.errors.join(', ')}`,
                         code: 400,
                         invalid: true,
-                        errors: validationResult.errors
+                        errors: batchValidationResult.errors
                     });
                     return;
                 }
                 logger_1.default.debug('Batch validation successful', {
-                    eventCount: validationResult.eventCount,
-                    estimatedSize: validationResult.estimatedSize,
+                    eventCount: batchValidationResult.eventCount,
+                    estimatedSize: batchValidationResult.estimatedSize,
                     ip: req.clientIp,
                     tokenId: req.hecToken?.id
                 });
@@ -233,6 +224,17 @@ class ValidationMiddleware {
         this.maxEventSize = maxEventSize;
         this.maxBatchSize = maxBatchSize;
         this.maxEventsPerBatch = maxEventsPerBatch;
+    }
+    get hecBatchSchema() {
+        return joi_1.default.object({
+            events: joi_1.default.array().items(this.hecEventSchema).min(1).max(this.maxEventsPerBatch).required(),
+            metadata: joi_1.default.object({
+                source: joi_1.default.string().max(255).optional(),
+                sourcetype: joi_1.default.string().max(255).optional(),
+                index: joi_1.default.string().max(255).optional(),
+                host: joi_1.default.string().max(255).optional()
+            }).optional()
+        });
     }
     getQueryValidation() {
         return [
