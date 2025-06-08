@@ -30,6 +30,7 @@ import {
   LayoutDashboard,
   BookOpen,
   Package,
+  Network,
 } from "lucide-react"
 
 interface EnhancedSidebarProps {
