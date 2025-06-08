@@ -1,0 +1,40 @@
+[package]
+name = "securewatch-installer"
+version = "1.0.0"
+description = "SecureWatch Agent Professional Installer"
+authors = ["SecureWatch Team"]
+license = "MIT"
+repository = "https://github.com/itrimble/SecureWatch"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0", features = [
+    "macos-private-api",
+    "protocol-asset",
+    "image-ico",
+    "image-png"
+] }
+tauri-plugin-shell = "2.0"
+tauri-plugin-dialog = "2.0"
+tauri-plugin-fs = "2.0"
+tauri-plugin-process = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+directories = "5.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+uuid = { version = "1.0", features = ["v4"] }
+sys-info = "0.9"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[[bin]]
+name = "securewatch-installer"
+path = "src/main.rs"

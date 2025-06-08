@@ -1,0 +1,93 @@
+{
+  "$schema": "https://schema.tauri.app/config/2.0.0",
+  "productName": "SecureWatch Agent Installer",
+  "version": "1.0.0",
+  "identifier": "com.securewatch.installer",
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "devUrl": "../ui/dist",
+    "frontendDist": "../ui/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "SecureWatch Agent Installer",
+        "width": 800,
+        "height": 600,
+        "resizable": false,
+        "fullscreen": false,
+        "decorations": true,
+        "alwaysOnTop": false,
+        "center": true,
+        "titleBarStyle": "Visible"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "msi", "appimage"],
+    "identifier": "com.securewatch.installer",
+    "publisher": "SecureWatch",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": ["../agent-rust/dist/*"],
+    "copyright": "© 2025 SecureWatch - Enterprise SIEM Platform",
+    "category": "Security",
+    "shortDescription": "SecureWatch Agent Installer",
+    "longDescription": "Professional installer for SecureWatch Agent - Enterprise SIEM log collection and forwarding agent with advanced security features.",
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.15",
+      "signingIdentity": null,
+      "hardenedRuntime": true,
+      "entitlements": null
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    }
+  },
+  "plugins": {
+    "shell": {
+      "open": true,
+      "scope": [
+        {
+          "name": "sh",
+          "cmd": "sh",
+          "args": ["-c", { "validator": "\\S+" }]
+        },
+        {
+          "name": "cmd",
+          "cmd": "cmd",
+          "args": ["/C", { "validator": "\\S+" }]
+        },
+        {
+          "name": "launchctl",
+          "cmd": "launchctl",
+          "args": true
+        }
+      ]
+    },
+    "dialog": {
+      "all": true,
+      "ask": true,
+      "confirm": true,
+      "message": true,
+      "open": true,
+      "save": true
+    },
+    "fs": {
+      "scope": ["**"]
+    }
+  }
+}
