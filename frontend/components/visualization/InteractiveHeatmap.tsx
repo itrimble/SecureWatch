@@ -5,7 +5,7 @@ import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Thermometer, Calendar, Clock, Activity, AlertTriangle, Users } from "lucide-react";
+import { Thermometer, Clock, Activity, AlertTriangle, Users } from "lucide-react";
 
 interface HeatmapDataPoint {
   x: number;

@@ -10,13 +10,8 @@ import {
   Globe, 
   MapPin, 
   AlertTriangle, 
-  Shield, 
-  Users, 
-  Activity,
-  Filter,
   RotateCcw,
-  Download,
-  Settings
+  Download
 } from "lucide-react";
 
 interface GeoLocation {

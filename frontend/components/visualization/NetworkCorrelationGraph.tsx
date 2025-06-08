@@ -10,14 +10,12 @@ import {
   Network, 
   Users, 
   Server, 
-  Shield, 
   AlertTriangle, 
   Eye, 
   ZoomIn, 
   ZoomOut, 
   RotateCcw,
   Settings,
-  Filter,
   Download
 } from "lucide-react";
 
