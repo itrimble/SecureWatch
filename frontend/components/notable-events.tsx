@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
 import { Activity, Search, Filter, Download, Eye, Clock, ChevronDown, ChevronUp, Briefcase } from "lucide-react"
 
 interface NotableEvent {
@@ -25,10 +27,12 @@ interface NotableEvent {
 }
 
 export function NotableEvents() {
+  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterSeverity, setFilterSeverity] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   const notableEventsData: NotableEvent[] = [
     {
@@ -108,6 +112,82 @@ export function NotableEvents() {
     }
   }
 
+  // Event handlers
+  const handleInvestigateEvent = (event: NotableEvent) => {
+    setIsLoading(true)
+    // Navigate to incident investigation page with event data
+    router.push(`/incident-investigation?eventId=${event.id}&source=notable-events`)
+    toast.success(`Opening investigation for ${event.eventName}`)
+    setIsLoading(false)
+  }
+
+  const handleAssignToMe = (eventId: string) => {
+    setIsLoading(true)
+    try {
+      // Update event status and analyst in real system
+      // For now, we'll simulate the API call
+      setTimeout(() => {
+        toast.success("Event assigned to you successfully")
+        setIsLoading(false)
+      }, 500)
+    } catch (error) {
+      toast.error("Failed to assign event")
+      setIsLoading(false)
+    }
+  }
+
+  const handleCloseEvent = (eventId: string) => {
+    setIsLoading(true)
+    try {
+      // Update event status to closed
+      // For now, we'll simulate the API call
+      setTimeout(() => {
+        toast.success("Event closed successfully")
+        setIsLoading(false)
+      }, 500)
+    } catch (error) {
+      toast.error("Failed to close event")
+      setIsLoading(false)
+    }
+  }
+
+  const handleShowMoreFilters = () => {
+    // In a real implementation, this would open a filter modal/drawer
+    toast.info("Advanced filters coming soon")
+  }
+
+  const handleExportEvents = () => {
+    setIsLoading(true)
+    try {
+      // Generate CSV export of filtered events
+      const csv = [
+        ['ID', 'Timestamp', 'Severity', 'Event Name', 'Status', 'Source'].join(','),
+        ...filteredEvents.map(event => [
+          event.id,
+          event.timestamp,
+          event.severity,
+          `"${event.eventName}"`,
+          event.status,
+          `"${event.source}"`
+        ].join(','))
+      ].join('\n')
+      
+      const blob = new Blob([csv], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `notable-events-${new Date().toISOString().split('T')[0]}.csv`
+      a.click()
+      window.URL.revokeObjectURL(url)
+      
+      toast.success("Events exported successfully")
+      setIsLoading(false)
+    } catch (error) {
+      toast.error("Failed to export events")
+      setIsLoading(false)
+    }
+  }
+
   const filteredEvents = notableEventsData.filter((event) => {
     const matchesSearch =
       event.eventName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -131,7 +211,7 @@ export function NotableEvents() {
             <p className="text-muted-foreground">Prioritized security events requiring attention.</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleExportEvents} disabled={isLoading}>
               <Download className="h-4 w-4 mr-2" />
               Export Events
             </Button>
@@ -176,7 +256,7 @@ export function NotableEvents() {
                   <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleShowMoreFilters}>
                 <Filter className="h-4 w-4 mr-2" />
                 More Filters
               </Button>
@@ -281,12 +361,14 @@ export function NotableEvents() {
                               </p>
                             )}
                             <div className="flex gap-2 mt-2">
-                              <Button size="sm">Investigate</Button>
-                              <Button size="sm" variant="outline">
+                              <Button size="sm" onClick={() => handleInvestigateEvent(event)} disabled={isLoading}>
+                                Investigate
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => handleAssignToMe(event.id)} disabled={isLoading}>
                                 Assign to Me
                               </Button>
                               {event.status !== "closed" && (
-                                <Button size="sm" variant="outline">
+                                <Button size="sm" variant="outline" onClick={() => handleCloseEvent(event.id)} disabled={isLoading}>
                                   Close Event
                                 </Button>
                               )}

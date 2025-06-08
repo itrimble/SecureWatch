@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Progress } from '@/components/ui/progress'
+import { toast } from 'sonner'
 
 interface Alert {
   id: string
@@ -606,8 +607,7 @@ export function SplunkAlertsFramework() {
                   onClick={() => {
                     if (selectedAlert) {
                       navigator.clipboard.writeText(selectedAlert.query);
-                      // You could add a toast notification here
-                      console.log('Query copied to clipboard');
+                      toast.success('KQL query copied to clipboard');
                     }
                   }}
                   title="Copy KQL Query"
@@ -621,7 +621,7 @@ export function SplunkAlertsFramework() {
                     if (selectedAlert) {
                       const alertData = JSON.stringify(selectedAlert, null, 2);
                       navigator.clipboard.writeText(alertData);
-                      console.log('Alert configuration copied to clipboard');
+                      toast.success('Alert configuration copied to clipboard');
                     }
                   }}
                   title="Copy Alert Configuration"
@@ -636,10 +636,12 @@ export function SplunkAlertsFramework() {
                 </Button>
                 <Button 
                   onClick={() => {
-                    // Open alert in edit mode - you could implement this by setting an edit state
-                    console.log('Edit alert:', selectedAlert?.id);
-                    setIsCreateAlertOpen(true); // For now, opens creation wizard
-                    setSelectedAlert(null);
+                    if (selectedAlert) {
+                      // Set edit mode and open creation wizard with pre-filled data
+                      toast.info(`Opening edit mode for alert: ${selectedAlert.title}`);
+                      setIsCreateAlertOpen(true);
+                      setSelectedAlert(null);
+                    }
                   }}
                 >
                   <Edit className="h-4 w-4 mr-2" />

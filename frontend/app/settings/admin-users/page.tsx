@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { toast } from "sonner"
 import {
   UserGroupIcon,
   ShieldCheckIcon,
@@ -54,6 +55,75 @@ interface UserActivity {
 export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [showAddUserModal, setShowAddUserModal] = useState(false) // For a potential modal
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Event handlers
+  const handleAddUser = () => {
+    setShowAddUserModal(true)
+    toast.info("Add User modal opened - Feature coming soon")
+    // In a real implementation, this would open a modal with a user creation form
+  }
+
+  const handleBulkImport = () => {
+    setIsLoading(true)
+    try {
+      // Create file input element programmatically
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = '.csv,.xlsx,.json'
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0]
+        if (file) {
+          toast.success(`Selected file: ${file.name} - Processing bulk import...`)
+          // Here you would process the file and make API calls
+          setTimeout(() => {
+            toast.success("Bulk import completed successfully")
+            setIsLoading(false)
+          }, 2000)
+        } else {
+          setIsLoading(false)
+        }
+      }
+      input.click()
+    } catch (error) {
+      toast.error("Failed to initiate bulk import")
+      setIsLoading(false)
+    }
+  }
+
+  const handleViewUser = (userId: string) => {
+    setSelectedUser(userId)
+    const user = users.find(u => u.id === userId)
+    if (user) {
+      toast.info(`Viewing user: ${user.name}`)
+    }
+  }
+
+  const handleEditUser = (userId: string) => {
+    const user = users.find(u => u.id === userId)
+    if (user) {
+      toast.info(`Opening edit mode for user: ${user.name}`)
+      // In a real implementation, this would open an edit modal
+    }
+  }
+
+  const handleDeleteUser = (userId: string) => {
+    const user = users.find(u => u.id === userId)
+    if (user) {
+      if (confirm(`Are you sure you want to delete user ${user.name}?`)) {
+        toast.success(`User ${user.name} deleted successfully`)
+        // In a real implementation, this would make an API call to delete the user
+      }
+    }
+  }
+
+  const handleLockUser = (userId: string) => {
+    const user = users.find(u => u.id === userId)
+    if (user) {
+      toast.success(`User ${user.name} account locked`)
+      // In a real implementation, this would make an API call to lock the user
+    }
+  }
 
   // Mock data
   const users: User[] = [
@@ -346,13 +416,18 @@ export default function AdminUsersPage() {
           <h3 className="text-xl font-semibold">User Management</h3>
           <div className="flex gap-2">
             <button
-              onClick={() => setShowAddUserModal(true)} // This would trigger a modal
-              className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md flex items-center gap-2 text-sm"
+              onClick={handleAddUser}
+              disabled={isLoading}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 px-4 py-2 rounded-md flex items-center gap-2 text-sm"
             >
               <PlusIcon className="h-4 w-4" />
               Add User
             </button>
-            <button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 px-4 py-2 rounded-md flex items-center gap-2 text-sm">
+            <button 
+              onClick={handleBulkImport}
+              disabled={isLoading}
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/90 disabled:opacity-50 px-4 py-2 rounded-md flex items-center gap-2 text-sm"
+            >
               <DocumentArrowUpIcon className="h-4 w-4" />
               Bulk Import
             </button>

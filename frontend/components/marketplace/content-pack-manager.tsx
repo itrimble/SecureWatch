@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -146,20 +147,68 @@ const getTypeIcon = (type: string) => {
 export function ContentPackManager() {
   const [selectedPack, setSelectedPack] = useState<string | null>(null)
   const [updateProgress, setUpdateProgress] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleUninstall = (packId: string) => {
-    console.log('Uninstalling pack:', packId)
-    // Implementation would handle pack uninstallation
+  const handleUninstall = async (packId: string) => {
+    const pack = contentPacks.find(p => p.id === packId)
+    if (!pack) return
+
+    if (confirm(`Are you sure you want to uninstall "${pack.name}"? This action cannot be undone.`)) {
+      setIsLoading(true)
+      try {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        toast.success(`Successfully uninstalled ${pack.name}`)
+        // In real implementation, would update local state or refetch data
+      } catch (error) {
+        toast.error(`Failed to uninstall ${pack.name}`)
+      } finally {
+        setIsLoading(false)
+      }
+    }
   }
 
-  const handleToggleStatus = (packId: string) => {
-    console.log('Toggling status for pack:', packId)
-    // Implementation would handle enabling/disabling pack
+  const handleToggleStatus = async (packId: string) => {
+    const pack = contentPacks.find(p => p.id === packId)
+    if (!pack) return
+
+    const newStatus = pack.status === 'enabled' ? 'disabled' : 'enabled'
+    setIsLoading(true)
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      toast.success(`${pack.name} has been ${newStatus}`)
+      // In real implementation, would update the pack status in state
+    } catch (error) {
+      toast.error(`Failed to ${newStatus === 'enabled' ? 'enable' : 'disable'} ${pack.name}`)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleUpdate = (packId: string) => {
-    console.log('Updating pack:', packId)
-    // Implementation would handle pack updates
+  const handleUpdate = async (packId: string) => {
+    const pack = contentPacks.find(p => p.id === packId)
+    if (!pack) return
+
+    setIsLoading(true)
+    setUpdateProgress(0)
+    
+    try {
+      // Simulate update progress
+      for (let i = 0; i <= 100; i += 10) {
+        setUpdateProgress(i)
+        await new Promise(resolve => setTimeout(resolve, 200))
+      }
+      
+      toast.success(`Successfully updated ${pack.name} to the latest version`)
+      // In real implementation, would update the pack version in state
+    } catch (error) {
+      toast.error(`Failed to update ${pack.name}`)
+    } finally {
+      setIsLoading(false)
+      setUpdateProgress(0)
+    }
   }
 
   const activePacks = installedPacks.filter(pack => pack.status === 'active')
