@@ -430,4 +430,4 @@ export interface LogEntry {
 }
 
 // Export legacy type as alias for compatibility
-export { ExtendedLogEntry as LogEntryExtended };
+export type { ExtendedLogEntry as LogEntryExtended };

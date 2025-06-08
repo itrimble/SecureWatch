@@ -14,7 +14,7 @@
     "@securewatch/data-models": "workspace:*",
     "@securewatch/shared-utils": "workspace:*",
     "cors": "^2.8.5",
-    "express": "^4.19.2",
+    "express": "^5.1.0",
     "express-rate-limit": "^7.5.0",
     "graphql": "^16.9.0",
     "helmet": "^8.0.0",
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
+    "@types/express": "^5.0.1",
     "@types/node": "^20",
     "tsx": "^4.19.4",
     "typescript": "^5"

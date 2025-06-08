@@ -12,7 +12,7 @@ import { StuffDocumentsChain } from 'langchain/chains';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Document } from '@langchain/core/documents';
-import { BufferMemory } from 'langchain/memory';
+import { BufferMemory, ConversationTokenBufferMemory } from 'langchain/memory';
 import { CallbackManager } from '@langchain/core/callbacks/manager';
 import { ChainConfig, LangChainChainType, AIModelConfig, SecurityContext, AIEngineError } from '../types/ai.types';
 import { LocalLLMProvider } from '../providers/local-llm-provider';
@@ -34,7 +34,7 @@ interface ConversationSession {
   id: string;
   userId: string;
   context: SecurityContext;
-  memory: ConversationBufferMemory;
+  memory: BufferMemory;
   history: Array<{
     timestamp: string;
     input: string;
@@ -263,7 +263,7 @@ export class LangChainOrchestrator extends EventEmitter {
   ): Promise<string> {
     const sessionId = `session-${userId}-${Date.now()}`;
     
-    const memory = new ConversationBufferMemory({
+    const memory = new BufferMemory({
       returnMessages: true,
       memoryKey: 'history',
       inputKey: 'input',

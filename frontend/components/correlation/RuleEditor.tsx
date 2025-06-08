@@ -42,9 +42,10 @@ export function RuleEditor({ rule, onClose, onSave }: RuleEditorProps) {
     enabled: true,
     time_window_minutes: 5,
     event_count_threshold: 1,
-    conditions: [],
-    actions: [],
-    tags: []
+    conditions: [] as any[],
+    actions: [] as any[],
+    tags: [] as string[],
+    metadata: {} as Record<string, any>
   });
 
   const [conditions, setConditions] = useState<any[]>([]);

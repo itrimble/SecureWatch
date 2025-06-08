@@ -266,7 +266,7 @@ const AlertFatigueDashboard: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold">10%</div>
             <p className="text-xs text-muted-foreground">-18% from last week</p>
-            <Progress value={90} className="mt-2" variant="success" />
+            <Progress value={90} className="mt-2" />
           </CardContent>
         </Card>
 

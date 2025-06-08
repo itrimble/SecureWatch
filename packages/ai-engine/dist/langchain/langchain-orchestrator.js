@@ -45,7 +45,9 @@ class LangChainOrchestrator extends events_1.EventEmitter {
                         modelName: config.model,
                         temperature: config.temperature,
                         maxTokens: config.maxTokens,
-                        baseURL: config.endpoint
+                        configuration: {
+                            baseURL: config.endpoint
+                        }
                     });
                 }
                 else if (config.provider === 'claude') {
@@ -54,7 +56,9 @@ class LangChainOrchestrator extends events_1.EventEmitter {
                         modelName: config.model,
                         temperature: config.temperature,
                         maxTokens: config.maxTokens,
-                        baseURL: config.endpoint
+                        clientOptions: {
+                            baseURL: config.endpoint
+                        }
                     });
                 }
                 else {
@@ -182,7 +186,7 @@ class LangChainOrchestrator extends events_1.EventEmitter {
      */
     async createConversationSession(userId, context, chainId) {
         const sessionId = `session-${userId}-${Date.now()}`;
-        const memory = new memory_2.ConversationBufferMemory({
+        const memory = new memory_2.BufferMemory({
             returnMessages: true,
             memoryKey: 'history',
             inputKey: 'input',

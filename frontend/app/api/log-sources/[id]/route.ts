@@ -65,10 +65,10 @@ const logSources: LogSource[] = [
 // GET /api/log-sources/[id] - Get specific log source
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     const source = logSources.find(s => s.id === id);
     
@@ -116,10 +116,10 @@ export async function GET(
 // PUT /api/log-sources/[id] - Update log source
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     
     // Validate request body
@@ -171,10 +171,10 @@ export async function PUT(
 // DELETE /api/log-sources/[id] - Delete log source
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     const sourceIndex = logSources.findIndex(s => s.id === id);
     

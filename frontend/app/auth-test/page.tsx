@@ -17,9 +17,11 @@ export default function AuthTestPage() {
   const api = new APIService()
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-    })
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setUser(session?.user ?? null)
+      })
+    }
   }, [supabase])
 
   const testBackendAuth = async () => {

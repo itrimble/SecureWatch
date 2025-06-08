@@ -11,6 +11,25 @@ import { BellRing, ShieldAlert, Cog, BookOpen, AlertCircle } from "lucide-react"
 import { useRealTimeNotifications } from "@/hooks/use-real-time-notifications"
 import type { Notification } from "@/components/notifications/notification-item"
 
+// Create a compatibility type that matches RealtimeNotification structure
+interface RealtimeNotification {
+  id: string
+  type:
+    | "critical_alert"
+    | "security_alert"
+    | "system_update"
+    | "integration_alert"
+    | "user_activity"
+    | "training_reminder"
+  title: string
+  description: string
+  timestamp: string
+  source: string
+  severity: "critical" | "high" | "medium" | "low" | "info" | "warning"
+  actions?: { label: string; onClick: string }[]
+  read: boolean
+}
+
 // Mock data based on your specification
 const initialNotifications: Notification[] = [
   {
@@ -88,12 +107,20 @@ export default function NotificationsPage() {
   const [activeFilter, setActiveFilter] = useState("All")
   const [displayedNotifications, setDisplayedNotifications] = useState<Notification[]>(initialNotifications)
 
-  const handleNewNotification = useCallback((newNotification: Notification) => {
-    setDisplayedNotifications((prev) => [newNotification, ...prev.slice(0, 49)]) // Keep max 50 notifications
-  }, [])
+  // Convert RealtimeNotification to Notification format
+  const convertNotification = (realtimeNotif: RealtimeNotification): Notification => ({
+    ...realtimeNotif,
+    actions: realtimeNotif.actions?.map(action => action.label) || []
+  });
 
-  // useRealTimeNotifications will manage its own internal list and also call handleNewNotification
-  const { isConnected } = useRealTimeNotifications(handleNewNotification)
+  // Adapter function for real-time notifications
+  const handleRealtimeNotifications = useCallback((notifications: RealtimeNotification[]) => {
+    const convertedNotifications = notifications.map(convertNotification);
+    setDisplayedNotifications(convertedNotifications);
+  }, []);
+
+  // useRealTimeNotifications will manage its own internal list and also call handleRealtimeNotifications
+  const { isConnected } = useRealTimeNotifications(handleRealtimeNotifications)
 
   const handleMarkRead = (id: string) => {
     setDisplayedNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))

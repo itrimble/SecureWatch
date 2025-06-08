@@ -550,7 +550,7 @@ class AnomalyDetectionEngine extends events_1.EventEmitter {
         if (values.length <= 1)
             return 1;
         const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
-        const avgSquaredDiff = mean(squaredDiffs);
+        const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / squaredDiffs.length;
         return Math.sqrt(avgSquaredDiff);
     }
     setupCacheCleanup() {

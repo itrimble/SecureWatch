@@ -79,6 +79,10 @@ class ApiClient {
 
       const url = `${this.searchApiUrl}/api/v1/search/logs?${queryParams.toString()}`;
       
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -86,8 +90,10 @@ class ApiClient {
           // Add authorization header when auth is implemented
           // 'Authorization': `Bearer ${token}`
         },
-        timeout: 10000, // 10 second timeout
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Search API responded with status: ${response.status}`);
@@ -157,10 +163,16 @@ class ApiClient {
    */
   async isSearchApiAvailable(): Promise<boolean> {
     try {
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const response = await fetch(`${this.searchApiUrl}/health`, {
         method: 'GET',
-        timeout: 5000, // 5 second timeout
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const health = await response.json();

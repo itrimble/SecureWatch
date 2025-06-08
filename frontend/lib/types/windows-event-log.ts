@@ -4,8 +4,8 @@
 import { ExtendedLogEntry } from './extended_log_entry';
 
 // Base Windows Event Log Entry
-export interface WindowsEventLogEntry extends ExtendedLogEntry {
-  // Windows-specific core fields
+export interface WindowsEventLogEntry extends Omit<ExtendedLogEntry, 'event_id'> {
+  // Windows-specific core fields (override string event_id with number for Windows)
   event_id: number;
   channel: string; // Security, System, Application, etc.
   computer: string;
@@ -156,7 +156,7 @@ export interface WindowsLogonFailureEvent extends WindowsEventLogEntry {
 // Process Execution Events
 
 // Event ID 4688 - Process Creation
-export interface WindowsProcessCreationEvent extends WindowsEventLogEntry {
+export interface WindowsProcessCreationEvent extends Omit<WindowsEventLogEntry, 'process_id'> {
   event_id: 4688;
   channel: "Security";
   

@@ -17,8 +17,7 @@ class VectorDatabaseService extends events_1.EventEmitter {
         this.documentCache = new Map();
         this.embeddingCache = new Map();
         this.pinecone = new pinecone_1.Pinecone({
-            apiKey,
-            environment
+            apiKey
         });
         this.initializeEmbeddingModels();
         this.setupCacheCleanup();
@@ -75,7 +74,7 @@ class VectorDatabaseService extends events_1.EventEmitter {
                 }
                 vectors.push({
                     id: document.id,
-                    vector: document.embedding,
+                    values: document.embedding,
                     metadata: {
                         content: document.content,
                         type: document.type,
@@ -210,10 +209,13 @@ class VectorDatabaseService extends events_1.EventEmitter {
             const index = this.pinecone.index(indexName);
             const stats = await index.describeIndexStats();
             return {
-                totalVectors: stats.totalVectorCount || 0,
+                totalVectors: stats.totalRecordCount || 0,
                 dimension: stats.dimension || 0,
                 indexFullness: stats.indexFullness || 0,
-                namespaces: stats.namespaces || {}
+                namespaces: Object.entries(stats.namespaces || {}).reduce((acc, [key, value]) => {
+                    acc[key] = { vectorCount: value.recordCount || 0 };
+                    return acc;
+                }, {})
             };
         }
         catch (error) {
@@ -248,23 +250,19 @@ class VectorDatabaseService extends events_1.EventEmitter {
         try {
             const index = this.pinecone.index(indexName);
             // Fetch existing vector
-            const fetchResponse = await index.fetch({
-                ids: [documentId],
-                namespace
-            });
-            const existingVector = fetchResponse.vectors[documentId];
+            const fetchResponse = await index.fetch([documentId]);
+            const existingVector = fetchResponse.records?.[documentId];
             if (!existingVector) {
                 throw new ai_types_1.AIEngineError(`Document not found: ${documentId}`, 'DOCUMENT_NOT_FOUND');
             }
             // Update with new metadata
             await index.upsert([{
                     id: documentId,
-                    vector: existingVector.values,
+                    values: existingVector.values,
                     metadata: {
                         ...existingVector.metadata,
                         ...metadata
-                    },
-                    namespace
+                    }
                 }]);
             this.emit('document:updated', { indexName, documentId });
             logger_1.logger.info(`Updated metadata for document ${documentId} in index ${indexName}`);

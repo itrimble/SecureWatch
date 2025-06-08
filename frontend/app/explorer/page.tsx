@@ -299,7 +299,7 @@ export default function ExplorerPage() {
     setSearchStats(prev => ({ ...prev, searchProgress: 0 }));
 
     // Simulate search progress with proper cleanup tracking
-    let progressInterval: NodeJS.Timeout;
+    let progressInterval: NodeJS.Timeout | undefined;
     const startProgressSimulation = () => {
       progressInterval = setInterval(() => {
         setSearchStats(prev => {

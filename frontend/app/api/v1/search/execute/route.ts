@@ -233,14 +233,14 @@ export async function POST(request: NextRequest) {
     const queryLower = body.query.toLowerCase();
     
     if (queryLower.includes('auth')) {
-      modifiedResults.rows = modifiedResults.rows.filter(row => 
+      modifiedResults.rows = modifiedResults.rows.filter((row: any) => 
         row[1].includes('auth') || row[2].toLowerCase().includes('auth')
       );
       modifiedResults.metadata.totalRows = modifiedResults.rows.length;
     }
     
     if (queryLower.includes('mac') || queryLower.includes('macos')) {
-      modifiedResults.rows = modifiedResults.rows.filter(row => 
+      modifiedResults.rows = modifiedResults.rows.filter((row: any) => 
         row[1].includes('macos') || row[2].toLowerCase().includes('mac')
       );
       modifiedResults.metadata.totalRows = modifiedResults.rows.length;

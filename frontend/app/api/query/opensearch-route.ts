@@ -111,7 +111,9 @@ async function executeOpenSearchQuery(queryRequest: QueryRequest): Promise<Query
     
     return {
       results,
-      total: response.body.hits.total.value,
+      total: typeof response.body.hits.total === 'number' 
+        ? response.body.hits.total 
+        : response.body.hits.total?.value || 0,
       aggregations: response.body.aggregations,
       executionTime,
       query: queryRequest.query,

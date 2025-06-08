@@ -117,7 +117,7 @@ function performAutoDetection(text: string): ExtractedField[] {
   
   // IP addresses (IPv4)
   const ipRegex = /\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g;
-  let match;
+  let match: RegExpExecArray | null;
   while ((match = ipRegex.exec(text)) !== null) {
     // Validate IP ranges
     const parts = match[1].split('.').map(Number);
@@ -261,20 +261,21 @@ function performAutoDetection(text: string): ExtractedField[] {
   
   // Key-value pairs (flexible format)
   const kvRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)[=:]([^\s,;|&<>"'`]+)/g;
-  while ((match = kvRegex.exec(text)) !== null) {
+  let kvMatch: RegExpExecArray | null;
+  while ((kvMatch = kvRegex.exec(text)) !== null) {
     // Skip if already captured by other patterns
     const isOverlapping = fields.some(field => 
-      match.index >= field.position.start && match.index < field.position.end
+      kvMatch!.index >= field.position.start && kvMatch!.index < field.position.end
     );
     
-    if (!isOverlapping && match[2].length > 0) {
+    if (!isOverlapping && kvMatch[2].length > 0) {
       fields.push({
-        name: match[1],
-        value: match[2],
-        type: inferValueType(match[2]),
+        name: kvMatch[1],
+        value: kvMatch[2],
+        type: inferValueType(kvMatch[2]),
         regex: kvRegex.source,
         confidence: 0.75,
-        position: { start: match.index, end: match.index + match[0].length }
+        position: { start: kvMatch.index, end: kvMatch.index + kvMatch[0].length }
       });
     }
   }

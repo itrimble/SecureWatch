@@ -116,7 +116,7 @@ export class VectorDatabaseService extends EventEmitter {
         throw new AIEngineError(`Embedding model not found: ${embeddingModelId}`, 'MODEL_NOT_FOUND');
       }
 
-      const vectors: VectorEmbedding[] = [];
+      const vectors: any[] = [];
 
       for (const document of documents) {
         // Generate embedding if not already present
@@ -373,7 +373,7 @@ export class VectorDatabaseService extends EventEmitter {
       const index = this.pinecone.index(indexName);
       
       // Fetch existing vector
-      const fetchResponse = await index.fetch([documentId], { namespace });
+      const fetchResponse = await index.fetch([documentId]);
 
       const existingVector = fetchResponse.records?.[documentId];
       if (!existingVector) {
@@ -388,7 +388,7 @@ export class VectorDatabaseService extends EventEmitter {
           ...existingVector.metadata,
           ...metadata
         }
-      }], { namespace });
+      }]);
 
       this.emit('document:updated', { indexName, documentId });
       logger.info(`Updated metadata for document ${documentId} in index ${indexName}`);

@@ -30,7 +30,7 @@ function extractFieldsFromMessage(message: string, options: ExtractionOptions = 
   
   // IP addresses
   const ipRegex = /\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g;
-  let match;
+  let match: RegExpExecArray | null;
   while ((match = ipRegex.exec(message)) !== null) {
     fields.push({
       name: 'ip_address',
@@ -98,39 +98,41 @@ function extractFieldsFromMessage(message: string, options: ExtractionOptions = 
   
   // Numbers
   const numberRegex = /\b(\d+)\b/g;
-  while ((match = numberRegex.exec(message)) !== null) {
+  let numberMatch: RegExpExecArray | null;
+  while ((numberMatch = numberRegex.exec(message)) !== null) {
     // Skip if already captured as part of IP or timestamp
     const isPartOfOtherField = fields.some(field => 
-      match.index >= field.position.start && match.index < field.position.end
+      numberMatch!.index >= field.position.start && numberMatch!.index < field.position.end
     );
     
     if (!isPartOfOtherField) {
       fields.push({
         name: 'number',
-        value: match[1],
+        value: numberMatch[1],
         type: 'number',
         regex: numberRegex.source,
         confidence: 0.7,
-        position: { start: match.index, end: match.index + match[0].length }
+        position: { start: numberMatch.index, end: numberMatch.index + numberMatch[0].length }
       });
     }
   }
   
   // Key-value pairs (key=value or key:value)
   const kvRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)[=:]([^\s,;]+)/g;
-  while ((match = kvRegex.exec(message)) !== null) {
+  let kvMatch: RegExpExecArray | null;
+  while ((kvMatch = kvRegex.exec(message)) !== null) {
     const isPartOfOtherField = fields.some(field => 
-      match.index >= field.position.start && match.index < field.position.end
+      kvMatch!.index >= field.position.start && kvMatch!.index < field.position.end
     );
     
     if (!isPartOfOtherField) {
       fields.push({
-        name: match[1],
-        value: match[2],
-        type: inferType(match[2]),
+        name: kvMatch[1],
+        value: kvMatch[2],
+        type: inferType(kvMatch[2]),
         regex: kvRegex.source,
         confidence: 0.85,
-        position: { start: match.index, end: match.index + match[0].length }
+        position: { start: kvMatch.index, end: kvMatch.index + kvMatch[0].length }
       });
     }
   }

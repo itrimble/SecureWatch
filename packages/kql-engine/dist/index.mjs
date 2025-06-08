@@ -2156,7 +2156,7 @@ var QueryExecutor = class {
   clearCache() {
     this.cache.clear();
   }
-  async getTableSchemas(organizationId) {
+  async getTableSchemas(_organizationId) {
     const client = await this.db.connect();
     try {
       const result = await client.query(`

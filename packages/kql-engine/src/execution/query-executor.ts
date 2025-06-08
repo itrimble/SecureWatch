@@ -1,6 +1,6 @@
 import { Pool, PoolClient, QueryResult as PGQueryResult } from 'pg';
 import { LRUCache } from 'lru-cache';
-import { Query } from '../parser/ast';
+// import { Query } from '../parser/ast';
 import { KQLLexer } from '../lexer/lexer';
 import { KQLParser } from '../parser/parser';
 import { SQLGenerator } from './sql-generator';
@@ -323,7 +323,7 @@ export class QueryExecutor {
     this.cache.clear();
   }
 
-  async getTableSchemas(organizationId: string): Promise<Record<string, any>> {
+  async getTableSchemas(_organizationId: string): Promise<Record<string, any>> {
     const client = await this.db.connect();
     
     try {
