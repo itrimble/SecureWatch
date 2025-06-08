@@ -1,0 +1,42 @@
+# Cross-compilation configuration for SecureWatch Agent
+
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
+
+[target.i686-pc-windows-gnu]
+linker = "i686-w64-mingw32-gcc"
+
+[target.aarch64-pc-windows-msvc]
+# Uses default MSVC linker
+
+[target.x86_64-pc-windows-msvc]
+# Uses default MSVC linker
+
+# Linux targets
+[target.x86_64-unknown-linux-gnu]
+# Uses default linker
+
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
+
+[target.armv7-unknown-linux-gnueabihf]
+linker = "arm-linux-gnueabihf-gcc"
+
+# MUSL static targets
+[target.x86_64-unknown-linux-musl]
+linker = "musl-gcc"
+
+[target.aarch64-unknown-linux-musl]
+linker = "aarch64-linux-gnu-gcc"
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-arg=-lgcc"]
+
+# macOS targets
+[target.x86_64-apple-darwin]
+# Uses default linker
+
+[target.aarch64-apple-darwin]
+# Uses default linker
+
+# FreeBSD target
+[target.x86_64-unknown-freebsd]
+# Uses default linker
