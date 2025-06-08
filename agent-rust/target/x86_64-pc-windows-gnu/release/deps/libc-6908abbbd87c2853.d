@@ -1,0 +1,11 @@
+/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/deps/liblibc-6908abbbd87c2853.rmeta: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/lib.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/macros.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/primitives.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/windows/mod.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/windows/gnu/mod.rs
+
+/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/deps/liblibc-6908abbbd87c2853.rlib: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/lib.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/macros.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/primitives.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/windows/mod.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/windows/gnu/mod.rs
+
+/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/deps/libc-6908abbbd87c2853.d: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/lib.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/macros.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/primitives.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/windows/mod.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/windows/gnu/mod.rs
+
+/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/lib.rs:
+/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/macros.rs:
+/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/primitives.rs:
+/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/windows/mod.rs:
+/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.172/src/windows/gnu/mod.rs:

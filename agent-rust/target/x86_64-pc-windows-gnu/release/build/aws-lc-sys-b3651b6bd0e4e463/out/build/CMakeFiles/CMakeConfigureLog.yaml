@@ -1,0 +1,613 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineSystem.cmake:200 (message)"
+      - "CMakeLists.txt:13 (project)"
+    message: |
+      The target system is: Windows -  - AMD64
+      The host system is: Darwin - 24.5.0 - x86_64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:14 (enable_language)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: /usr/local/bin/x86_64-w64-mingw32-gcc 
+      Build flags: -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0=;-ffunction-sections;-fdata-sections;-m64
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "a.exe"
+      
+      The C compiler identification is GNU, found in:
+        /Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/CMakeFiles/4.0.0/CompilerIdC/a.exe
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "/usr/local/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:14 (enable_language)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/CMakeFiles/CMakeScratch/TryCompile-y4uSZJ"
+      binary: "/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/CMakeFiles/CMakeScratch/TryCompile-y4uSZJ"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64"
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: "x86_64"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/CMakeFiles/CMakeScratch/TryCompile-y4uSZJ'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_20ad6/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_20ad6.dir/build.make CMakeFiles/cmTC_20ad6.dir/build
+        Building C object CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.obj
+        /usr/local/bin/x86_64-w64-mingw32-gcc   -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64  -std=gnu11   -v -o CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.obj -c /usr/local/share/cmake/Modules/CMakeCCompilerABI.c
+        Using built-in specs.
+        COLLECT_GCC=/usr/local/bin/x86_64-w64-mingw32-gcc
+        Target: x86_64-w64-mingw32
+        Configured with: ../configure --target=x86_64-w64-mingw32 --with-sysroot=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64 --prefix=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64 --with-bugurl=https://github.com/Homebrew/homebrew-core/issues --enable-languages=c,c++,objc,obj-c++,fortran --with-ld=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-ld --with-as=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-as --with-gmp=/usr/local/opt/gmp --with-mpfr=/usr/local/opt/mpfr --with-mpc=/usr/local/opt/libmpc --with-isl=/usr/local/opt/isl --with-system-zlib --with-zstd --disable-multilib --disable-nls --enable-threads=posix
+        Thread model: posix
+        Supported LTO compression algorithms: zlib zstd
+        gcc version 14.2.0 (GCC) 
+        COLLECT_GCC_OPTIONS='-ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0=' '-ffunction-sections' '-fdata-sections' '-m64' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.obj' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_20ad6.dir/'
+         /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/cc1 -quiet -v -D_REENTRANT /usr/local/share/cmake/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_20ad6.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -m64 -mtune=generic -march=x86-64 -std=gnu11 -version -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -o /var/folders/js/1r1swrbn61q0995p6h3c3lr40000gn/T//ccnxO5yv.s
+        GNU C11 (GCC) version 14.2.0 (x86_64-w64-mingw32)
+        	compiled by GNU C version Apple LLVM 16.0.0 (clang-1600.0.26.6), GMP version 6.3.0, MPFR version 4.2.1, MPC version 1.3.1, isl version isl-0.27-GMP
+        
+        warning: MPFR header version 4.2.1 differs from library version 4.2.2.
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        ignoring nonexistent directory "/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/usr/local/include"
+        ignoring duplicate directory "/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/include
+         /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/include-fixed
+         /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/include
+        End of search list.
+        Compiler executable checksum: 0182ccac4bed46800698cc74b2a59b5e
+        COLLECT_GCC_OPTIONS='-ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0=' '-ffunction-sections' '-fdata-sections' '-m64' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.obj' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_20ad6.dir/'
+         /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-as -v --64 -o CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.obj /var/folders/js/1r1swrbn61q0995p6h3c3lr40000gn/T//ccnxO5yv.s
+        GNU assembler version 2.44 (x86_64-w64-mingw32) using BFD version (GNU Binutils) 2.44
+        COMPILER_PATH=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/bin/
+        LIBRARY_PATH=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/../lib/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/
+        COLLECT_GCC_OPTIONS='-ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0=' '-ffunction-sections' '-fdata-sections' '-m64' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.obj' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.'
+        Linking C executable cmTC_20ad6.exe
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_20ad6.dir/link.txt --verbose=1
+        Using built-in specs.
+        COLLECT_GCC=/usr/local/bin/x86_64-w64-mingw32-gcc
+        COLLECT_LTO_WRAPPER=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/lto-wrapper
+        Target: x86_64-w64-mingw32
+        Configured with: ../configure --target=x86_64-w64-mingw32 --with-sysroot=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64 --prefix=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64 --with-bugurl=https://github.com/Homebrew/homebrew-core/issues --enable-languages=c,c++,objc,obj-c++,fortran --with-ld=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-ld --with-as=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-as --with-gmp=/usr/local/opt/gmp --with-mpfr=/usr/local/opt/mpfr --with-mpc=/usr/local/opt/libmpc --with-isl=/usr/local/opt/isl --with-system-zlib --with-zstd --disable-multilib --disable-nls --enable-threads=posix
+        Thread model: posix
+        Supported LTO compression algorithms: zlib zstd
+        gcc version 14.2.0 (GCC) 
+        COMPILER_PATH=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/bin/
+        LIBRARY_PATH=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/../lib/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/
+        COLLECT_GCC_OPTIONS='-ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0=' '-ffunction-sections' '-fdata-sections' '-m64' '-v' '-o' 'cmTC_20ad6.exe' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_20ad6.'
+         /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/collect2 -plugin /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/liblto_plugin.so -plugin-opt=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/lto-wrapper -plugin-opt=-fresolution=/var/folders/js/1r1swrbn61q0995p6h3c3lr40000gn/T//ccgYL4wu.res -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_eh -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-ladvapi32 -plugin-opt=-pass-through=-lshell32 -plugin-opt=-pass-through=-luser32 -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_eh -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 --sysroot=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64 -m i386pep -Bdynamic -o cmTC_20ad6.exe /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtbegin.o -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0 -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/../lib -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib -v --whole-archive CMakeFiles/cmTC_20ad6.dir/objects.a --no-whole-archive --out-implib libcmTC_20ad6.dll.a --major-image-version 0 --minor-image-version 0 -lmingw32 -lgcc -lgcc_eh -lmingwex -lmsvcrt -lkernel32 -lpthread -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc -lgcc_eh -lmingwex -lmsvcrt -lkernel32 /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtend.o
+        collect2 version 14.2.0
+        /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-ld -plugin /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/liblto_plugin.so -plugin-opt=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/lto-wrapper -plugin-opt=-fresolution=/var/folders/js/1r1swrbn61q0995p6h3c3lr40000gn/T//ccgYL4wu.res -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_eh -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-ladvapi32 -plugin-opt=-pass-through=-lshell32 -plugin-opt=-pass-through=-luser32 -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_eh -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 --sysroot=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64 -m i386pep -Bdynamic -o cmTC_20ad6.exe /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtbegin.o -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0 -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/../lib -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib -v --whole-archive CMakeFiles/cmTC_20ad6.dir/objects.a --no-whole-archive --out-implib libcmTC_20ad6.dll.a --major-image-version 0 --minor-image-version 0 -lmingw32 -lgcc -lgcc_eh -lmingwex -lmsvcrt -lkernel32 -lpthread -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc -lgcc_eh -lmingwex -lmsvcrt -lkernel32 /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtend.o
+        GNU ld (GNU Binutils) 2.44
+        COLLECT_GCC_OPTIONS='-ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0=' '-ffunction-sections' '-fdata-sections' '-m64' '-v' '-o' 'cmTC_20ad6.exe' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_20ad6.'
+        /usr/local/bin/cmake -E rm -f CMakeFiles/cmTC_20ad6.dir/objects.a
+        /usr/local/bin/x86_64-w64-mingw32-ar qc CMakeFiles/cmTC_20ad6.dir/objects.a @CMakeFiles/cmTC_20ad6.dir/objects1.rsp
+        /usr/local/bin/x86_64-w64-mingw32-gcc  -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64   -v -Wl,-v -Wl,--whole-archive CMakeFiles/cmTC_20ad6.dir/objects.a -Wl,--no-whole-archive -o cmTC_20ad6.exe -Wl,--out-implib,libcmTC_20ad6.dll.a -Wl,--major-image-version,0,--minor-image-version,0
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:191 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:14 (enable_language)"
+    message: |
+      Parsed C implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/include]
+          add: [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/include-fixed]
+          add: [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/include]
+        end of search list found
+        collapse include dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/include] ==> [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/include]
+        collapse include dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/include-fixed] ==> [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/include-fixed]
+        collapse include dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/include] ==> [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/x86_64-w64-mingw32/include]
+        implicit include dirs: [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/include;/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/include-fixed;/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/x86_64-w64-mingw32/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:227 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:14 (enable_language)"
+    message: |
+      Parsed C implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)))("|,| |$)]
+        ignore line: [Change Dir: '/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/CMakeFiles/CMakeScratch/TryCompile-y4uSZJ']
+        ignore line: []
+        ignore line: [Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_20ad6/fast]
+        ignore line: [/Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_20ad6.dir/build.make CMakeFiles/cmTC_20ad6.dir/build]
+        ignore line: [Building C object CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.obj]
+        ignore line: [/usr/local/bin/x86_64-w64-mingw32-gcc   -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64  -std=gnu11   -v -o CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.obj -c /usr/local/share/cmake/Modules/CMakeCCompilerABI.c]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/local/bin/x86_64-w64-mingw32-gcc]
+        ignore line: [Target: x86_64-w64-mingw32]
+        ignore line: [Configured with: ../configure --target=x86_64-w64-mingw32 --with-sysroot=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64 --prefix=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64 --with-bugurl=https://github.com/Homebrew/homebrew-core/issues --enable-languages=c,c++,objc,obj-c++,fortran --with-ld=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-ld --with-as=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-as --with-gmp=/usr/local/opt/gmp --with-mpfr=/usr/local/opt/mpfr --with-mpc=/usr/local/opt/libmpc --with-isl=/usr/local/opt/isl --with-system-zlib --with-zstd --disable-multilib --disable-nls --enable-threads=posix]
+        ignore line: [Thread model: posix]
+        ignore line: [Supported LTO compression algorithms: zlib zstd]
+        ignore line: [gcc version 14.2.0 (GCC) ]
+        ignore line: [COLLECT_GCC_OPTIONS='-ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0=' '-ffunction-sections' '-fdata-sections' '-m64' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.obj' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_20ad6.dir/']
+        ignore line: [ /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/cc1 -quiet -v -D_REENTRANT /usr/local/share/cmake/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_20ad6.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -m64 -mtune=generic -march=x86-64 -std=gnu11 -version -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -o /var/folders/js/1r1swrbn61q0995p6h3c3lr40000gn/T//ccnxO5yv.s]
+        ignore line: [GNU C11 (GCC) version 14.2.0 (x86_64-w64-mingw32)]
+        ignore line: [	compiled by GNU C version Apple LLVM 16.0.0 (clang-1600.0.26.6)  GMP version 6.3.0  MPFR version 4.2.1  MPC version 1.3.1  isl version isl-0.27-GMP]
+        ignore line: []
+        ignore line: [warning: MPFR header version 4.2.1 differs from library version 4.2.2.]
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [ignoring nonexistent directory "/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/usr/local/include"]
+        ignore line: [ignoring duplicate directory "/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/include"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/include]
+        ignore line: [ /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/include-fixed]
+        ignore line: [ /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/include]
+        ignore line: [End of search list.]
+        ignore line: [Compiler executable checksum: 0182ccac4bed46800698cc74b2a59b5e]
+        ignore line: [COLLECT_GCC_OPTIONS='-ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0=' '-ffunction-sections' '-fdata-sections' '-m64' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.obj' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_20ad6.dir/']
+        ignore line: [ /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-as -v --64 -o CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.obj /var/folders/js/1r1swrbn61q0995p6h3c3lr40000gn/T//ccnxO5yv.s]
+        ignore line: [GNU assembler version 2.44 (x86_64-w64-mingw32) using BFD version (GNU Binutils) 2.44]
+        ignore line: [COMPILER_PATH=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/bin/]
+        ignore line: [LIBRARY_PATH=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/../lib/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0=' '-ffunction-sections' '-fdata-sections' '-m64' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.obj' '-c' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_20ad6.dir/CMakeCCompilerABI.c.']
+        ignore line: [Linking C executable cmTC_20ad6.exe]
+        ignore line: [/usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_20ad6.dir/link.txt --verbose=1]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/local/bin/x86_64-w64-mingw32-gcc]
+        ignore line: [COLLECT_LTO_WRAPPER=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/lto-wrapper]
+        ignore line: [Target: x86_64-w64-mingw32]
+        ignore line: [Configured with: ../configure --target=x86_64-w64-mingw32 --with-sysroot=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64 --prefix=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64 --with-bugurl=https://github.com/Homebrew/homebrew-core/issues --enable-languages=c,c++,objc,obj-c++,fortran --with-ld=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-ld --with-as=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-as --with-gmp=/usr/local/opt/gmp --with-mpfr=/usr/local/opt/mpfr --with-mpc=/usr/local/opt/libmpc --with-isl=/usr/local/opt/isl --with-system-zlib --with-zstd --disable-multilib --disable-nls --enable-threads=posix]
+        ignore line: [Thread model: posix]
+        ignore line: [Supported LTO compression algorithms: zlib zstd]
+        ignore line: [gcc version 14.2.0 (GCC) ]
+        ignore line: [COMPILER_PATH=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/bin/]
+        ignore line: [LIBRARY_PATH=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/../lib/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/:/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0=' '-ffunction-sections' '-fdata-sections' '-m64' '-v' '-o' 'cmTC_20ad6.exe' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_20ad6.']
+        link line: [ /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/collect2 -plugin /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/liblto_plugin.so -plugin-opt=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/lto-wrapper -plugin-opt=-fresolution=/var/folders/js/1r1swrbn61q0995p6h3c3lr40000gn/T//ccgYL4wu.res -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_eh -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-ladvapi32 -plugin-opt=-pass-through=-lshell32 -plugin-opt=-pass-through=-luser32 -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_eh -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 --sysroot=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64 -m i386pep -Bdynamic -o cmTC_20ad6.exe /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtbegin.o -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0 -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/../lib -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib -v --whole-archive CMakeFiles/cmTC_20ad6.dir/objects.a --no-whole-archive --out-implib libcmTC_20ad6.dll.a --major-image-version 0 --minor-image-version 0 -lmingw32 -lgcc -lgcc_eh -lmingwex -lmsvcrt -lkernel32 -lpthread -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc -lgcc_eh -lmingwex -lmsvcrt -lkernel32 /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtend.o]
+          arg [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/collect2] ==> ignore
+          arg [-plugin] ==> ignore
+          arg [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/liblto_plugin.so] ==> ignore
+          arg [-plugin-opt=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/lto-wrapper] ==> ignore
+          arg [-plugin-opt=-fresolution=/var/folders/js/1r1swrbn61q0995p6h3c3lr40000gn/T//ccgYL4wu.res] ==> ignore
+          arg [-plugin-opt=-pass-through=-lmingw32] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_eh] ==> ignore
+          arg [-plugin-opt=-pass-through=-lmingwex] ==> ignore
+          arg [-plugin-opt=-pass-through=-lmsvcrt] ==> ignore
+          arg [-plugin-opt=-pass-through=-lkernel32] ==> ignore
+          arg [-plugin-opt=-pass-through=-lpthread] ==> ignore
+          arg [-plugin-opt=-pass-through=-ladvapi32] ==> ignore
+          arg [-plugin-opt=-pass-through=-lshell32] ==> ignore
+          arg [-plugin-opt=-pass-through=-luser32] ==> ignore
+          arg [-plugin-opt=-pass-through=-lkernel32] ==> ignore
+          arg [-plugin-opt=-pass-through=-lmingw32] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_eh] ==> ignore
+          arg [-plugin-opt=-pass-through=-lmingwex] ==> ignore
+          arg [-plugin-opt=-pass-through=-lmsvcrt] ==> ignore
+          arg [-plugin-opt=-pass-through=-lkernel32] ==> ignore
+          arg [--sysroot=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64] ==> ignore
+          arg [-m] ==> ignore
+          arg [i386pep] ==> ignore
+          arg [-Bdynamic] ==> search dynamic
+          arg [-o] ==> ignore
+          arg [cmTC_20ad6.exe] ==> ignore
+          arg [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o] ==> obj [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o]
+          arg [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtbegin.o] ==> obj [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtbegin.o]
+          arg [-L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0] ==> dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0]
+          arg [-L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib] ==> dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib]
+          arg [-L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/../lib] ==> dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/../lib]
+          arg [-L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib] ==> dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib]
+          arg [-L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib] ==> dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib]
+          arg [-v] ==> ignore
+          arg [--whole-archive] ==> ignore
+          arg [CMakeFiles/cmTC_20ad6.dir/objects.a] ==> ignore
+          arg [--no-whole-archive] ==> ignore
+          arg [--out-implib] ==> ignore
+          arg [libcmTC_20ad6.dll.a] ==> ignore
+          arg [--major-image-version] ==> ignore
+          arg [0] ==> ignore
+          arg [--minor-image-version] ==> ignore
+          arg [0] ==> ignore
+          arg [-lmingw32] ==> lib [mingw32]
+          arg [-lgcc] ==> lib [gcc]
+          arg [-lgcc_eh] ==> lib [gcc_eh]
+          arg [-lmingwex] ==> lib [mingwex]
+          arg [-lmsvcrt] ==> lib [msvcrt]
+          arg [-lkernel32] ==> lib [kernel32]
+          arg [-lpthread] ==> lib [pthread]
+          arg [-ladvapi32] ==> lib [advapi32]
+          arg [-lshell32] ==> lib [shell32]
+          arg [-luser32] ==> lib [user32]
+          arg [-lkernel32] ==> lib [kernel32]
+          arg [-lmingw32] ==> lib [mingw32]
+          arg [-lgcc] ==> lib [gcc]
+          arg [-lgcc_eh] ==> lib [gcc_eh]
+          arg [-lmingwex] ==> lib [mingwex]
+          arg [-lmsvcrt] ==> lib [msvcrt]
+          arg [-lkernel32] ==> lib [kernel32]
+          arg [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtend.o] ==> obj [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtend.o]
+        ignore line: [collect2 version 14.2.0]
+        ignore line: [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-ld -plugin /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/liblto_plugin.so -plugin-opt=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/14.2.0/lto-wrapper -plugin-opt=-fresolution=/var/folders/js/1r1swrbn61q0995p6h3c3lr40000gn/T//ccgYL4wu.res -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_eh -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-ladvapi32 -plugin-opt=-pass-through=-lshell32 -plugin-opt=-pass-through=-luser32 -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_eh -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 --sysroot=/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64 -m i386pep -Bdynamic -o cmTC_20ad6.exe /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtbegin.o -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0 -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/../lib -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib -L/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib -v --whole-archive CMakeFiles/cmTC_20ad6.dir/objects.a --no-whole-archive --out-implib libcmTC_20ad6.dll.a --major-image-version 0 --minor-image-version 0 -lmingw32 -lgcc -lgcc_eh -lmingwex -lmsvcrt -lkernel32 -lpthread -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc -lgcc_eh -lmingwex -lmsvcrt -lkernel32 /usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtend.o]
+        ignore line: [GNU ld (GNU Binutils) 2.44]
+        ignore line: [COLLECT_GCC_OPTIONS='-ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0=' '-ffunction-sections' '-fdata-sections' '-m64' '-v' '-o' 'cmTC_20ad6.exe' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_20ad6.']
+        ignore line: [/usr/local/bin/cmake -E rm -f CMakeFiles/cmTC_20ad6.dir/objects.a]
+        ignore line: [/usr/local/bin/x86_64-w64-mingw32-ar qc CMakeFiles/cmTC_20ad6.dir/objects.a @CMakeFiles/cmTC_20ad6.dir/objects1.rsp]
+        ignore line: [/usr/local/bin/x86_64-w64-mingw32-gcc  -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64   -v -Wl -v -Wl --whole-archive CMakeFiles/cmTC_20ad6.dir/objects.a -Wl --no-whole-archive -o cmTC_20ad6.exe -Wl --out-implib libcmTC_20ad6.dll.a -Wl --major-image-version 0 --minor-image-version 0]
+        ignore line: []
+        ignore line: []
+        remove lib [gcc_eh]
+        remove lib [msvcrt]
+        remove lib [gcc_eh]
+        remove lib [msvcrt]
+        collapse obj [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o] ==> [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/x86_64-w64-mingw32/lib/crt2.o]
+        collapse library dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0] ==> [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0]
+        collapse library dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib/../lib] ==> [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/x86_64-w64-mingw32/lib]
+        collapse library dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib/../lib] ==> [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib]
+        collapse library dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/lib] ==> [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/x86_64-w64-mingw32/lib]
+        collapse library dir [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib] ==> [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib]
+        implicit libs: [mingw32;gcc;mingwex;kernel32;pthread;advapi32;shell32;user32;kernel32;mingw32;gcc;mingwex;kernel32]
+        implicit objs: [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/x86_64-w64-mingw32/lib/crt2.o;/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtbegin.o;/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0/crtend.o]
+        implicit dirs: [/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/14.2.0;/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/x86_64-w64-mingw32/lib;/usr/local/Cellar/mingw-w64/12.0.0_2/toolchain-x86_64/mingw/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "aws-lc/CMakeLists.txt:292 (try_compile)"
+      - "aws-lc/CMakeLists.txt:514 (check_compiler)"
+    directories:
+      source: "/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/aws-lc/CMakeFiles/CMakeTmp"
+      binary: "/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/aws-lc/CMakeFiles/CMakeTmp"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: "x86_64"
+    buildResult:
+      variable: "RESULT"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/aws-lc/CMakeFiles/CMakeTmp'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_78cef/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_78cef.dir/build.make CMakeFiles/cmTC_78cef.dir/build
+        Building C object CMakeFiles/cmTC_78cef.dir/stdalign_check.c.obj
+        /usr/local/bin/x86_64-w64-mingw32-gcc   -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes    -Werror -o CMakeFiles/cmTC_78cef.dir/stdalign_check.c.obj -c /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/aws-lc/tests/compiler_features_tests/stdalign_check.c
+        Linking C executable cmTC_78cef.exe
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_78cef.dir/link.txt --verbose=1
+        /usr/local/bin/cmake -E rm -f CMakeFiles/cmTC_78cef.dir/objects.a
+        /usr/local/bin/x86_64-w64-mingw32-ar qc CMakeFiles/cmTC_78cef.dir/objects.a @CMakeFiles/cmTC_78cef.dir/objects1.rsp
+        /usr/local/bin/x86_64-w64-mingw32-gcc  -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes  -Wl,--whole-archive CMakeFiles/cmTC_78cef.dir/objects.a -Wl,--no-whole-archive -o cmTC_78cef.exe -Wl,--out-implib,libcmTC_78cef.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles/cmTC_78cef.dir/linkLibs.rsp
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "aws-lc/CMakeLists.txt:292 (try_compile)"
+      - "aws-lc/CMakeLists.txt:515 (check_compiler)"
+    directories:
+      source: "/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/aws-lc/CMakeFiles/CMakeTmp"
+      binary: "/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/aws-lc/CMakeFiles/CMakeTmp"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: "x86_64"
+    buildResult:
+      variable: "RESULT"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/aws-lc/CMakeFiles/CMakeTmp'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_4f5fc/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_4f5fc.dir/build.make CMakeFiles/cmTC_4f5fc.dir/build
+        Building C object CMakeFiles/cmTC_4f5fc.dir/builtin_swap_check.c.obj
+        /usr/local/bin/x86_64-w64-mingw32-gcc   -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes    -Werror -o CMakeFiles/cmTC_4f5fc.dir/builtin_swap_check.c.obj -c /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/aws-lc/tests/compiler_features_tests/builtin_swap_check.c
+        Linking C executable cmTC_4f5fc.exe
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_4f5fc.dir/link.txt --verbose=1
+        /usr/local/bin/cmake -E rm -f CMakeFiles/cmTC_4f5fc.dir/objects.a
+        /usr/local/bin/x86_64-w64-mingw32-ar qc CMakeFiles/cmTC_4f5fc.dir/objects.a @CMakeFiles/cmTC_4f5fc.dir/objects1.rsp
+        /usr/local/bin/x86_64-w64-mingw32-gcc  -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes  -Wl,--whole-archive CMakeFiles/cmTC_4f5fc.dir/objects.a -Wl,--no-whole-archive -o cmTC_4f5fc.exe -Wl,--out-implib,libcmTC_4f5fc.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles/cmTC_4f5fc.dir/linkLibs.rsp
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is GNU using "--version" did not match "(GNU assembler)|(GCC)|(Free Software Foundation)":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is AppleClang using "--version" did not match "(Apple (clang|LLVM) version)":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is Clang using "--version" did not match "(clang version)":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is ARMClang using "--version" did not match "armclang":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is OrangeC using "--version" did not match "occ \\(OrangeC\\) Version":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is HP using "-V" did not match "HP C":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is Intel using "--version" did not match "(ICC)":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is IntelLLVM using "--version" did not match "(Intel[^
+      ]+oneAPI)":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is SunPro using "-V" did not match "Sun C":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is XL using "-qversion" did not match "XL C":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is MSVC using "-?" did not match "Microsoft":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is TI using "-h" did not match "Texas Instruments":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is TIClang using "--version" did not match "(TI (.*) Clang Compiler)":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is IAR using "" did not match "IAR Assembler":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is ARMCC using "" did not match "(ARM Compiler)|(ARM Assembler)|(Arm Compiler)":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is NASM using "-v" did not match "(NASM version)":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is YASM using "--version" did not match "(yasm)":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is ADSP using "-version" did not match "Analog Devices":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is QCC using "-V" did not match "gcc_nto":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASMCompiler.cmake:139 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineASM_NASMCompiler.cmake:29 (include)"
+      - "aws-lc/crypto/CMakeLists.txt:123 (enable_language)"
+    message: |
+      Checking whether the ASM_NASM compiler is Tasking using "--version" did not match "TASKING":
+      PATH: 
+      FILENAME: 
+      SCRIPT_DIR: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile)"
+      - "/usr/local/share/cmake/Modules/CheckCSourceCompiles.cmake:58 (cmake_check_source_compiles)"
+      - "/usr/local/share/cmake/Modules/FindThreads.cmake:97 (check_c_source_compiles)"
+      - "/usr/local/share/cmake/Modules/FindThreads.cmake:163 (_threads_check_libc)"
+      - "aws-lc/crypto/CMakeLists.txt:695 (find_package)"
+    checks:
+      - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
+    directories:
+      source: "/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/CMakeFiles/CMakeScratch/TryCompile-YoEw9p"
+      binary: "/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/CMakeFiles/CMakeScratch/TryCompile-YoEw9p"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes  -DAWS_LC_STDALIGN_AVAILABLE -DAWS_LC_BUILTIN_SWAP_SUPPORTED -Wshadow"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: "x86_64"
+      CMAKE_POSITION_INDEPENDENT_CODE: "TRUE"
+    buildResult:
+      variable: "CMAKE_HAVE_LIBC_PTHREAD"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/CMakeFiles/CMakeScratch/TryCompile-YoEw9p'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_11f00/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_11f00.dir/build.make CMakeFiles/cmTC_11f00.dir/build
+        Building C object CMakeFiles/cmTC_11f00.dir/src.c.obj
+        /usr/local/bin/x86_64-w64-mingw32-gcc -DCMAKE_HAVE_LIBC_PTHREAD  -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes  -DAWS_LC_STDALIGN_AVAILABLE -DAWS_LC_BUILTIN_SWAP_SUPPORTED -Wshadow  -o CMakeFiles/cmTC_11f00.dir/src.c.obj -c /Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/CMakeFiles/CMakeScratch/TryCompile-YoEw9p/src.c
+        Linking C executable cmTC_11f00.exe
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_11f00.dir/link.txt --verbose=1
+        /usr/local/bin/cmake -E rm -f CMakeFiles/cmTC_11f00.dir/objects.a
+        /usr/local/bin/x86_64-w64-mingw32-ar qc CMakeFiles/cmTC_11f00.dir/objects.a @CMakeFiles/cmTC_11f00.dir/objects1.rsp
+        /usr/local/bin/x86_64-w64-mingw32-gcc  -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes  -DAWS_LC_STDALIGN_AVAILABLE -DAWS_LC_BUILTIN_SWAP_SUPPORTED -Wshadow  -Wl,--whole-archive CMakeFiles/cmTC_11f00.dir/objects.a -Wl,--no-whole-archive -o cmTC_11f00.exe -Wl,--out-implib,libcmTC_11f00.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles/cmTC_11f00.dir/linkLibs.rsp
+        
+      exitCode: 0
+...

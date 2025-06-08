@@ -1,0 +1,62 @@
+# SecureWatch Agent Configuration
+# Save as 'agent.toml' and customize for your environment
+
+[agent]
+name = "securewatch-agent"
+tags = ["production", "datacenter-1"]
+heartbeat_interval = 30        # seconds
+max_memory_mb = 512           # MB
+max_cpu_percent = 50.0        # %
+
+[transport]
+server_url = "https://api.securewatch.local"
+api_key = "your-api-key-here"
+tls_verify = true
+compression = true
+batch_size = 100
+batch_timeout = 5             # seconds
+retry_attempts = 3
+retry_delay = 2               # seconds
+
+[collectors]
+
+[collectors.syslog]
+enabled = true
+bind_address = "0.0.0.0"
+port = 514
+protocol = "udp"              # "udp" or "tcp"
+
+[collectors.windows_event]
+enabled = true                # Automatically disabled on non-Windows
+channels = [
+    "System",
+    "Security", 
+    "Application",
+    "Microsoft-Windows-Sysmon/Operational"
+]
+# query = "*[System[TimeCreated[timediff(@SystemTime) <= 86400000]]]"  # Optional XPath query
+batch_size = 50
+
+[collectors.file_monitor]
+enabled = false
+paths = [
+    "/var/log/nginx/access.log",
+    "/var/log/nginx/error.log",
+    "/var/log/apache2/*.log"
+]
+patterns = ["*.log", "*.txt"]
+recursive = true
+
+[buffer]
+max_events = 10000
+max_size_mb = 100
+flush_interval = 10           # seconds
+compression = true
+persistent = true
+persistence_path = "./buffer"
+
+[security]
+# encryption_key = "base64-encoded-key"
+# certificate_path = "/path/to/cert.pem"
+# private_key_path = "/path/to/key.pem"
+ca_certificates = []

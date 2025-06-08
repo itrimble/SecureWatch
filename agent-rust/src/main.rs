@@ -1,19 +1,16 @@
-// SecureWatch Rust Agent - Main Entry Point
-// High-performance async SIEM agent built with Tokio
+// SecureWatch Rust Agent - Main Entry Point with Tokio async patterns
 
 use clap::Parser;
 use std::path::PathBuf;
 use tokio::signal;
-use tracing::{error, info, warn};
+use tracing::{error, info, Level};
+use tracing_subscriber;
 
-mod agent;
-mod collectors;
 mod config;
-mod transport;
-mod utils;
+mod simple_agent;
 
-use agent::SecureWatchAgent;
 use config::AgentConfig;
+use simple_agent::SimpleAgent;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -29,10 +26,6 @@ struct Cli {
     /// Log level
     #[arg(short, long, default_value = "info")]
     log_level: String,
-
-    /// Run in daemon mode
-    #[arg(short, long)]
-    daemon: bool,
 
     /// Validate configuration and exit
     #[arg(long)]
@@ -50,15 +43,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("🦀 Built with Rust and Tokio async runtime");
 
     // Load configuration
-    let config = match AgentConfig::load(&cli.config) {
-        Ok(config) => {
-            info!("✅ Configuration loaded from: {:?}", cli.config);
-            config
-        }
-        Err(e) => {
-            error!("❌ Failed to load configuration: {}", e);
-            return Err(e.into());
-        }
+    let config = if cli.config.exists() {
+        info!("📖 Loading configuration from: {:?}", cli.config);
+        AgentConfig::load_from_file(cli.config.to_str().unwrap()).await?
+    } else {
+        info!("📝 Using default configuration");
+        AgentConfig::default()
     };
 
     // Validate config if requested
@@ -68,44 +58,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Create and start agent
-    let mut agent = SecureWatchAgent::new(config, cli.agent_id).await?;
+    let agent = SimpleAgent::new(config);
 
-    // Handle graceful shutdown
+    // Setup graceful shutdown with Ctrl+C handling
     let shutdown_future = async {
-        let _ = signal::ctrl_c().await;
-        warn!("🛑 Received shutdown signal, stopping agent...");
+        signal::ctrl_c().await.expect("Failed to listen for ctrl_c");
+        info!("🛑 Received Ctrl+C, shutting down...");
     };
 
-    // Run agent with graceful shutdown
+    // Run agent with graceful shutdown using tokio::select!
     tokio::select! {
         result = agent.run() => {
             match result {
-                Ok(_) => info!("✅ Agent stopped successfully"),
-                Err(e) => error!("❌ Agent stopped with error: {}", e),
+                Ok(_) => info!("✅ Agent completed successfully"),
+                Err(e) => error!("❌ Agent failed: {}", e),
             }
         }
         _ = shutdown_future => {
-            info!("🔄 Initiating graceful shutdown...");
-            agent.shutdown().await?;
-            info!("✅ Agent shutdown complete");
+            info!("🛑 Graceful shutdown initiated");
         }
     }
 
+    info!("👋 SecureWatch Agent shutting down");
     Ok(())
 }
 
 fn init_logging(level: &str) -> Result<(), Box<dyn std::error::Error>> {
-    use tracing_subscriber::{fmt, EnvFilter};
+    let log_level = match level.to_lowercase().as_str() {
+        "trace" => Level::TRACE,
+        "debug" => Level::DEBUG,
+        "info" => Level::INFO,
+        "warn" => Level::WARN,
+        "error" => Level::ERROR,
+        _ => Level::INFO,
+    };
 
-    let filter = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new(level))?;
-
-    fmt()
-        .with_env_filter(filter)
+    tracing_subscriber::fmt()
+        .with_max_level(log_level)
         .with_target(false)
-        .with_thread_ids(true)
-        .with_file(true)
-        .with_line_number(true)
+        .with_thread_ids(false)
+        .with_file(false)
+        .with_line_number(false)
         .init();
 
     Ok(())

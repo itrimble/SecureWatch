@@ -1,0 +1,11 @@
+/Users/ian/Scripts/SecureWatch/agent-rust/target/i686-pc-windows-msvc/release/deps/libgetrandom-4e090743da1b619e.rmeta: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/lib.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/error.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/util.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/error_impls.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/windows.rs
+
+/Users/ian/Scripts/SecureWatch/agent-rust/target/i686-pc-windows-msvc/release/deps/libgetrandom-4e090743da1b619e.rlib: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/lib.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/error.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/util.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/error_impls.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/windows.rs
+
+/Users/ian/Scripts/SecureWatch/agent-rust/target/i686-pc-windows-msvc/release/deps/getrandom-4e090743da1b619e.d: /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/lib.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/error.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/util.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/error_impls.rs /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/windows.rs
+
+/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/lib.rs:
+/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/error.rs:
+/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/util.rs:
+/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/error_impls.rs:
+/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.16/src/windows.rs:

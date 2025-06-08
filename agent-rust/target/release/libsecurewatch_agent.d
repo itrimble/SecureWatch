@@ -1,0 +1,1 @@
+/Users/ian/Scripts/SecureWatch/agent-rust/target/release/libsecurewatch_agent.rlib: /Users/ian/Scripts/SecureWatch/agent-rust/src/config.rs /Users/ian/Scripts/SecureWatch/agent-rust/src/lib.rs /Users/ian/Scripts/SecureWatch/agent-rust/src/simple_agent.rs

@@ -1,0 +1,1 @@
+/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/securewatch-agent.exe: /Users/ian/Scripts/SecureWatch/agent-rust/src/config.rs /Users/ian/Scripts/SecureWatch/agent-rust/src/lib.rs /Users/ian/Scripts/SecureWatch/agent-rust/src/main.rs /Users/ian/Scripts/SecureWatch/agent-rust/src/simple_agent.rs
