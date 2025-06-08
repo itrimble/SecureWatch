@@ -1,6 +1,24 @@
-# SecureWatch Troubleshooting Export User Guide v2.1.0
+# SecureWatch Troubleshooting Export User Guide v2.1.1
 
-> **📋 Documentation Navigation:** [Main README](README.md) | [Support Bundle API](SUPPORT_BUNDLE_API_GUIDE.md) | [Deployment Guide](DEPLOYMENT_GUIDE.md) | [Performance Guide](PERFORMANCE_OPTIMIZATION_GUIDE.md)
+> **📋 Documentation Navigation:** 
+> - **Core Guides**: [Main README](README.md) | [Quick Start](QUICK_START.md) | [Deployment Guide](DEPLOYMENT_GUIDE.md)
+> - **API References**: [Support Bundle API](SUPPORT_BUNDLE_API_GUIDE.md) | [KQL API Guide](KQL_API_GUIDE.md) | [Performance API](PERFORMANCE_API_GUIDE.md)
+> - **Integration**: [OpenSearch Guide](OPENSEARCH_INTEGRATION_GUIDE.md) | [Data Ingestion](DATA_INGESTION_GUIDE.md)
+> - **Operations**: [Performance Optimization](PERFORMANCE_OPTIMIZATION_GUIDE.md) | [Security Configuration](SECURITY_CONFIGURATION_GUIDE.md)
+> - **Troubleshooting**: [Incident Response](INCIDENT_RESPONSE_PROCEDURES.md) | [Log Formats](LOG_FORMATS_GUIDE.md)
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Accessing the Feature](#accessing-the-feature)
+3. [Export Configuration](#using-the-export-interface)
+4. [Bundle Analysis](#understanding-export-bundles)
+5. [Use Cases & Scenarios](#common-use-cases)
+6. [TypeScript Troubleshooting](#typescript-specific-troubleshooting)
+7. [OpenSearch Integration](#opensearch-integration-analysis)
+8. [Troubleshooting Guide](#troubleshooting-the-export-feature)
+9. [Best Practices](#best-practices)
+10. [API Reference](#api-reference)
 
 ## Overview
 
@@ -40,14 +58,15 @@ The Troubleshooting Export feature in SecureWatch allows administrators to expor
 
 ### Service Filtering
 
-#### Available Services
-- **correlation-engine**: Real-time alerting and correlation
-- **analytics-engine**: KQL query processing and analytics
-- **log-ingestion**: Log collection and normalization
-- **search-api**: Search interface and data retrieval
-- **auth-service**: Authentication and authorization
-- **mcp-marketplace**: MCP marketplace integration
-- **web-frontend**: Frontend application and UI
+#### Available Services (v2.1.1 Consolidated Architecture)
+- **correlation-engine** (Port 4005): Real-time alerting and correlation with TypeScript rule evaluation
+- **analytics-engine** (Port 4009): Consolidated KQL query processing, analytics, and dashboard APIs
+- **log-ingestion** (Port 4002): Data ingestion, TypeScript parsers, and normalization pipeline
+- **search-api** (Port 4004): Search interface, KQL engine, and OpenSearch integration
+- **auth-service** (Port 4006): Authentication, authorization, and JWT token management
+- **hec-service** (Port 8888): HTTP Event Collector (Splunk-compatible) with TypeScript validators
+- **query-processor** (Port 4008): Async job processing and WebSocket notifications
+- **mcp-marketplace** (Port 4010): MCP integrations and marketplace services
 
 #### When to Filter Services
 - **Specific Component Issues**: Select only the affected service
@@ -151,15 +170,34 @@ Each downloaded ZIP file contains:
 [
   {
     "@timestamp": "2025-01-05T10:30:00.123Z",
-    "level": "error",
+    "level": "error" | "warn" | "info" | "debug",
     "message": "Database connection timeout",
     "service": "search-api",
     "hostname": "securewatch-host",
     "requestId": "req_abc123",
+    "correlationId": "corr_xyz789",
+    "userId": "user_456def",
+    "sessionId": "sess_123ghi",
+    "performance": {
+      "duration": 5000,
+      "memoryUsage": "245MB",
+      "cpuUtilization": 0.85
+    },
+    "context": {
+      "environment": "production",
+      "region": "us-west-2",
+      "version": "2.1.1"
+    },
     "error": {
       "name": "TimeoutError",
       "message": "Connection timeout after 5000ms",
-      "stack": "TimeoutError: Connection timeout\n    at Database.connect..."
+      "code": "DB_TIMEOUT_001",
+      "stack": "TimeoutError: Connection timeout\n    at Database.connect...",
+      "metadata": {
+        "query": "SELECT * FROM events WHERE...",
+        "connectionPool": "primary",
+        "retryAttempt": 3
+      }
     }
   }
 ]
@@ -171,7 +209,13 @@ Each downloaded ZIP file contains:
   "exportInfo": {
     "exportId": "export-123e4567...",
     "exportTime": "2025-01-05T11:00:00.000Z",
-    "secureWatchVersion": "1.0.0"
+    "secureWatchVersion": "2.1.1",
+    "buildInfo": {
+      "nodeVersion": "20.x",
+      "typescriptVersion": "5.x",
+      "buildTimestamp": "2025-01-05T10:00:00.000Z",
+      "gitCommit": "abc123def456"
+    }
   },
   "statistics": {
     "totalDocuments": 15750,
@@ -316,6 +360,127 @@ If you encounter issues:
    - Services and log levels selected
    - Any error messages received
    - Browser and version information
+
+## TypeScript-Specific Troubleshooting
+
+### Build and Runtime Issues
+
+#### 1. TypeScript Compilation Errors
+**Scenario**: Services fail to start due to TypeScript compilation issues
+
+**Configuration**:
+- Time Range: Last 30 minutes
+- Services: All services
+- Log Levels: Error
+- Max Documents: 10,000
+
+**Analysis Focus**:
+- TypeScript compilation errors
+- Module resolution failures
+- Type definition conflicts
+- Build pipeline issues
+
+#### 2. Type Safety Violations
+**Scenario**: Runtime errors due to type mismatches
+
+**Log Pattern Examples**:
+```json
+{
+  "level": "error",
+  "message": "Type assertion failed",
+  "service": "analytics-engine",
+  "error": {
+    "type": "TypeError",
+    "expected": "SearchRequest",
+    "received": "undefined",
+    "location": "src/engine/query-planner.ts:142"
+  }
+}
+```
+
+#### 3. Interface Compatibility Issues
+**Common Patterns to Look For**:
+- `Property 'x' does not exist on type 'y'`
+- `Argument of type 'A' is not assignable to parameter of type 'B'`
+- `Cannot read property 'x' of undefined`
+- `Object is possibly 'null' or 'undefined'`
+
+## OpenSearch Integration Analysis
+
+### Query Performance Troubleshooting
+
+When analyzing search-related issues, look for these OpenSearch-specific patterns:
+
+#### Query Execution Logs
+```json
+{
+  "service": "search-api",
+  "level": "info",
+  "message": "OpenSearch query executed",
+  "query": {
+    "index": "securewatch-logs-*",
+    "type": "kql",
+    "execution_time_ms": 1250,
+    "total_hits": 15847,
+    "shard_failures": 0
+  },
+  "opensearch": {
+    "cluster_health": "green",
+    "nodes_available": 3,
+    "indices_searched": ["securewatch-logs-2025.01.05", "securewatch-logs-2025.01.04"]
+  }
+}
+```
+
+#### Index Management Issues
+```json
+{
+  "service": "log-ingestion",
+  "level": "warn",
+  "message": "Index rollover threshold reached",
+  "index": {
+    "name": "securewatch-logs-2025.01.05",
+    "size_gb": 2.5,
+    "document_count": 1500000,
+    "rollover_triggered": true
+  }
+}
+```
+
+## API Reference
+
+### Export Bundle API Endpoint
+
+```typescript
+interface ExportRequest {
+  timeRange: {
+    start: string; // ISO 8601 timestamp
+    end: string;   // ISO 8601 timestamp
+  };
+  services?: string[];
+  logLevels?: ('error' | 'warn' | 'info' | 'debug')[];
+  maxDocuments?: number;
+  includeStackTraces?: boolean;
+}
+
+interface ExportResponse {
+  exportId: string;
+  status: 'processing' | 'completed' | 'failed';
+  downloadUrl?: string;
+  metadata: {
+    totalDocuments: number;
+    bundleSize: number;
+    processingTime: number;
+  };
+}
+```
+
+### Health Check Endpoints
+
+- **GET** `/api/support/health` - System health status
+- **POST** `/api/support/export-logs` - Create export bundle
+- **GET** `/api/support/export-logs/{exportId}` - Check export status
+- **GET** `/api/support/export-logs/{exportId}/download` - Download bundle
 
 ## Best Practices
 
