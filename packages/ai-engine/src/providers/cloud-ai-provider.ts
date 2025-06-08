@@ -460,7 +460,7 @@ export class CloudAIProvider extends EventEmitter {
 
     const stream = await client.messages.create(requestData);
 
-    for await (const chunk of stream) {
+    for await (const chunk of stream as any) {
       if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
         yield { chunk: chunk.delta.text, done: false };
       } else if (chunk.type === 'message_stop') {

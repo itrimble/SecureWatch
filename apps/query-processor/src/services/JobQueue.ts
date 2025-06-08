@@ -2,22 +2,23 @@
 // Handles async query execution with priority queues and retry logic
 
 import Bull from 'bull';
-import { createClient } from 'redis';
+import { createClient, RedisClientType } from 'redis';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger';
-import { QueryJob, JobStatus, JobPriority, JobProgress, QueryResult } from '../types';
+import { QueryJob, JobStatus, JobPriority } from '../types';
 
 export class JobQueue {
   private queue: Bull.Queue;
-  private redis: Redis.RedisClientType;
+  private redis: RedisClientType;
   private isInitialized = false;
 
   constructor() {
     // Initialize Redis connection
     this.redis = createClient({
       url: process.env.REDIS_URL || 'redis://:securewatch_dev@localhost:6379',
-      retry_delay_on_failure: 1000,
-      retry_unfulfilled_commands: true,
+      socket: {
+        reconnectStrategy: () => 1000,
+      },
     });
 
     // Initialize Bull queue
@@ -96,7 +97,7 @@ export class JobQueue {
       });
 
       // Add job to Bull queue with priority
-      const bullJob = await this.queue.add('execute-query', fullJob, {
+      await this.queue.add('execute-query', fullJob, {
         priority: this.getPriorityValue(fullJob.priority),
         delay: this.getDelayForPriority(fullJob.priority),
         jobId: jobId,
@@ -130,17 +131,17 @@ export class JobQueue {
       }
 
       return {
-        id: jobData.id,
-        organization_id: jobData.organization_id,
-        user_id: jobData.user_id,
-        query: jobData.query,
-        query_type: jobData.query_type as any,
+        id: jobData.id || '',
+        organization_id: jobData.organization_id || '',
+        user_id: jobData.user_id || '',
+        query: jobData.query || '',
+        query_type: (jobData.query_type || 'opensearch') as any,
         parameters: JSON.parse(jobData.parameters || '{}'),
         time_range: JSON.parse(jobData.time_range || '{}'),
         status: jobData.status as JobStatus,
         priority: jobData.priority as JobPriority,
         estimated_duration: jobData.estimated_duration ? parseInt(jobData.estimated_duration, 10) : undefined,
-        created_at: jobData.created_at,
+        created_at: jobData.created_at || new Date().toISOString(),
         started_at: jobData.started_at,
         completed_at: jobData.completed_at,
         error_message: jobData.error_message,
@@ -292,7 +293,7 @@ export class JobQueue {
         
         if (jobData.user_id === userId) {
           if (!status || jobData.status === status) {
-            const job = await this.getJob(jobData.id);
+            const job = await this.getJob(jobData.id || '');
             if (job) {
               jobs.push(job);
             }
@@ -408,18 +409,18 @@ export class JobQueue {
   private setupEventHandlers(): void {
     this.queue.on('completed', async (job) => {
       logger.info(`Job ${job.id} completed successfully`);
-      await this.updateJobStatus(job.id, 'completed');
+      await this.updateJobStatus(String(job.id), 'completed');
     });
 
     this.queue.on('failed', async (job, err) => {
       logger.error(`Job ${job.id} failed:`, err);
       // Sanitize error message to prevent information leakage
       const sanitizedError = this.sanitizeErrorMessage(err.message);
-      await this.updateJobStatus(job.id, 'failed', sanitizedError);
+      await this.updateJobStatus(String(job.id), 'failed', sanitizedError);
     });
 
     this.queue.on('progress', async (job, progress) => {
-      await this.updateJobProgress(job.id, progress);
+      await this.updateJobProgress(String(job.id), progress);
     });
 
     this.queue.on('stalled', (job) => {

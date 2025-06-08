@@ -381,8 +381,8 @@ export class MCPClient extends EventEmitter {
   /**
    * Call a tool
    */
-  async callTool(name: string, arguments: any): Promise<any> {
-    const response = await this.sendRequest('tools/call', { name, arguments });
+  async callTool(name: string, args: any): Promise<any> {
+    const response = await this.sendRequest('tools/call', { name, arguments: args });
     return response;
   }
 

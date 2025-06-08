@@ -87,7 +87,7 @@ class HECService {
             standardHeaders: true,
             legacyHeaders: false,
             keyGenerator: (req) => {
-                const ip = req.ip || req.connection.remoteAddress || 'unknown';
+                const ip = req.ip || req.connection?.remoteAddress || 'unknown';
                 const token = req.headers.authorization?.replace('Bearer ', '').substring(0, 8) || 'no-token';
                 return `${ip}:${token}`;
             }

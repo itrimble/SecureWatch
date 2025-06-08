@@ -1,0 +1,42 @@
+import { EventEmitter } from 'events';
+import { Case, EscalationRule, DatabaseConfig } from '../types/incident-response.types';
+export declare class EscalationService extends EventEmitter {
+    private db;
+    private escalationRules;
+    private activeChecks;
+    private checkInterval;
+    constructor(config: {
+        database: DatabaseConfig;
+    });
+    initialize(): Promise<void>;
+    private createTables;
+    private loadEscalationRules;
+    private initializeDefaultRules;
+    private loadActiveChecks;
+    private startEscalationWorker;
+    registerCaseForEscalation(caseData: Case): Promise<void>;
+    unregisterCaseFromEscalation(caseId: string): Promise<void>;
+    private processEscalationChecks;
+    private processEscalationCheck;
+    private findApplicableRules;
+    private isRuleApplicableToCase;
+    private calculateNextCheckTime;
+    private evaluateEscalationConditions;
+    private executeEscalationAction;
+    private executeNotifyAction;
+    private executeAssignAction;
+    private executeEscalateAction;
+    private executeAutoApproveAction;
+    private getCaseData;
+    private getNextAvailableAnalyst;
+    private getSeniorAnalyst;
+    private recordEscalationHistory;
+    private removeCheck;
+    private updateCheck;
+    createEscalationRule(ruleData: Omit<EscalationRule, 'id'>): Promise<EscalationRule>;
+    updateEscalationRule(ruleId: string, updates: Partial<EscalationRule>): Promise<EscalationRule | null>;
+    deleteEscalationRule(ruleId: string): Promise<void>;
+    getEscalationRules(): EscalationRule[];
+    getEscalationStatistics(): Promise<any>;
+    shutdown(): Promise<void>;
+}

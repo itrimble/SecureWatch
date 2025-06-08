@@ -296,20 +296,22 @@ class OpenSearchExecutor implements IQueryExecutor {
       // Extract field names from the first hit
       const columns: QueryColumn[] = [];
       if (response.body.hits.hits.length > 0) {
-        const firstHit = response.body.hits.hits[0]._source;
-        Object.keys(firstHit).forEach(key => {
-          columns.push({
-            name: key,
-            type: typeof firstHit[key],
-            description: undefined,
+        const firstHit = response.body.hits.hits[0]?._source;
+        if (firstHit) {
+          Object.keys(firstHit).forEach(key => {
+            columns.push({
+              name: key,
+              type: typeof firstHit[key],
+              description: undefined,
+            });
           });
-        });
+        }
       }
 
       return {
         job_id: job.id,
         data: response.body.hits.hits.map((hit: any) => ({ _id: hit._id, ...hit._source })),
-        total_rows: response.body.hits.total.value || 0,
+        total_rows: (typeof response.body.hits.total === 'object' ? response.body.hits.total?.value : response.body.hits.total) || 0,
         execution_time_ms: response.body.took || 0,
         columns,
         metadata: {

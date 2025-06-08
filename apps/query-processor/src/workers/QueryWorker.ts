@@ -37,12 +37,12 @@ export class QueryWorker {
 
       // Setup event handlers
       queue.on('active', (job) => {
-        this.currentJobs.add(job.id);
+        this.currentJobs.add(String(job.id));
         logger.info(`Job ${job.id} started processing`);
       });
 
       queue.on('completed', (job, result) => {
-        this.currentJobs.delete(job.id);
+        this.currentJobs.delete(String(job.id));
         logger.info(`Job ${job.id} completed successfully`, {
           executionTime: result.execution_time_ms,
           totalRows: result.total_rows,
@@ -50,7 +50,7 @@ export class QueryWorker {
       });
 
       queue.on('failed', (job, err) => {
-        this.currentJobs.delete(job.id);
+        this.currentJobs.delete(String(job.id));
         logger.error(`Job ${job.id} failed:`, err);
       });
 

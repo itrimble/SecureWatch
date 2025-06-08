@@ -1,9 +1,9 @@
 // WebSocket Service for real-time job status updates
 // Provides real-time notifications to frontend clients
 
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 import { createServer } from 'http';
-import { createClient } from 'redis';
+import { createClient, RedisClientType } from 'redis';
 import { logger } from '../utils/logger';
 import { WebSocketMessage } from '../types';
 
@@ -16,9 +16,9 @@ interface ClientConnection {
 }
 
 export class WebSocketService {
-  private server?: WebSocket.Server;
+  private server?: WebSocketServer;
   private clients: Map<string, ClientConnection> = new Map();
-  private redis?: Redis.RedisClientType;
+  private redis?: RedisClientType;
   private isInitialized = false;
   private heartbeatInterval?: NodeJS.Timeout;
 
@@ -35,13 +35,13 @@ export class WebSocketService {
       await this.redis.connect();
 
       // Subscribe to job update channel
-      await this.redis.subscribe('job-updates', (message) => {
+      await this.redis.subscribe('job-updates', (message: string) => {
         this.handleJobUpdate(message);
       });
 
       // Create WebSocket server
       const httpServer = createServer();
-      this.server = new WebSocket.Server({ server: httpServer });
+      this.server = new WebSocketServer({ server: httpServer });
 
       this.setupWebSocketHandlers();
       this.startHeartbeat();
@@ -61,7 +61,7 @@ export class WebSocketService {
   private setupWebSocketHandlers(): void {
     if (!this.server) return;
 
-    this.server.on('connection', (ws, request) => {
+    this.server.on('connection', (ws: WebSocket, request: any) => {
       // Extract user info from query parameters or headers
       const url = new URL(request.url || '', `http://${request.headers.host}`);
       const userId = url.searchParams.get('userId');
@@ -76,6 +76,10 @@ export class WebSocketService {
 
       // TODO: Validate token for authentication
       // For now, we'll accept any connection with valid parameters
+      if (token) {
+        // Token validation would go here
+        logger.debug('Token provided for WebSocket connection');
+      }
 
       const clientId = `${userId}-${Date.now()}`;
       const client: ClientConnection = {
@@ -102,7 +106,7 @@ export class WebSocketService {
       });
 
       // Handle incoming messages
-      ws.on('message', (data) => {
+      ws.on('message', (data: any) => {
         try {
           const message = JSON.parse(data.toString());
           this.handleClientMessage(clientId, message);
@@ -120,7 +124,7 @@ export class WebSocketService {
       });
 
       // Handle errors
-      ws.on('error', (error) => {
+      ws.on('error', (error: any) => {
         logger.error(`WebSocket error for client ${clientId}:`, error);
         this.clients.delete(clientId);
       });
@@ -319,6 +323,7 @@ export class WebSocketService {
 
       // Close all client connections
       for (const [clientId, client] of this.clients) {
+        logger.info(`Closing WebSocket connection for client: ${clientId}`);
         client.ws.close(1001, 'Server shutting down');
       }
       this.clients.clear();

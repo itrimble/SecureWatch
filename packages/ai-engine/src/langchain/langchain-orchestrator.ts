@@ -12,7 +12,7 @@ import { StuffDocumentsChain } from 'langchain/chains';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Document } from '@langchain/core/documents';
-import { BufferMemory, ConversationBufferMemory } from 'langchain/memory';
+import { BufferMemory } from 'langchain/memory';
 import { CallbackManager } from '@langchain/core/callbacks/manager';
 import { ChainConfig, LangChainChainType, AIModelConfig, SecurityContext, AIEngineError } from '../types/ai.types';
 import { LocalLLMProvider } from '../providers/local-llm-provider';
@@ -90,7 +90,9 @@ export class LangChainOrchestrator extends EventEmitter {
             modelName: config.model,
             temperature: config.temperature,
             maxTokens: config.maxTokens,
-            baseURL: config.endpoint
+            configuration: {
+              baseURL: config.endpoint
+            }
           });
         } else if (config.provider === 'claude') {
           model = new ChatAnthropic({
@@ -98,7 +100,9 @@ export class LangChainOrchestrator extends EventEmitter {
             modelName: config.model,
             temperature: config.temperature,
             maxTokens: config.maxTokens,
-            baseURL: config.endpoint
+            clientOptions: {
+              baseURL: config.endpoint
+            }
           });
         } else {
           throw new AIEngineError(`Unsupported cloud provider: ${config.provider}`, 'UNSUPPORTED_PROVIDER');

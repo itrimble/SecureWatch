@@ -52,8 +52,7 @@ export class VectorDatabaseService extends EventEmitter {
     super();
     
     this.pinecone = new Pinecone({
-      apiKey,
-      environment
+      apiKey
     });
 
     this.initializeEmbeddingModels();
@@ -127,7 +126,7 @@ export class VectorDatabaseService extends EventEmitter {
 
         vectors.push({
           id: document.id,
-          vector: document.embedding,
+          values: document.embedding,
           metadata: {
             content: document.content,
             type: document.type,
@@ -310,10 +309,13 @@ export class VectorDatabaseService extends EventEmitter {
       const stats = await index.describeIndexStats();
 
       return {
-        totalVectors: stats.totalVectorCount || 0,
+        totalVectors: stats.totalRecordCount || 0,
         dimension: stats.dimension || 0,
         indexFullness: stats.indexFullness || 0,
-        namespaces: stats.namespaces || {}
+        namespaces: Object.entries(stats.namespaces || {}).reduce((acc, [key, value]: [string, any]) => {
+          acc[key] = { vectorCount: value.recordCount || 0 };
+          return acc;
+        }, {} as Record<string, { vectorCount: number; }>)
       };
 
     } catch (error) {
@@ -371,12 +373,9 @@ export class VectorDatabaseService extends EventEmitter {
       const index = this.pinecone.index(indexName);
       
       // Fetch existing vector
-      const fetchResponse = await index.fetch({
-        ids: [documentId],
-        namespace
-      });
+      const fetchResponse = await index.fetch([documentId], { namespace });
 
-      const existingVector = fetchResponse.vectors[documentId];
+      const existingVector = fetchResponse.records?.[documentId];
       if (!existingVector) {
         throw new AIEngineError(`Document not found: ${documentId}`, 'DOCUMENT_NOT_FOUND');
       }
@@ -384,13 +383,12 @@ export class VectorDatabaseService extends EventEmitter {
       // Update with new metadata
       await index.upsert([{
         id: documentId,
-        vector: existingVector.values,
+        values: existingVector.values,
         metadata: {
           ...existingVector.metadata,
           ...metadata
-        },
-        namespace
-      }]);
+        }
+      }], { namespace });
 
       this.emit('document:updated', { indexName, documentId });
       logger.info(`Updated metadata for document ${documentId} in index ${indexName}`);
@@ -506,7 +504,7 @@ export class VectorDatabaseService extends EventEmitter {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const result = await response.json();
+      const result = await response.json() as any;
       return result.embedding || result.data?.embedding;
 
     } catch (error) {

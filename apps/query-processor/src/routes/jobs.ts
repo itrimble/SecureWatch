@@ -95,7 +95,7 @@ router.post('/submit', async (req, res) => {
       estimatedDuration,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       status: 'success',
       job_id: jobId,
       estimated_duration: estimatedDuration,
@@ -104,7 +104,7 @@ router.post('/submit', async (req, res) => {
 
   } catch (error) {
     logger.error('Failed to submit job:', error);
-    res.status(500).json({
+    return res.status(500).json({
       status: 'error',
       message: 'Failed to submit job',
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -125,14 +125,14 @@ router.get('/:jobId', async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       status: 'success',
       job,
     });
 
   } catch (error) {
     logger.error(`Failed to get job ${req.params.jobId}:`, error);
-    res.status(500).json({
+    return res.status(500).json({
       status: 'error',
       message: 'Failed to retrieve job',
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -183,14 +183,14 @@ router.post('/:jobId/cancel', async (req, res) => {
 
     logger.info(`Job ${jobId} cancelled`);
 
-    res.json({
+    return res.json({
       status: 'success',
       message: 'Job cancelled successfully',
     });
 
   } catch (error) {
     logger.error(`Failed to cancel job ${req.params.jobId}:`, error);
-    res.status(500).json({
+    return res.status(500).json({
       status: 'error',
       message: 'Failed to cancel job',
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -215,7 +215,7 @@ router.post('/validate', async (req, res) => {
       ? await queryExecutor.estimateQueryDuration(query_type, query, {})
       : null;
 
-    res.json({
+    return res.json({
       status: 'success',
       validation,
       estimated_duration: estimatedDuration,
@@ -223,7 +223,7 @@ router.post('/validate', async (req, res) => {
 
   } catch (error) {
     logger.error('Failed to validate query:', error);
-    res.status(500).json({
+    return res.status(500).json({
       status: 'error',
       message: 'Failed to validate query',
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -232,7 +232,7 @@ router.post('/validate', async (req, res) => {
 });
 
 // Get queue statistics
-router.get('/admin/stats', async (req, res) => {
+router.get('/admin/stats', async (_req, res) => {
   try {
     const queueStats = await jobQueue.getQueueStats();
     const wsStats = wsService.getStats();
@@ -255,7 +255,7 @@ router.get('/admin/stats', async (req, res) => {
 });
 
 // Health check endpoint
-router.get('/health', async (req, res) => {
+router.get('/health', async (_req, res) => {
   try {
     // Basic health checks
     const queueStats = await jobQueue.getQueueStats();
@@ -307,7 +307,7 @@ router.get('/:jobId/result', async (req, res) => {
 
     // In a real implementation, you'd fetch the result from storage
     // For now, return a placeholder
-    res.json({
+    return res.json({
       status: 'success',
       job_id: jobId,
       result_location: job.result_location,
@@ -317,7 +317,7 @@ router.get('/:jobId/result', async (req, res) => {
 
   } catch (error) {
     logger.error(`Failed to get result for job ${req.params.jobId}:`, error);
-    res.status(500).json({
+    return res.status(500).json({
       status: 'error',
       message: 'Failed to retrieve job result',
       error: error instanceof Error ? error.message : 'Unknown error',

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -127,9 +127,9 @@ class HECService {
       },
       standardHeaders: true,
       legacyHeaders: false,
-      keyGenerator: (req) => {
+      keyGenerator: (req: any) => {
         // Use IP and token for rate limiting
-        const ip = req.ip || req.connection.remoteAddress || 'unknown';
+        const ip = req.ip || req.connection?.remoteAddress || 'unknown';
         const token = req.headers.authorization?.replace('Bearer ', '').substring(0, 8) || 'no-token';
         return `${ip}:${token}`;
       }

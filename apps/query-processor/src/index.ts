@@ -20,7 +20,7 @@ const wsPort = parseInt(process.env.WS_PORT || '8080', 10);
 
 // Middleware
 app.use(helmet());
-app.use(compression());
+app.use(compression() as any);
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   credentials: true,
@@ -29,7 +29,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Request logging middleware
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
   logger.info(`${req.method} ${req.path}`, {
     ip: req.ip,
     userAgent: req.get('User-Agent'),
@@ -39,7 +39,7 @@ app.use((req, res, next) => {
 });
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error('Unhandled error:', err);
   res.status(500).json({
     status: 'error',
@@ -84,7 +84,7 @@ async function startServer() {
     app.use('/api/jobs', jobsRouter);
 
     // Health check endpoint
-    app.get('/health', async (req, res) => {
+    app.get('/health', async (_req, res) => {
       try {
         const queueStats = await jobQueue.getQueueStats();
         const workerStats = queryWorker.getStats();
@@ -119,7 +119,7 @@ async function startServer() {
     });
 
     // API documentation endpoint
-    app.get('/api/docs', (req, res) => {
+    app.get('/api/docs', (_req, res) => {
       res.json({
         service: 'Query Processor',
         version: '1.0.0',
@@ -143,7 +143,7 @@ async function startServer() {
     });
 
     // Root endpoint
-    app.get('/', (req, res) => {
+    app.get('/', (_req, res) => {
       res.json({
         service: 'SecureWatch Query Processor',
         version: '1.0.0',
