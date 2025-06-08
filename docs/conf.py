@@ -32,11 +32,8 @@ extensions = [
     'sphinx_design',
 ]
 
-# Source file parsers
-source_suffix = {
-    '.rst': None,
-    '.md': 'myst_parser',
-}
+# Source file parsers - Sphinx 8+ compatible
+source_suffix = ['.rst', '.md']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'archive/*']

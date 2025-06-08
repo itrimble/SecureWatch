@@ -32,9 +32,9 @@ export function ThemeToggle() {
   const getThemeLabel = (currentTheme: string | undefined) => {
     switch (currentTheme) {
       case 'light':
-        return 'Splunk Light'
+        return 'Light'
       case 'dark':
-        return 'Splunk Dark'
+        return 'Dark'
       case 'system':
         return `System (${systemTheme === 'dark' ? 'Dark' : 'Light'})`
       default:
@@ -64,14 +64,14 @@ export function ThemeToggle() {
         <DropdownMenuItem onClick={() => setTheme('light')} className="flex items-center justify-between">
           <div className="flex items-center">
             <Sun className="h-4 w-4 mr-2" />
-            <span>Splunk Light</span>
+            <span>Light</span>
           </div>
           {theme === 'light' && <Badge variant="outline" className="text-xs">Active</Badge>}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('dark')} className="flex items-center justify-between">
           <div className="flex items-center">
             <Moon className="h-4 w-4 mr-2" />
-            <span>Splunk Dark</span>
+            <span>Dark</span>
           </div>
           {theme === 'dark' && <Badge variant="outline" className="text-xs">Active</Badge>}
         </DropdownMenuItem>

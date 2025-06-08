@@ -205,7 +205,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">Security Operations Center</h1>
-              <p className="text-gray-400">
+              <p className="text-muted-foreground">
                 Welcome back! Current time: {currentTime ? currentTime.toLocaleString() : 'Loading...'}
               </p>
             </div>
@@ -235,22 +235,22 @@ export default function HomePage() {
         {/* Row 1: Key Security Posture & System Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Critical Alerts Today */}
-          <Card className="bg-gray-800 border-gray-700 critical-alerts-card">
+          <Card className="critical-alerts-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
-                <Shield className="w-5 h-5 mr-2 text-red-400" />
+                <Shield className="w-5 h-5 mr-2 text-red-500" />
                 Critical & High Alerts Today
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between mb-4">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-red-400">12</div>
-                  <div className="text-sm text-gray-400">Critical</div>
+                  <div className="text-3xl font-bold text-red-500">12</div>
+                  <div className="text-sm text-muted-foreground">Critical</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-400">28</div>
-                  <div className="text-sm text-gray-400">High</div>
+                  <div className="text-3xl font-bold text-orange-500">28</div>
+                  <div className="text-sm text-muted-foreground">High</div>
                 </div>
               </div>
               <div className="h-16 mb-3">
@@ -281,17 +281,17 @@ export default function HomePage() {
           </Card>
 
           {/* Data Ingestion Status */}
-          <Card className="bg-gray-800 border-gray-700 data-ingestion-card">
+          <Card className="data-ingestion-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
-                <Database className="w-5 h-5 mr-2 text-blue-400" />
+                <Database className="w-5 h-5 mr-2 text-blue-500" />
                 Data Ingestion
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center mb-4">
-                <div className="text-3xl font-bold text-blue-400">1,367</div>
-                <div className="text-sm text-gray-400">Events Per Second</div>
+                <div className="text-3xl font-bold text-blue-500">1,367</div>
+                <div className="text-sm text-muted-foreground">Events Per Second</div>
               </div>
               <div className="h-16 mb-3">
                 <ResponsiveContainer width="100%" height="100%">
@@ -315,12 +315,12 @@ export default function HomePage() {
               </div>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Active Sources:</span>
-                  <span className="text-green-400">15</span>
+                  <span className="text-muted-foreground">Active Sources:</span>
+                  <span className="text-green-500">15</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">With Warnings:</span>
-                  <span className="text-yellow-400">2</span>
+                  <span className="text-muted-foreground">With Warnings:</span>
+                  <span className="text-yellow-500">2</span>
                 </div>
               </div>
               <Button 
@@ -336,10 +336,10 @@ export default function HomePage() {
           </Card>
 
           {/* Platform Health */}
-          <Card className="bg-gray-800 border-gray-700 platform-health-card">
+          <Card className="platform-health-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
-                <Heart className="w-5 h-5 mr-2 text-green-400" />
+                <Heart className="w-5 h-5 mr-2 text-green-500" />
                 Platform Health
               </CardTitle>
             </CardHeader>
@@ -351,12 +351,12 @@ export default function HomePage() {
                       {getServiceStatusIcon(service.status)}
                       <span className="text-sm">{service.name}</span>
                     </div>
-                    <span className="text-xs text-gray-400">{service.uptime}</span>
+                    <span className="text-xs text-muted-foreground">{service.uptime}</span>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 p-3 bg-gray-700 rounded-lg">
-                <div className="text-sm text-gray-400 mb-1">System Resources</div>
+              <div className="mt-4 p-3 bg-muted rounded-lg">
+                <div className="text-sm text-muted-foreground mb-1">System Resources</div>
                 <div className="flex justify-between text-sm">
                   <span>CPU: Moderate</span>
                   <span>Memory: Normal</span>
@@ -378,23 +378,23 @@ export default function HomePage() {
         {/* Row 2: Recent Activity & Threat Intelligence */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Recent Critical Alerts Feed */}
-          <Card className="bg-gray-800 border-gray-700 recent-alerts-feed">
+          <Card className="recent-alerts-feed">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
-                <Zap className="w-5 h-5 mr-2 text-yellow-400" />
+                <Zap className="w-5 h-5 mr-2 text-yellow-500" />
                 Latest Critical Alerts
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {mockRecentAlerts.map((alert) => (
-                  <div key={alert.id} className="flex items-center space-x-3 p-2 hover:bg-gray-700 rounded cursor-pointer">
+                  <div key={alert.id} className="flex items-center space-x-3 p-2 hover:bg-muted rounded cursor-pointer">
                     {getSeverityIcon(alert.severity)}
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{alert.title}</div>
-                      <div className="text-xs text-gray-400">{alert.source}</div>
+                      <div className="text-xs text-muted-foreground">{alert.source}</div>
                     </div>
-                    <div className="text-xs text-gray-400 flex items-center">
+                    <div className="text-xs text-muted-foreground flex items-center">
                       <Clock className="w-3 h-3 mr-1" />
                       {alert.time}
                     </div>
@@ -414,22 +414,22 @@ export default function HomePage() {
           </Card>
 
           {/* Threat Intelligence Overview */}
-          <Card className="bg-gray-800 border-gray-700 threat-intelligence-card">
+          <Card className="threat-intelligence-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
-                <Globe className="w-5 h-5 mr-2 text-purple-400" />
+                <Globe className="w-5 h-5 mr-2 text-purple-500" />
                 Threat Intelligence Snapshot
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-400">1,247</div>
-                  <div className="text-xs text-gray-400">New IOCs Today</div>
+                  <div className="text-2xl font-bold text-purple-500">1,247</div>
+                  <div className="text-xs text-muted-foreground">New IOCs Today</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-400">89</div>
-                  <div className="text-xs text-gray-400">Matches Found</div>
+                  <div className="text-2xl font-bold text-blue-500">89</div>
+                  <div className="text-xs text-muted-foreground">Matches Found</div>
                 </div>
               </div>
               
@@ -472,12 +472,12 @@ export default function HomePage() {
                       />
                       <span>{item.name}</span>
                     </div>
-                    <span className="text-gray-400">{item.value}%</span>
+                    <span className="text-muted-foreground">{item.value}%</span>
                   </div>
                 ))}
               </div>
               
-              <div className="mt-3 pt-3 border-t border-gray-700 text-xs text-gray-400">
+              <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
                 Last Sync: {new Date().toLocaleTimeString()}
               </div>
             </CardContent>
@@ -487,10 +487,10 @@ export default function HomePage() {
         {/* Row 3: Quick Access */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Favorite Dashboards */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
-                <Star className="w-5 h-5 mr-2 text-yellow-400" />
+                <Star className="w-5 h-5 mr-2 text-yellow-500" />
                 Favorite Dashboards
               </CardTitle>
             </CardHeader>
@@ -499,16 +499,16 @@ export default function HomePage() {
                 {mockFavoriteDashboards.map((dashboard) => (
                   <div 
                     key={dashboard.id} 
-                    className="flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer"
+                    className="flex items-center justify-between p-2 hover:bg-muted rounded cursor-pointer"
                     onClick={() => router.push('/visualizations')}
                   >
                     <div className="flex items-center space-x-2">
-                      <Eye className="w-4 h-4 text-gray-400" />
+                      <Eye className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm">{dashboard.name}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-400">{dashboard.lastViewed}</span>
-                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                      <span className="text-xs text-muted-foreground">{dashboard.lastViewed}</span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     </div>
                   </div>
                 ))}
@@ -517,10 +517,10 @@ export default function HomePage() {
           </Card>
 
           {/* Saved Searches */}
-          <Card className="bg-gray-800 border-gray-700 quick-hunt-searches">
+          <Card className="quick-hunt-searches">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
-                <FileText className="w-5 h-5 mr-2 text-green-400" />
+                <FileText className="w-5 h-5 mr-2 text-green-500" />
                 Quick Hunt Searches
               </CardTitle>
             </CardHeader>
@@ -529,14 +529,14 @@ export default function HomePage() {
                 {mockSavedSearches.map((search) => (
                   <div 
                     key={search.id} 
-                    className="flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer"
+                    className="flex items-center justify-between p-2 hover:bg-muted rounded cursor-pointer"
                     onClick={() => router.push(`/explorer?query=${encodeURIComponent(search.query)}`)}
                   >
                     <div>
                       <div className="text-sm font-medium">{search.name}</div>
-                      <div className="text-xs text-gray-400 font-mono">{search.query}</div>
+                      <div className="text-xs text-muted-foreground font-mono">{search.query}</div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </div>
                 ))}
               </div>

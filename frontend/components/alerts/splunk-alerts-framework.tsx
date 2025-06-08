@@ -599,14 +599,53 @@ export function SplunkAlertsFramework() {
               </div>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedAlert(null)}>
-                Close
-              </Button>
-              <Button>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Alert
-              </Button>
+            <DialogFooter className="flex justify-between">
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    if (selectedAlert) {
+                      navigator.clipboard.writeText(selectedAlert.query);
+                      // You could add a toast notification here
+                      console.log('Query copied to clipboard');
+                    }
+                  }}
+                  title="Copy KQL Query"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Query
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    if (selectedAlert) {
+                      const alertData = JSON.stringify(selectedAlert, null, 2);
+                      navigator.clipboard.writeText(alertData);
+                      console.log('Alert configuration copied to clipboard');
+                    }
+                  }}
+                  title="Copy Alert Configuration"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Config
+                </Button>
+              </div>
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={() => setSelectedAlert(null)}>
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    // Open alert in edit mode - you could implement this by setting an edit state
+                    console.log('Edit alert:', selectedAlert?.id);
+                    setIsCreateAlertOpen(true); // For now, opens creation wizard
+                    setSelectedAlert(null);
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Alert
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
