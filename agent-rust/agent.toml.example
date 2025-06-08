@@ -1,62 +1,82 @@
-# SecureWatch Agent Configuration
-# Save as 'agent.toml' and customize for your environment
+# SecureWatch Agent Configuration Example
+# Copy this to agent.toml and customize for your environment
 
 [agent]
 name = "securewatch-agent"
-tags = ["production", "datacenter-1"]
-heartbeat_interval = 30        # seconds
-max_memory_mb = 512           # MB
-max_cpu_percent = 50.0        # %
+tags = ["production", "security"]
+heartbeat_interval = 30  # seconds
+max_memory_mb = 512
+max_cpu_percent = 50.0
 
 [transport]
-server_url = "https://api.securewatch.local"
+server_url = "https://api.securewatch.local/ingest"
 api_key = "your-api-key-here"
 tls_verify = true
 compression = true
 batch_size = 100
-batch_timeout = 5             # seconds
+batch_timeout = 5  # seconds
 retry_attempts = 3
-retry_delay = 2               # seconds
+retry_delay = 2  # seconds
 
 [collectors]
-
+# Syslog collector configuration
 [collectors.syslog]
 enabled = true
 bind_address = "0.0.0.0"
 port = 514
-protocol = "udp"              # "udp" or "tcp"
+protocol = "udp"  # udp, tcp, or both
 
+# Windows Event Log collector (Windows only)
 [collectors.windows_event]
-enabled = true                # Automatically disabled on non-Windows
-channels = [
-    "System",
-    "Security", 
-    "Application",
-    "Microsoft-Windows-Sysmon/Operational"
-]
-# query = "*[System[TimeCreated[timediff(@SystemTime) <= 86400000]]]"  # Optional XPath query
+enabled = false  # Set to true on Windows
+channels = ["System", "Security", "Application"]
 batch_size = 50
 
+# File monitoring collector
 [collectors.file_monitor]
 enabled = false
-paths = [
-    "/var/log/nginx/access.log",
-    "/var/log/nginx/error.log",
-    "/var/log/apache2/*.log"
-]
+paths = ["/var/log/*.log", "/opt/app/logs/*.log"]
 patterns = ["*.log", "*.txt"]
 recursive = true
 
 [buffer]
 max_events = 10000
 max_size_mb = 100
-flush_interval = 10           # seconds
+flush_interval = 10  # seconds
 compression = true
 persistent = true
 persistence_path = "./buffer"
 
-[security]
-# encryption_key = "base64-encoded-key"
-# certificate_path = "/path/to/cert.pem"
-# private_key_path = "/path/to/key.pem"
-ca_certificates = []
+# Parser definitions for structured log processing
+[[parsers.parsers]]
+name = "syslog_rfc3164"
+source_type = "syslog"
+regex_pattern = '^<(?P<priority>\d+)>(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<tag>\w+):\s*(?P<message>.*)$'
+
+[parsers.parsers.field_mappings]
+priority = "syslog.priority"
+timestamp = "@timestamp"
+hostname = "host.name"
+tag = "process.name"
+message = "message"
+
+[[parsers.parsers]]
+name = "apache_access"
+source_type = "file_monitor"
+regex_pattern = '^(?P<ip>\S+)\s+\S+\s+\S+\s+\[(?P<timestamp>[^\]]+)\]\s+"(?P<method>\S+)\s+(?P<url>\S+)\s+(?P<protocol>\S+)"\s+(?P<status>\d+)\s+(?P<size>\d+).*$'
+
+[parsers.parsers.field_mappings]
+ip = "source.ip"
+timestamp = "@timestamp"
+method = "http.request.method"
+url = "url.original"
+protocol = "http.version"
+status = "http.response.status_code"
+size = "http.response.body.bytes"
+
+# Remote management API configuration
+[management]
+enabled = true
+bind_address = "127.0.0.1"
+port = 9090
+auth_token = "securewatch-management-token"

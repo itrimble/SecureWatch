@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package agent_management;
+
+// Agent Management Service for remote control and monitoring
+service AgentManagement {
+  // Get agent health status
+  rpc GetHealth(Empty) returns (HealthResponse);
+  
+  // Get detailed performance metrics
+  rpc GetMetrics(Empty) returns (MetricsResponse);
+  
+  // Dynamically change log level
+  rpc SetLogLevel(LogLevelRequest) returns (LogLevelResponse);
+  
+  // Get collector status
+  rpc GetCollectorStatus(Empty) returns (CollectorStatusResponse);
+  
+  // Get parser information
+  rpc GetParserInfo(Empty) returns (ParserInfoResponse);
+  
+  // Get buffer statistics
+  rpc GetBufferStats(Empty) returns (BufferStatsResponse);
+  
+  // Trigger configuration reload
+  rpc ReloadConfig(Empty) returns (ReloadConfigResponse);
+  
+  // Get transport statistics
+  rpc GetTransportStats(Empty) returns (TransportStatsResponse);
+}
+
+// Empty message for requests with no parameters
+message Empty {}
+
+// Health-related messages
+message HealthResponse {
+  string status = 1;
+  string agent_id = 2;
+  string version = 3;
+  int64 uptime_seconds = 4;
+  SystemResources system_resources = 5;
+  bool backpressure_active = 6;
+  int32 active_collectors = 7;
+}
+
+message SystemResources {
+  double cpu_usage_percent = 1;
+  uint64 memory_used_bytes = 2;
+  uint64 memory_total_bytes = 3;
+  double memory_usage_percent = 4;
+  uint64 disk_used_bytes = 5;
+  uint64 disk_total_bytes = 6;
+}
+
+// Metrics-related messages
+message MetricsResponse {
+  uint64 events_processed = 1;
+  uint64 events_sent = 2;
+  uint64 events_failed = 3;
+  uint64 events_dropped = 4;
+  double events_per_second = 5;
+  uint64 bytes_processed = 6;
+  uint64 bytes_sent = 7;
+  int64 last_activity_timestamp = 8;
+  repeated CollectorMetrics collector_metrics = 9;
+}
+
+message CollectorMetrics {
+  string name = 1;
+  string source_type = 2;
+  uint64 events_collected = 3;
+  uint64 events_failed = 4;
+  bool is_running = 5;
+  string last_error = 6;
+}
+
+// Log level messages
+message LogLevelRequest {
+  string level = 1; // trace, debug, info, warn, error
+}
+
+message LogLevelResponse {
+  bool success = 1;
+  string message = 2;
+  string previous_level = 3;
+  string new_level = 4;
+}
+
+// Collector status messages
+message CollectorStatusResponse {
+  repeated CollectorStatus collectors = 1;
+}
+
+message CollectorStatus {
+  string name = 1;
+  string source_type = 2;
+  bool running = 3;
+  string configuration = 4; // JSON configuration
+  string last_error = 5;
+  int64 last_activity = 6;
+}
+
+// Parser information messages
+message ParserInfoResponse {
+  repeated ParserInfo parsers = 1;
+}
+
+message ParserInfo {
+  string name = 1;
+  string source_type = 2;
+  string parser_type = 3; // regex, passthrough, etc.
+  string pattern = 4;
+  repeated string field_mappings = 5;
+}
+
+// Buffer statistics messages
+message BufferStatsResponse {
+  uint64 memory_events = 1;
+  uint64 disk_events = 2;
+  uint64 total_bytes = 3;
+  bool backpressure_active = 4;
+  uint64 events_processed = 5;
+  uint64 events_dropped = 6;
+  double memory_usage_percent = 7;
+  double disk_usage_percent = 8;
+}
+
+// Configuration reload messages
+message ReloadConfigResponse {
+  bool success = 1;
+  string message = 2;
+  repeated string changes_detected = 3;
+  repeated string errors = 4;
+}
+
+// Transport statistics messages
+message TransportStatsResponse {
+  string server_url = 1;
+  bool tls_enabled = 2;
+  bool compression_enabled = 3;
+  uint32 batch_size = 4;
+  uint32 retry_attempts = 5;
+  uint64 requests_sent = 6;
+  uint64 requests_failed = 7;
+  uint64 bytes_sent = 8;
+  double average_latency_ms = 9;
+  string last_error = 10;
+  int64 last_success_timestamp = 11;
+}

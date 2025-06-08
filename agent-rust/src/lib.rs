@@ -1,7 +1,14 @@
-// SecureWatch Agent Library - Simple async implementation using Tokio patterns
+// SecureWatch Agent Library - Enterprise async implementation using Tokio patterns
 
 pub mod config;
-pub mod simple_agent;
+pub mod errors;
+pub mod agent;
+pub mod collectors;
+pub mod transport;
+pub mod buffer;
+pub mod parsers;
+pub mod utils;
 
 pub use config::AgentConfig;
-pub use simple_agent::{SimpleAgent, SimpleLogEvent};
+pub use errors::{AgentError, Result};
+pub use agent::Agent;

@@ -1,0 +1,18 @@
+// Build script for generating gRPC code from protobuf definitions
+
+use std::env;
+use std::path::PathBuf;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    
+    tonic_build::configure()
+        .build_server(true)
+        .build_client(false) // We only need the server side
+        .file_descriptor_set_path(out_dir.join("agent_management_descriptor.bin"))
+        .compile(&["proto/agent_management.proto"], &["proto"])?;
+    
+    println!("cargo:rerun-if-changed=proto/agent_management.proto");
+    
+    Ok(())
+}

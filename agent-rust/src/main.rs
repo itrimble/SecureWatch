@@ -7,10 +7,16 @@ use tracing::{error, info, Level};
 use tracing_subscriber;
 
 mod config;
-mod simple_agent;
+mod errors;
+mod agent;
+mod collectors;
+mod transport;
+mod buffer;
+mod parsers;
+mod utils;
 
 use config::AgentConfig;
-use simple_agent::SimpleAgent;
+use agent::Agent;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -57,8 +63,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    // Create and start agent
-    let agent = SimpleAgent::new(config);
+    // Create and initialize agent
+    let mut agent = Agent::new(config)?;
+    agent.initialize().await?;
 
     // Setup graceful shutdown with Ctrl+C handling
     let shutdown_future = async {
