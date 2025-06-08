@@ -1,4 +1,6 @@
-# SecureWatch SIEM - Comprehensive Deployment Guide
+# SecureWatch SIEM - Comprehensive Deployment Guide v2.1.0
+
+> **📋 Documentation Navigation:** [Main README](README.md) | [Quick Start](QUICK_START.md) | [Architecture Setup](MONOREPO_SETUP.md) | [Port Configuration](PORT_CONFIGURATION.md)
 
 ## 📋 Table of Contents
 1. [Prerequisites](#prerequisites)

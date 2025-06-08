@@ -1,4 +1,6 @@
-# Performance API Guide
+# SecureWatch Performance API Guide v2.1.0
+
+> **📋 Documentation Navigation:** [Main README](README.md) | [Performance Guide](PERFORMANCE_OPTIMIZATION_GUIDE.md) | [Analytics Engine](DEPLOYMENT_GUIDE.md#analytics-engine-service-port-4009) | [Query Processor](DEPLOYMENT_GUIDE.md#query-processor-service-port-4008)
 
 ## Overview
 

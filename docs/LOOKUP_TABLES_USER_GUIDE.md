@@ -1,4 +1,6 @@
-# Lookup Tables User Guide
+# SecureWatch Lookup Tables User Guide v2.1.0
+
+> **📋 Documentation Navigation:** [Main README](README.md) | [Quick Start](QUICK_START.md) | [Data Ingestion](DATA_INGESTION_GUIDE.md) | [KQL Guide](KQL_API_GUIDE.md)
 
 ## Overview
 

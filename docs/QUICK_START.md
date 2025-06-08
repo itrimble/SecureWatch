@@ -1,5 +1,7 @@
 # 🚀 SecureWatch Quick Start - v2.1.0
 
+> **📋 Documentation Navigation:** [Main README](README.md) | [Deployment Guide](DEPLOYMENT_GUIDE.md) | [Architecture Setup](MONOREPO_SETUP.md) | [Port Configuration](PORT_CONFIGURATION.md)
+
 ## ✅ Platform Ready!
 
 Your SecureWatch SIEM platform v2.1.0 is fully consolidated with:

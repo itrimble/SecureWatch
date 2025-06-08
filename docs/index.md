@@ -18,10 +18,10 @@ SecureWatch provides real-time security monitoring, threat detection, and incide
 - **Enterprise Security** - Multi-tenancy, RBAC, OAuth, MFA, and comprehensive audit trails
 - **Modern Architecture** - Cloud-native microservices designed for horizontal scaling
 
-:::{admonition} Version 2.1.0 - Latest Release
+:::{admonition} Version 2.1.0 - Latest Release (June 2025)
 :class: tip
 
-This documentation covers SecureWatch v2.1.0, featuring major architecture consolidation, enhanced performance, and streamlined deployment. See {doc}`CHANGELOG` for complete release notes.
+This documentation covers SecureWatch v2.1.0, featuring major architecture consolidation (95,000+ lines of duplicate code removed), enhanced performance with EventsTable virtualization, and streamlined 8-service architecture. See {doc}`CHANGELOG` for complete release notes.
 :::
 
 ## Quick Start
@@ -147,23 +147,23 @@ graph TB
         F[File Upload] --> D
     end
     
-    subgraph "Processing Layer"
+    subgraph "Core Processing Layer (v2.1.0)"
         D --> G[Search API<br/>Port 4004]
         E --> G
         G --> H[Correlation Engine<br/>Port 4005]
-        G --> I[Analytics Engine<br/>Port 4009]
+        G --> I[Analytics Engine<br/>Port 4009<br/><small>Consolidated APIs</small>]
         G --> J[Query Processor<br/>Port 4008]
     end
     
     subgraph "Security & Integration"
-        K[Auth Service<br/>Port 4006] --> L[Frontend<br/>Port 4000]
+        K[Auth Service<br/>Port 4006] --> L[Frontend<br/>Port 4000<br/><small>Enterprise Next.js</small>]
         M[MCP Marketplace<br/>Port 4010] --> L
     end
     
     subgraph "Data Storage"
-        N[(TimescaleDB)]
-        O[(Redis)]
-        P[(OpenSearch)]
+        N[(TimescaleDB<br/>Continuous Aggregates)]
+        O[(Redis<br/>Caching & Jobs)]
+        P[(OpenSearch 3.0<br/>Full-text Search)]
     end
     
     G --> N

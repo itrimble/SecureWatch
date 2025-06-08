@@ -1,4 +1,6 @@
-# SecureWatch Visualization User Guide
+# SecureWatch Visualization User Guide v2.1.0
+
+> **📋 Documentation Navigation:** [Main README](README.md) | [Quick Start](QUICK_START.md) | [KQL Guide](KQL_API_GUIDE.md) | [Performance Guide](PERFORMANCE_OPTIMIZATION_GUIDE.md)
 
 ## 📋 Table of Contents
 1. [Getting Started](#getting-started)

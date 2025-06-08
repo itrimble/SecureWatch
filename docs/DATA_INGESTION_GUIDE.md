@@ -1,4 +1,6 @@
-# SecureWatch Data Ingestion Guide
+# SecureWatch Data Ingestion Guide v2.1.0
+
+> **📋 Documentation Navigation:** [Main README](README.md) | [Quick Start](QUICK_START.md) | [Deployment Guide](DEPLOYMENT_GUIDE.md) | [Log Formats](LOG_FORMATS_GUIDE.md)
 
 ## 📋 Overview
 

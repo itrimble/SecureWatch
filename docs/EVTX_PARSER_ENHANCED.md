@@ -1,4 +1,6 @@
-# Enhanced EVTX Parser v2.0 - Comprehensive MITRE ATT&CK Detection
+# SecureWatch Enhanced EVTX Parser v2.1.0 - Comprehensive MITRE ATT&CK Detection
+
+> **📋 Documentation Navigation:** [Main README](README.md) | [Data Ingestion](DATA_INGESTION_GUIDE.md) | [EVTX Testing](EVTX_ATTACK_SAMPLES_TESTING.md) | [Field Mappings](windows-event-field-mappings.md)
 
 ## Overview
 

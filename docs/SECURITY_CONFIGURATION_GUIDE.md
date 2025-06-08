@@ -1,8 +1,10 @@
-# Security Configuration Guide
+# SecureWatch Security Configuration Guide v2.1.0
+
+> **📋 Documentation Navigation:** [Main README](README.md) | [Quick Start](QUICK_START.md) | [Deployment Guide](DEPLOYMENT_GUIDE.md) | [Security Fixes](SECURITY_FIXES_SUMMARY.md)
 
 ## Overview
 
-This guide provides essential security configuration for SecureWatch SIEM platform. All critical security vulnerabilities have been resolved as of v1.13.0, but proper environment configuration is required for secure operation.
+This guide provides essential security configuration for SecureWatch SIEM platform. All critical security vulnerabilities have been resolved as of v2.1.0, but proper environment configuration is required for secure operation.
 
 ## 🚨 Required Environment Variables
 

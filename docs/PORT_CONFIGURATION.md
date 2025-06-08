@@ -1,5 +1,7 @@
 # SecureWatch Port Configuration - v2.1.0 Consolidated Architecture
 
+> **📋 Documentation Navigation:** [Main README](README.md) | [Quick Start](QUICK_START.md) | [Deployment Guide](DEPLOYMENT_GUIDE.md) | [Architecture Setup](MONOREPO_SETUP.md)
+
 All services have been configured to use standardized ports to avoid conflicts and ensure clean architecture.
 
 ## Frontend
@@ -167,4 +169,5 @@ sudo kill -9 $(lsof -t -i:4000)
 
 ---
 
-**Last Updated**: June 7, 2025 - v2.1.0 Consolidation Complete
+**Last Updated**: June 2025 - v2.1.0 Consolidation Complete
+**Related Documentation**: [README.md](README.md) | [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) | [MONOREPO_SETUP.md](MONOREPO_SETUP.md)

@@ -2,7 +2,16 @@
 
 ## 📚 Documentation Overview
 
-This directory contains comprehensive documentation for the SecureWatch SIEM platform, covering all aspects from architecture design to deployment guides and testing strategies.
+This directory contains comprehensive documentation for the SecureWatch SIEM platform v2.1.0, covering all aspects from architecture design to deployment guides and testing strategies. All documentation has been updated to reflect the current consolidated architecture and enhanced features.
+
+## 🚀 Quick Navigation
+
+| Getting Started | Core Guides | Advanced Topics |
+|----------------|-------------|-----------------|
+| [Quick Start](QUICK_START.md) | [Deployment](DEPLOYMENT_GUIDE.md) | [Performance](PERFORMANCE_OPTIMIZATION_GUIDE.md) |
+| [Architecture](MONOREPO_SETUP.md) | [Data Ingestion](DATA_INGESTION_GUIDE.md) | [Security](SECURITY_CONFIGURATION_GUIDE.md) |
+| [Port Config](PORT_CONFIGURATION.md) | [KQL Guide](KQL_API_GUIDE.md) | [OpenSearch](OPENSEARCH_INTEGRATION_GUIDE.md) |
+| [Change Log](CHANGELOG.md) | [Visualization](VISUALIZATION_USER_GUIDE.md) | [EVTX Parser](EVTX_PARSER_ENHANCED.md) |
 
 ## 📋 Documentation Index
 
@@ -51,7 +60,7 @@ This directory contains comprehensive documentation for the SecureWatch SIEM pla
 
 ## 🔥 Latest Updates & Key Features
 
-### 🏗️ Architecture Consolidation v2.1.0 (June 7, 2025) 🚀
+### 🏗️ Architecture Consolidation v2.1.0 (June 2025) 🚀
 **MAJOR CONSOLIDATION COMPLETED - 95,000+ LINES OF DUPLICATE CODE REMOVED**
 
 ✅ **Service Architecture Optimized:**
@@ -59,7 +68,7 @@ This directory contains comprehensive documentation for the SecureWatch SIEM pla
 - Merged analytics-api functionality into analytics-engine (Port 4009)
 - Eliminated duplicate frontend implementations
 - Standardized all packages to @securewatch/* naming convention
-- Updated all services to version 1.9.0
+- Updated all services to version 2.1.0
 
 ✅ **Build System Fixes:**
 - Resolved all TypeScript build errors across packages
@@ -81,6 +90,8 @@ This directory contains comprehensive documentation for the SecureWatch SIEM pla
 
 **📋 Current Service Count:** 8 core services (down from 12+)
 **🔍 Architecture Details:** See [MONOREPO_SETUP.md](MONOREPO_SETUP.md)
+**🚀 Quick Start:** See [QUICK_START.md](QUICK_START.md)
+**📋 Deployment:** See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
 
 ### Performance & Scalability Optimizations (June 2025) 🆕
 Enterprise-grade performance enhancements for handling large-scale SIEM operations:
@@ -349,16 +360,40 @@ python3 scripts/test_enhanced_evtx_pipeline.py \
 
 ---
 
-**Comprehensive documentation for enterprise-grade Windows event log analysis and MITRE ATT&CK-based threat detection** 🛡️
+## 📊 Quick Reference Table
 
-## 📊 Quick Reference
+| Document | Purpose | Audience | Status |
+|----------|---------|----------|--------|
+| **[QUICK_START.md](QUICK_START.md)** | Get up and running in minutes | All Users | ✅ v2.1.0 |
+| **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** | Production deployment | DevOps, System Administrators | ✅ v2.1.0 |
+| **[MONOREPO_SETUP.md](MONOREPO_SETUP.md)** | Architecture and build system | Developers, Architects | ✅ v2.1.0 |
+| **[KQL_API_GUIDE.md](KQL_API_GUIDE.md)** | Query language documentation | Threat Hunters, Analysts | ✅ v2.1.0 |
+| **[EVTX_PARSER_ENHANCED.md](EVTX_PARSER_ENHANCED.md)** | Complete EVTX parser guide | Security Engineers, SOC Analysts | ✅ v2.1.0 |
+| **[PERFORMANCE_OPTIMIZATION_GUIDE.md](PERFORMANCE_OPTIMIZATION_GUIDE.md)** | Enterprise performance features | Performance Engineers | ✅ v2.1.0 |
+| **[SECURITY_CONFIGURATION_GUIDE.md](SECURITY_CONFIGURATION_GUIDE.md)** | Security hardening | Security Administrators | ✅ v2.1.0 |
+| **[DATA_INGESTION_GUIDE.md](DATA_INGESTION_GUIDE.md)** | Data collection methods | Data Engineers | ✅ v2.1.0 |
 
-| Document | Purpose | Audience |
-|----------|---------|----------|
-| **EVTX_PARSER_ENHANCED.md** | Complete EVTX parser guide | Security Engineers, SOC Analysts |
-| **EVTX_ATTACK_SAMPLES_TESTING.md** | Testing results and metrics | Security Researchers, Validators |
-| **KQL_API_GUIDE.md** | Query language documentation | Threat Hunters, Analysts |
-| **DEPLOYMENT_GUIDE.md** | Production deployment | DevOps, System Administrators |
-| **testing-framework.md** | Quality assurance | QA Engineers, Developers |
+## 🔗 Cross-Platform Integration
 
-For the most up-to-date information, always refer to the individual documentation files and the main project README.
+SecureWatch v2.1.0 integrates with:
+- **OpenSearch 3.0** - Full-text search and analytics
+- **TimescaleDB** - Time-series data optimization  
+- **Kafka** - High-throughput log streaming
+- **Redis** - Caching and session management
+- **Docker** - Containerized deployment
+- **Kubernetes** - Enterprise orchestration
+
+## 🆕 What's New in v2.1.0
+
+- **95,000+ lines** of duplicate code removed
+- **8 core services** (consolidated from 12+)
+- **EventsTable virtualization** for 100K+ row performance
+- **Consolidated analytics engine** with dashboard APIs
+- **Enhanced CLI dashboard** with service control
+- **Comprehensive cross-references** across all documentation
+
+---
+
+**SecureWatch SIEM Platform v2.1.0 - Enterprise security monitoring made simple.**
+
+For the most up-to-date information, always refer to the individual documentation files and the [CHANGELOG.md](CHANGELOG.md).

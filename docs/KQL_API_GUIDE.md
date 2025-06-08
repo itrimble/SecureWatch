@@ -1,4 +1,6 @@
-# SecureWatch KQL API Guide
+# SecureWatch KQL API Guide v2.1.0
+
+> **📋 Documentation Navigation:** [Main README](README.md) | [Quick Start](QUICK_START.md) | [Deployment Guide](DEPLOYMENT_GUIDE.md) | [Performance Guide](PERFORMANCE_OPTIMIZATION_GUIDE.md)
 
 ## 📋 Table of Contents
 1. [Overview](#overview)

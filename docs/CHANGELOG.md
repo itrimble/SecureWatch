@@ -1,4 +1,6 @@
-# Changelog
+# SecureWatch SIEM Platform - Changelog
+
+> **📋 Documentation Navigation:** [Main README](README.md) | [Quick Start](QUICK_START.md) | [Deployment Guide](DEPLOYMENT_GUIDE.md) | [Architecture Setup](MONOREPO_SETUP.md)
 
 All notable changes to the SecureWatch SIEM platform will be documented in this file.
 

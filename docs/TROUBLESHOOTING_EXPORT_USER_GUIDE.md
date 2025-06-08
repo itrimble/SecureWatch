@@ -1,4 +1,6 @@
-# Troubleshooting Export User Guide
+# SecureWatch Troubleshooting Export User Guide v2.1.0
+
+> **📋 Documentation Navigation:** [Main README](README.md) | [Support Bundle API](SUPPORT_BUNDLE_API_GUIDE.md) | [Deployment Guide](DEPLOYMENT_GUIDE.md) | [Performance Guide](PERFORMANCE_OPTIMIZATION_GUIDE.md)
 
 ## Overview
 

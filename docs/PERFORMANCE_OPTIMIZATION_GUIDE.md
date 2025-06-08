@@ -1,4 +1,6 @@
-# Performance Optimization Guide
+# SecureWatch Performance Optimization Guide v2.1.0
+
+> **📋 Documentation Navigation:** [Main README](README.md) | [Quick Start](QUICK_START.md) | [Deployment Guide](DEPLOYMENT_GUIDE.md) | [Performance API](PERFORMANCE_API_GUIDE.md)
 
 ## Overview
 

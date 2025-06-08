@@ -1,4 +1,6 @@
-# OpenSearch Integration Guide for SecureWatch
+# SecureWatch OpenSearch Integration Guide v2.1.0
+
+> **📋 Documentation Navigation:** [Main README](README.md) | [Quick Start](QUICK_START.md) | [Deployment Guide](DEPLOYMENT_GUIDE.md) | [KQL Guide](KQL_API_GUIDE.md)
 
 ## Overview
 

@@ -1,6 +1,8 @@
-# SecureWatch Log Formats Guide
+# SecureWatch Log Formats Guide v2.1.0
 
-This guide documents the enterprise log formats supported by SecureWatch's log ingestion pipeline.
+> **📋 Documentation Navigation:** [Main README](README.md) | [Data Ingestion](DATA_INGESTION_GUIDE.md) | [Field Mappings](windows-event-field-mappings.md) | [EVTX Parser](EVTX_PARSER_ENHANCED.md)
+
+This guide documents the enterprise log formats supported by SecureWatch's log ingestion pipeline in v2.1.0.
 
 ## Table of Contents
 1. [Overview](#overview)
