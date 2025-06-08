@@ -558,7 +558,7 @@ normalized_events
               <CardHeader>
                 <CardTitle>My Saved Queries</CardTitle>
                 <CardDescription>
-                  Queries you've saved for future use
+                  Queries you&apos;ve saved for future use
                 </CardDescription>
               </CardHeader>
               <CardContent>

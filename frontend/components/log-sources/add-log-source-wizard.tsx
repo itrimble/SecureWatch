@@ -761,7 +761,7 @@ export function AddLogSourceWizard({ onClose }: AddLogSourceWizardProps) {
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
                 <h3 className="text-xl font-medium text-green-500">Deployment Successful!</h3>
                 <p className="text-gray-400">
-                  Log source "{formData.name}" has been configured and is now collecting data.
+                  Log source &quot;{formData.name}&quot; has been configured and is now collecting data.
                 </p>
                 <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
                   <p className="text-sm text-green-700 dark:text-green-400">

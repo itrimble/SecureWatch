@@ -244,7 +244,7 @@ export function OnboardingProgress({ onStartTour, className }: OnboardingProgres
               Congratulations! 🎉
             </h3>
             <p className="text-sm text-green-600 dark:text-green-400">
-              You've completed the SecureWatch onboarding. You're ready to hunt threats!
+              You&apos;ve completed the SecureWatch onboarding. You&apos;re ready to hunt threats!
             </p>
           </div>
         )}

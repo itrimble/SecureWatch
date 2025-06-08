@@ -436,7 +436,7 @@ export function EducationDashboard({ className }: EducationDashboardProps) {
           <Card>
             <CardHeader>
               <CardTitle>My Certificates</CardTitle>
-              <CardDescription>Professional certifications you've earned</CardDescription>
+              <CardDescription>Professional certifications you&apos;ve earned</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

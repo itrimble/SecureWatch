@@ -326,7 +326,7 @@ export function ContentPackManager() {
                     <Alert variant="destructive" className="mb-4">
                       <AlertTriangle className="h-4 w-4" />
                       <AlertDescription>
-                        Pack failed to load: Missing dependency "Nmap MCP". Please install required MCP integration.
+                        Pack failed to load: Missing dependency &quot;Nmap MCP&quot;. Please install required MCP integration.
                       </AlertDescription>
                     </Alert>
                   )}

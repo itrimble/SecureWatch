@@ -585,14 +585,14 @@ export function InputsEditor({ inputs, onSave, onCancel }: InputsEditorProps) {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="bg-gray-900 p-3 rounded font-mono text-sm">
-                      <div className="text-gray-400 mb-2">// Example KQL query using this input:</div>
+                      <div className="text-gray-400 mb-2">{/* Example KQL query using this input: */}</div>
                       <div className="text-gray-100">
                         * | where timestamp {'>='} ago(1h)
                         {selectedInputData.type === 'text' && selectedInputData.token === 'hostname' && (
-                          <><br />| where hostname contains "${selectedInputData.token}$"</>
+                          <><br />| where hostname contains &quot;${selectedInputData.token}$&quot;</>
                         )}
                         {selectedInputData.type === 'dropdown' && selectedInputData.token === 'source' && (
-                          <><br />| where source_type == "${selectedInputData.token}$"</>
+                          <><br />| where source_type == &quot;${selectedInputData.token}$&quot;</>
                         )}
                         {selectedInputData.type === 'multiselect' && selectedInputData.token === 'severity' && (
                           <><br />| where severity in (${selectedInputData.token}$)</>
@@ -601,7 +601,7 @@ export function InputsEditor({ inputs, onSave, onCancel }: InputsEditorProps) {
                       </div>
                     </div>
                     <div className="text-xs text-gray-500">
-                      The token <Badge variant="outline" className="font-mono">${selectedInputData.token}$</Badge> will be replaced with the user's input value
+                      The token <Badge variant="outline" className="font-mono">${selectedInputData.token}$</Badge> will be replaced with the user&apos;s input value
                     </div>
                   </div>
                 </CardContent>
