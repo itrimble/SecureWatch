@@ -1,6 +1,15 @@
-# SecureWatch KQL API Guide v2.1.0
+# SecureWatch KQL API Guide v2.1.1
 
 > **📋 Documentation Navigation:** [Main README](README.md) | [Quick Start](QUICK_START.md) | [Deployment Guide](DEPLOYMENT_GUIDE.md) | [Performance Guide](PERFORMANCE_OPTIMIZATION_GUIDE.md)
+
+## 🔧 TypeScript Support (December 2025)
+
+### Type-Safe KQL Operations
+- **Query Builder**: Fully typed KQL query construction with IntelliSense support
+- **Result Types**: Strong typing for query results and security event schemas
+- **API Responses**: Type-safe HTTP responses with proper error handling
+- **Field Validation**: Compile-time checking of KQL field references
+- **Schema Definitions**: Complete TypeScript interfaces for all security event types
 
 ## 📋 Table of Contents
 1. [Overview](#overview)

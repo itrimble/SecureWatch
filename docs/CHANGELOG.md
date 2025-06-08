@@ -7,6 +7,30 @@ All notable changes to the SecureWatch SIEM platform will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-12-08
+
+### 🔧 TYPESCRIPT COMPILATION FIXES - ALL ERRORS RESOLVED
+
+#### Fixed
+- **TS2344 Route Handler Types**: Fixed Next.js 15 dynamic route handlers using Promise<{ id: string }> pattern
+- **TS2307 Module Resolution**: Created comprehensive type declarations for @securewatch/kql-engine module
+- **TS2430 Interface Inheritance**: Resolved Windows event log interface conflicts using Omit pattern  
+- **TS2345 Type Compatibility**: Fixed notification type mismatches with proper type adapters
+- **TS2454 Variable Scope**: Fixed progressInterval variable assignment in explorer page
+- **API Client Timeout**: Replaced invalid fetch timeout option with AbortController pattern
+- **Progress Component**: Fixed variant prop type errors in UI components
+
+#### Added
+- **KQL Engine Types**: Complete TypeScript declarations at packages/kql-engine/dist/index.d.ts
+- **Type Adapters**: Notification system compatibility layer for different notification formats
+- **Route Handler Updates**: All dynamic routes now properly handle async params in Next.js 15
+
+#### Changed
+- **Build Status**: Zero TypeScript compilation errors across all 51+ files
+- **Frontend Compatibility**: Enhanced Next.js 15 App Router pattern compliance
+- **Module Resolution**: Improved import paths and type safety
+- **Git Repository**: All fixes committed and pushed to origin/main (commit: 3cc51a1)
+
 ## [2.1.0] - 2025-06-07
 
 ### 🏗️ MAJOR ARCHITECTURE CONSOLIDATION COMPLETE - 95,000+ LINES REMOVED

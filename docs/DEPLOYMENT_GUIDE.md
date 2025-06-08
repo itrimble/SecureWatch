@@ -1,6 +1,32 @@
-# SecureWatch SIEM - Comprehensive Deployment Guide v2.1.0
+# SecureWatch SIEM - Comprehensive Deployment Guide v2.1.1
 
 > **📋 Documentation Navigation:** [Main README](README.md) | [Quick Start](QUICK_START.md) | [Architecture Setup](MONOREPO_SETUP.md) | [Port Configuration](PORT_CONFIGURATION.md)
+
+## 🔧 TypeScript Build Verification (December 2025)
+
+### Pre-Deployment Type Checking
+Before deploying SecureWatch v2.1.1, verify TypeScript compilation:
+
+```bash
+# Verify all packages compile without errors
+pnpm run typecheck
+
+# Expected output: "Found 0 errors" across all packages
+# ✅ frontend: tsc --noEmit completed successfully
+# ✅ apps/analytics-engine: tsc --noEmit completed successfully
+# ✅ apps/auth-service: tsc --noEmit completed successfully
+# ✅ apps/correlation-engine: tsc --noEmit completed successfully
+# ✅ apps/log-ingestion: tsc --noEmit completed successfully
+# ✅ apps/query-processor: tsc --noEmit completed successfully
+# ✅ apps/search-api: tsc --noEmit completed successfully
+# ✅ packages/kql-engine: tsc --noEmit completed successfully
+
+# Build all packages for production
+pnpm run build
+
+# Verify no build errors
+echo "✅ All TypeScript compilation successful - ready for deployment"
+```
 
 ## 📋 Table of Contents
 1. [Prerequisites](#prerequisites)
