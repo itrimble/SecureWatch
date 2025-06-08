@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL with TimescaleDB - Enhanced with resource limits and improved health checks
   postgres:

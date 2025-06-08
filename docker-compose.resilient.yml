@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # =============================================================================
   # INFRASTRUCTURE SERVICES (Tier 1 - Start First)

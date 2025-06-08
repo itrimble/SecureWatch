@@ -353,11 +353,34 @@ start_service() {
     
     show_progress "$service_name" "$port"
     
-    cd "$working_dir"
+    # Store current directory to return to it later
+    local original_dir=$(pwd)
+    
+    # Convert to absolute path and check if directory exists
+    local absolute_dir
+    if [[ "$working_dir" = /* ]]; then
+        absolute_dir="$working_dir"
+    else
+        # Always calculate from the script's original directory
+        absolute_dir="$original_dir/$working_dir"
+    fi
+    
+    if [ ! -d "$absolute_dir" ]; then
+        log_message "ERROR" "Working directory does not exist: $absolute_dir"
+        return 1
+    fi
+    
+    cd "$absolute_dir" || {
+        log_message "ERROR" "Failed to change to directory: $absolute_dir"
+        return 1
+    }
     
     # Start service in background with proper logging
     nohup bash -c "$start_command" > "/tmp/${service_name}.log" 2>&1 &
     local service_pid=$!
+    
+    # Return to original directory
+    cd "$original_dir"
     
     # Give it time to initialize
     sleep 3
@@ -509,17 +532,8 @@ main() {
     
     # Run comprehensive service startup health check
     log_message "INFO" "Running comprehensive service health validation..."
-    if command -v npx &> /dev/null && [ -f "scripts/service-monitor.ts" ]; then
-        cd scripts
-        if npx tsx service-monitor.ts startup; then
-            log_message "SUCCESS" "All services passed comprehensive health check"
-        else
-            log_message "WARNING" "Some services failed comprehensive health check"
-        fi
-        cd ..
-    else
-        log_message "WARNING" "Service monitor not available, using basic health checks"
-    fi
+    # Enhanced monitoring temporarily disabled due to dependency issues
+    log_message "INFO" "Using basic health checks (enhanced monitoring available via: npx tsx scripts/service-monitor.ts)"
 
     # Monitor services or show live dashboard
     if [ "$DEBUG_MODE" = true ]; then

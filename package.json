@@ -30,6 +30,7 @@
     "evtx:samples": "python3 scripts/test_enhanced_evtx_pipeline.py --samples-path /Users/ian/Downloads/EVTX-ATTACK-SAMPLES-master"
   },
   "dependencies": {
+    "@esbuild/darwin-arm64": "^0.25.5",
     "@heroicons/react": "^2.2.0",
     "@nivo/chord": "^0.99.0",
     "@nivo/core": "^0.99.0",
@@ -41,11 +42,13 @@
     "@radix-ui/react-toast": "^1.2.14",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.8",
+    "axios": "^1.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",
+    "esbuild": "^0.25.5",
     "express": "^5.1.0",
     "jose": "^6.0.11",
     "lucide-react": "^0.511.0",
@@ -56,6 +59,7 @@
     "recharts": "^2.15.3",
     "sonner": "^1.7.1",
     "tailwind-merge": "^3.3.0",
+    "winston": "^3.17.0",
     "zustand": "^5.0.5"
   },
   "devDependencies": {

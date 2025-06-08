@@ -1,5 +1,3 @@
-version: '3.8'
-
 # This file extends the main docker-compose.dev.yml with OpenSearch services
 # Usage: docker-compose -f docker-compose.dev.yml -f docker-compose.opensearch.yml up -d
 
