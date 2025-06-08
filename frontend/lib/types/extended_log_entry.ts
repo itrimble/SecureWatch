@@ -40,7 +40,7 @@ export interface ExtendedLogEntry {
   auth_result?: string;
 
   // Extended attributes
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
 
   // Processing metadata
   ingested_at?: string;
@@ -142,7 +142,7 @@ export interface ExtendedLogEntry {
   cloud_resource_id?: string;
   cloud_resource_type?: string; // EC2, S3, Lambda, etc.
   cloud_api_call?: string;
-  cloud_user_identity?: any; // JSON object
+  cloud_user_identity?: Record<string, unknown>; // JSON object
   cloud_source_ip_type?: string; // internal, external, aws, azure
 
   // Application Security
@@ -182,7 +182,7 @@ export interface ExtendedLogEntry {
   risk_score?: number; // 0.00-1.00
   confidence_score?: number; // 0.00-1.00
   model_version?: string;
-  feature_vector?: Record<string, any>; // ML features
+  feature_vector?: Record<string, number>; // ML features
 
   // Behavioral Analytics (UEBA)
   user_risk_score?: number; // 0.00-1.00
@@ -251,7 +251,7 @@ export interface ThreatIntelligenceEntry {
   first_seen: string;
   last_seen: string;
   active: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -337,12 +337,12 @@ export interface SecurityAlert {
   severity: string; // low, medium, high, critical
   status: string; // open, acknowledged, resolved, false_positive
   message: string;
-  query_result?: any;
+  query_result?: Record<string, unknown>;
   acknowledged_by?: string;
   acknowledged_at?: string;
   resolved_by?: string;
   notes?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Search and Query Types
@@ -372,7 +372,7 @@ export interface LogSearchFilters {
   risk_score_min?: number;
   has_threat_indicator?: boolean;
   has_behavior_anomaly?: boolean;
-  custom_filters?: Record<string, any>;
+  custom_filters?: Record<string, unknown>;
 }
 
 export interface TimeRange {
@@ -410,7 +410,7 @@ export interface DashboardWidget {
   id: string;
   type: string;
   title: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   position: {
     x: number;
     y: number;
@@ -426,8 +426,8 @@ export interface LogEntry {
   source_identifier: string;
   log_file: string;
   message: string;
-  enriched_data?: any;
+  enriched_data?: Record<string, unknown>;
 }
 
 // Export legacy type as alias for compatibility
-export { ExtendedLogEntry as LogEntry as LogEntryExtended };
+export { ExtendedLogEntry as LogEntryExtended };

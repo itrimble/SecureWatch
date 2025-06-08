@@ -587,7 +587,7 @@ export function InputsEditor({ inputs, onSave, onCancel }: InputsEditorProps) {
                     <div className="bg-gray-900 p-3 rounded font-mono text-sm">
                       <div className="text-gray-400 mb-2">// Example KQL query using this input:</div>
                       <div className="text-gray-100">
-                        * | where timestamp > ago(1h)
+                        * | where timestamp {'>='} ago(1h)
                         {selectedInputData.type === 'text' && selectedInputData.token === 'hostname' && (
                           <><br />| where hostname contains "${selectedInputData.token}$"</>
                         )}
