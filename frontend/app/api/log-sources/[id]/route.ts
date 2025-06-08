@@ -29,7 +29,7 @@ interface LogSource {
 }
 
 // Mock data - in production, this would come from database
-let logSources: LogSource[] = [
+const logSources: LogSource[] = [
   {
     id: '1',
     name: 'Primary Domain Controller',

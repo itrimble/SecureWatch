@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
     await new Promise(resolve => setTimeout(resolve, 100)); // Simulate processing time
     
     // Modify mock results based on query content for more realistic response
-    let modifiedResults = JSON.parse(JSON.stringify(mockKQLResults)); // Deep copy
+    const modifiedResults = JSON.parse(JSON.stringify(mockKQLResults)); // Deep copy
     
     const queryLower = body.query.toLowerCase();
     

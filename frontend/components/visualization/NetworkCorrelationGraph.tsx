@@ -25,7 +25,7 @@ interface NetworkNode {
   type: 'user' | 'device' | 'server' | 'threat' | 'process';
   riskLevel: 'low' | 'medium' | 'high' | 'critical';
   size: number;
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 interface NetworkEdge {
@@ -34,7 +34,7 @@ interface NetworkEdge {
   type: 'connection' | 'communication' | 'attack' | 'data_flow';
   weight: number;
   riskLevel: 'low' | 'medium' | 'high' | 'critical';
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 interface NetworkGraphData {

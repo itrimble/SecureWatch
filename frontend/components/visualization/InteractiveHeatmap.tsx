@@ -12,7 +12,7 @@ interface HeatmapDataPoint {
   y: number;
   value: number;
   label: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 interface HeatmapProps {

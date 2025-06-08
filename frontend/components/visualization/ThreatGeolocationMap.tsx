@@ -25,7 +25,7 @@ interface GeoLocation {
   eventCount: number;
   lastSeen: string;
   threatType: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 interface ThreatStats {

@@ -34,7 +34,7 @@ interface DashboardInput {
   label: string
   type: 'text' | 'dropdown' | 'time' | 'multiselect' | 'checkbox'
   token: string
-  defaultValue: any
+  defaultValue: string | string[] | boolean
   options?: { label: string; value: string }[]
   searchOnChange: boolean
   description?: string

@@ -15,7 +15,7 @@ interface FieldExtractionRule {
 }
 
 // In-memory storage for demo - replace with database in production
-let rules: FieldExtractionRule[] = [
+const rules: FieldExtractionRule[] = [
   {
     id: '1',
     name: 'IP Address Extraction',

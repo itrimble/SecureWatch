@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
       lastUpdated: new Date().toISOString()
     };
     
-    let response: any = {
+    const response: any = {
       sources: filteredData,
       overall: overallHealth,
       timestamp: new Date().toISOString()

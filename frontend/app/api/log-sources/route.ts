@@ -8,7 +8,7 @@ const LogSourceSchema = z.object({
   description: z.string().optional(),
   parser: z.string().min(1, 'Parser is required'),
   tags: z.array(z.string()).default([]),
-  config: z.record(z.any()).optional(),
+  config: z.record(z.unknown()).optional(),
   enabled: z.boolean().default(true)
 });
 
@@ -25,12 +25,12 @@ interface LogSource {
   tags: string[];
   createdAt: string;
   updatedAt: string;
-  config?: Record<string, any>;
+  config?: Record<string, unknown>;
   enabled: boolean;
 }
 
 // Mock data - in production, this would come from database
-let logSources: LogSource[] = [
+const logSources: LogSource[] = [
   {
     id: '1',
     name: 'Primary Domain Controller',
