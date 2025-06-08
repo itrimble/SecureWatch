@@ -6,7 +6,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager, State, Emitter};
 use directories::ProjectDirs;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -40,7 +40,7 @@ impl Default for InstallationConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct InstallationProgress {
     step: String,
     progress: u32,

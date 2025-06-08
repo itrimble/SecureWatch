@@ -26,7 +26,7 @@ echo "📦 Packaging universal installer with both architectures..."
 
 # Copy both binaries
 cp "$DIST_DIR/securewatch-agent-arm64-macos" "$DMG_DIR/SecureWatch Agent/securewatch-agent-arm64"
-cp "$DIST_DIR/securewatch-agent-x86_64-macos" "$DMG_DIR/SecureWatch Agent/securewatch-agent-x86_64"
+cp "$DIST_DIR/securewatch-agent-intel-macos" "$DMG_DIR/SecureWatch Agent/securewatch-agent-x86_64"
 chmod +x "$DMG_DIR/SecureWatch Agent/securewatch-agent-arm64"
 chmod +x "$DMG_DIR/SecureWatch Agent/securewatch-agent-x86_64"
 
@@ -306,7 +306,7 @@ Rust Version: $(rustc --version 2>/dev/null || echo "Unknown")
 
 Binaries included:
 - securewatch-agent-arm64 ($(du -h "$DIST_DIR/securewatch-agent-arm64-macos" | cut -f1))
-- securewatch-agent-x86_64 ($(du -h "$DIST_DIR/securewatch-agent-x86_64-macos" | cut -f1))
+- securewatch-agent-x86_64 ($(du -h "$DIST_DIR/securewatch-agent-intel-macos" | cut -f1))
 
 Features: TLS, Compression, Buffering, Hot-reload, Multi-collector
 EOF
