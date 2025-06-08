@@ -33,6 +33,8 @@ import {
   MessageSquare,
   History,
   BookOpen,
+  Wand2,
+  Tags,
 } from "lucide-react"
 
 export function EnhancedSearch() {
@@ -44,6 +46,9 @@ export function EnhancedSearch() {
   const [sortOrder, setSortOrder] = useState("desc")
   const [searchMode, setSearchMode] = useState("kql") // "kql" or "natural"
   const [isAiGenerating, setIsAiGenerating] = useState(false)
+  const [fieldExtractionEnabled, setFieldExtractionEnabled] = useState(false)
+  const [extractedFields, setExtractedFields] = useState<any[]>([])
+  const [isExtractingFields, setIsExtractingFields] = useState(false)
 
   const runSearch = async () => {
     if (!searchQuery.trim()) {
@@ -99,6 +104,47 @@ export function EnhancedSearch() {
       setIsAiGenerating(false)
     }, 1500)
   }
+
+  const applyFieldExtraction = async () => {
+    if (!searchResults.length) return;
+    
+    setIsExtractingFields(true);
+    try {
+      // Apply field extraction to each search result
+      const fieldsPromises = searchResults.map(async (result) => {
+        const response = await fetch('/api/field-extraction/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            message: result.EventData || JSON.stringify(result),
+            mode: 'auto'
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            resultId: result.TimeGenerated,
+            fields: data.fields || []
+          };
+        }
+        return { resultId: result.TimeGenerated, fields: [] };
+      });
+      
+      const extractedResults = await Promise.all(fieldsPromises);
+      setExtractedFields(extractedResults);
+      setFieldExtractionEnabled(true);
+    } catch (error) {
+      console.error('Field extraction failed:', error);
+    } finally {
+      setIsExtractingFields(false);
+    }
+  };
+
+  const getExtractedFieldsForResult = (resultId: string) => {
+    const match = extractedFields.find(ef => ef.resultId === resultId);
+    return match ? match.fields : [];
+  };
 
   const kqlTemplates = [
     {
@@ -419,6 +465,25 @@ export function EnhancedSearch() {
                   </TooltipTrigger>
                   <TooltipContent>Export Results</TooltipContent>
                 </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={applyFieldExtraction}
+                      disabled={isExtractingFields || searchResults.length === 0}
+                      className={fieldExtractionEnabled ? "bg-blue-50 border-blue-300" : ""}
+                    >
+                      {isExtractingFields ? (
+                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4 mr-1" />
+                      )}
+                      {fieldExtractionEnabled ? "Field Extraction On" : "Extract Fields"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Apply field extraction rules to results</TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>
@@ -479,6 +544,56 @@ export function EnhancedSearch() {
                   </Badge>
                 </div>
               </div>
+
+              {/* Field Extraction Panel */}
+              {fieldExtractionEnabled && extractedFields.length > 0 && (
+                <div className="pt-4 border-t">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Wand2 className="h-4 w-4 text-blue-600" />
+                    <h4 className="font-medium text-sm text-blue-600">Extracted Fields</h4>
+                  </div>
+                  <div className="space-y-2">
+                    {/* Get unique field names from all extracted fields */}
+                    {Array.from(new Set(
+                      extractedFields.flatMap(ef => ef.fields.map((f: any) => f.name))
+                    )).slice(0, 8).map((fieldName) => {
+                      const allValues = extractedFields.flatMap(ef => 
+                        ef.fields.filter((f: any) => f.name === fieldName).map((f: any) => f.value)
+                      );
+                      const uniqueValues = Array.from(new Set(allValues));
+                      
+                      return (
+                        <div key={fieldName} className="space-y-1">
+                          <div className="flex items-center justify-between cursor-pointer hover:bg-accent p-1 rounded">
+                            <span className="font-medium text-xs text-blue-700">{fieldName}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {allValues.length}
+                            </Badge>
+                          </div>
+                          <div className="space-y-1 pl-2">
+                            {uniqueValues.slice(0, 3).map((value, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between text-xs hover:bg-accent p-1 rounded cursor-pointer"
+                              >
+                                <span className="text-blue-600 hover:underline truncate">{value}</span>
+                                <span className="text-muted-foreground">
+                                  {allValues.filter(v => v === value).length}
+                                </span>
+                              </div>
+                            ))}
+                            {uniqueValues.length > 3 && (
+                              <div className="text-xs text-muted-foreground pl-1">
+                                +{uniqueValues.length - 3} more
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -579,7 +694,7 @@ export function EnhancedSearch() {
                             {result.EventData}
                           </div>
 
-                          {/* Extracted Fields */}
+                          {/* Standard Fields */}
                           <div className="flex flex-wrap gap-2 text-xs">
                             <Badge variant="outline" className="hover:bg-accent cursor-pointer">
                               EventID={result.EventID}
@@ -605,6 +720,37 @@ export function EnhancedSearch() {
                               </Badge>
                             )}
                           </div>
+
+                          {/* Extracted Fields */}
+                          {fieldExtractionEnabled && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Tags className="h-3 w-3 text-blue-600" />
+                                <span className="text-xs font-medium text-blue-600">Extracted Fields</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {getExtractedFieldsForResult(result.TimeGenerated).map((field: any, fieldIndex: number) => (
+                                  <Badge 
+                                    key={fieldIndex} 
+                                    variant="secondary" 
+                                    className="text-xs bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 cursor-pointer"
+                                  >
+                                    {field.name}={field.value}
+                                    {field.confidence && (
+                                      <span className="ml-1 text-blue-500">
+                                        ({Math.round(field.confidence * 100)}%)
+                                      </span>
+                                    )}
+                                  </Badge>
+                                ))}
+                                {getExtractedFieldsForResult(result.TimeGenerated).length === 0 && (
+                                  <span className="text-xs text-muted-foreground italic">
+                                    No fields extracted
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

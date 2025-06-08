@@ -82,8 +82,8 @@ export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
   const knowledgeObjects = [
     { id: "saved-searches", label: "Saved Searches", icon: BookOpen, tooltip: "Saved KQL queries and searches" },
     { id: "event-types", label: "Event Types", icon: Database, tooltip: "Event categorization and tagging" },
-    { id: "lookups", label: "Lookups", icon: FileSearch, tooltip: "Lookup tables and enrichment data" },
-    { id: "field-extractions", label: "Field Extractions", icon: Eye, tooltip: "Field extraction rules" },
+    { id: "lookups", label: "Lookups", icon: FileSearch, tooltip: "Lookup tables and enrichment data", href: "/settings/knowledge/lookups" },
+    { id: "field-extractions", label: "Field Extractions", icon: Eye, tooltip: "Interactive field extraction rules", href: "/field-extraction" },
     { id: "macros", label: "Search Macros", icon: Workflow, tooltip: "Reusable search components" },
   ]
 

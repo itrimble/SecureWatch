@@ -9,6 +9,31 @@ export { PaloAltoFirewallParser } from './PaloAltoFirewallParser';
 export { CiscoASAFirewallParser } from './CiscoASAFirewallParser';
 export { FortiGateFirewallParser } from './FortiGateFirewallParser';
 
+// New Enterprise Parsers
+export { CheckPointFirewallParser } from './CheckPointFirewallParser';
+export { CrowdStrikeFalconEDRParser } from './CrowdStrikeFalconEDRParser';
+export { F5BigIPParser } from './F5BigIPParser';
+export { MicrosoftSQLServerAuditParser } from './MicrosoftSQLServerAuditParser';
+export { OktaIAMParser } from './OktaIAMParser';
+export { PfSenseFirewallParser } from './PfSenseFirewallParser';
+export { PiholeDnsParser } from './PiholeDnsParser';
+export { PostgreSQLAuditParser } from './PostgreSQLAuditParser';
+export { ProofpointEmailSecurityParser } from './ProofpointEmailSecurityParser';
+export { SentinelOneEDRParser } from './SentinelOneEDRParser';
+export { SplunkUFParser } from './SplunkUFParser';
+export { SquidProxyParser } from './SquidProxyParser';
+export { VMwareESXiParser } from './VMwareESXiParser';
+export { ZscalerCloudSecurityParser } from './ZscalerCloudSecurityParser';
+
+// Cloud Platform Parsers
+export { AzureActivityLogsParser } from './AzureActivityParsers';
+export { GoogleCloudAuditLogsParser } from './GoogleCloudAuditLogsParser';
+export { Microsoft365EntraIDParser } from './Microsoft365EntraIDParser';
+
+// Web Server Parsers  
+export { NginxLogParser } from './NginxLogParser';
+export { IISLogParser } from './IISLogParser';
+
 // Additional parsers - simplified implementations for demo
 export class LinuxAuthLogParser {
   id = 'linux-auth-log';
