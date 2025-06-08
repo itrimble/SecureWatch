@@ -18,8 +18,14 @@ interface ExtractedField {
   position: { start: number; end: number };
 }
 
+interface ExtractionOptions {
+  autoDetect?: boolean;
+  patterns?: string[];
+  confidence?: number;
+}
+
 // Field extraction function
-function extractFieldsFromMessage(message: string, options: any = {}): ExtractedField[] {
+function extractFieldsFromMessage(message: string, options: ExtractionOptions = {}): ExtractedField[] {
   const fields: ExtractedField[] = [];
   
   // IP addresses
@@ -147,9 +153,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { 
       data, 
-      rules = [], 
       enableExternalLookups = false,
-      batchSize = 100,
       message,
       options = {}
     } = body;
@@ -167,8 +171,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    interface SearchResult {
+      [key: string]: unknown;
+    }
+
     // Mock enrichment response for search results
-    const enrichedData = data.map((item: any, index: number) => ({
+    const enrichedData = data.map((item: SearchResult, index: number) => ({
       ...item,
       _enrichment: {
         reputation: index % 3 === 0 ? 'malicious' : 'clean',

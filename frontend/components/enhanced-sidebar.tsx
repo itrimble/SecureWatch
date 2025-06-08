@@ -5,44 +5,28 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import {
-  BarChart3,
   Search,
   AlertTriangle,
   Shield,
-  Target,
   Settings,
   ChevronLeft,
   ChevronRight,
-  Activity,
   Database,
-  Users,
-  Bell,
-  Briefcase,
   Clock,
-  TrendingUp,
-  Globe,
   UserCog,
   FileText,
   Eye,
   Zap,
   Lock,
-  Network,
   Bug,
   FileSearch,
   Gauge,
-  Map,
   Brain,
   Workflow,
   GitBranch,
   Radar,
-  ScanLine,
-  Cpu,
-  HardDrive,
-  Cloud,
   Router,
-  Monitor,
   Layers,
-  AlertCircle,
   LayoutDashboard,
   BookOpen,
   Package,
@@ -107,7 +91,18 @@ export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
     { id: "general-settings", label: "Server Settings", icon: Settings, tooltip: "Platform configuration", href: "/settings" },
   ]
 
-  const handleNavigation = (item: any) => {
+  interface MenuItem {
+    id: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    tooltip: string;
+    href?: string;
+    badge?: number;
+    badgeType?: 'critical' | 'high' | 'medium' | 'info';
+    hotkey?: string;
+  }
+
+  const handleNavigation = (item: MenuItem) => {
     if (item.href) {
       router.push(item.href)
     } else {
@@ -130,7 +125,7 @@ export function EnhancedSidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
     }
   };
 
-  const MenuItem = ({ item }: { item: any }) => {
+  const MenuItem = ({ item }: { item: MenuItem }) => {
     const isActive = item.href ? pathname === item.href : activeTab === item.id
     const badgeStyles = item.badgeType ? getBadgeStyles(item.badgeType) : "bg-primary text-primary-foreground";
     

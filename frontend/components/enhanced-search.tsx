@@ -47,7 +47,17 @@ export function EnhancedSearch() {
   const [searchMode, setSearchMode] = useState("kql") // "kql" or "natural"
   const [isAiGenerating, setIsAiGenerating] = useState(false)
   const [fieldExtractionEnabled, setFieldExtractionEnabled] = useState(false)
-  const [extractedFields, setExtractedFields] = useState<any[]>([])
+  interface ExtractedField {
+    resultId: string;
+    fields: Array<{
+      name: string;
+      value: string;
+      type: string;
+      confidence?: number;
+    }>;
+  }
+
+  const [extractedFields, setExtractedFields] = useState<ExtractedField[]>([])
   const [isExtractingFields, setIsExtractingFields] = useState(false)
 
   const runSearch = async () => {
@@ -555,10 +565,10 @@ export function EnhancedSearch() {
                   <div className="space-y-2">
                     {/* Get unique field names from all extracted fields */}
                     {Array.from(new Set(
-                      extractedFields.flatMap(ef => ef.fields.map((f: any) => f.name))
+                      extractedFields.flatMap(ef => ef.fields.map(f => f.name))
                     )).slice(0, 8).map((fieldName) => {
                       const allValues = extractedFields.flatMap(ef => 
-                        ef.fields.filter((f: any) => f.name === fieldName).map((f: any) => f.value)
+                        ef.fields.filter(f => f.name === fieldName).map(f => f.value)
                       );
                       const uniqueValues = Array.from(new Set(allValues));
                       
@@ -729,7 +739,7 @@ export function EnhancedSearch() {
                                 <span className="text-xs font-medium text-blue-600">Extracted Fields</span>
                               </div>
                               <div className="flex flex-wrap gap-1">
-                                {getExtractedFieldsForResult(result.TimeGenerated).map((field: any, fieldIndex: number) => (
+                                {getExtractedFieldsForResult(result.TimeGenerated).map((field, fieldIndex: number) => (
                                   <Badge 
                                     key={fieldIndex} 
                                     variant="secondary" 
