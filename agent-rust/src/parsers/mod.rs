@@ -38,7 +38,7 @@ pub struct RegexParser {
 impl RegexParser {
     pub fn new(definition: &ParserDefinition) -> Result<Self, ParserError> {
         let regex = Regex::new(&definition.regex_pattern)
-            .map_err(|e| ParserError::InvalidRegex(format!("Invalid regex pattern '{}': {}", definition.regex_pattern, e)))?;
+            .map_err(|e| ParserError::invalid_regex(&format!("Invalid regex pattern '{}': {}", definition.regex_pattern, e)))?;
             
         Ok(Self {
             name: definition.name.clone(),
@@ -75,7 +75,7 @@ impl RegexParser {
                 }
             }
         } else {
-            return Err(ParserError::ParseFailed(format!("Regex pattern did not match: {}", text)));
+            return Err(ParserError::parse_failed(&format!("Regex pattern did not match: {}", text)));
         }
         
         Ok(fields)
@@ -234,7 +234,11 @@ impl ParsingEngine {
         }
         
         // If all else fails, return an error
-        Err(ParserError::NoMatchingParser(raw_event.source.clone()))
+        Err(ParserError::NoMatchingParser {
+            source_type: raw_event.source.clone(),
+            available_parsers: self.parsers.iter().map(|p| p.name().to_string()).collect(),
+            suggested_parser: None,
+        })
     }
     
     pub fn get_parser_stats(&self) -> Vec<ParserStats> {

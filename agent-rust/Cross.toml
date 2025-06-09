@@ -1,0 +1,20 @@
+[build]
+# Set custom environment variables for Windows cross-compilation
+[target.aarch64-pc-windows-msvc]
+# Use clang-cl for cross-compilation
+[target.aarch64-pc-windows-msvc.env]
+CC_aarch64_pc_windows_msvc = "clang-cl"
+CXX_aarch64_pc_windows_msvc = "clang-cl"
+AR_aarch64_pc_windows_msvc = "llvm-lib"
+
+[target.arm64ec-pc-windows-msvc]
+[target.arm64ec-pc-windows-msvc.env]  
+CC_arm64ec_pc_windows_msvc = "clang-cl"
+CXX_arm64ec_pc_windows_msvc = "clang-cl"
+AR_arm64ec_pc_windows_msvc = "llvm-lib"
+
+[target.x86_64-pc-windows-msvc]
+[target.x86_64-pc-windows-msvc.env]
+CC_x86_64_pc_windows_msvc = "clang-cl"
+CXX_x86_64_pc_windows_msvc = "clang-cl"
+AR_x86_64_pc_windows_msvc = "llvm-lib"

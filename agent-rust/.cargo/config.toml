@@ -6,11 +6,29 @@ linker = "x86_64-w64-mingw32-gcc"
 [target.i686-pc-windows-gnu]
 linker = "i686-w64-mingw32-gcc"
 
+# GNU LLVM targets for Windows (better cross-compilation support)
+[target.aarch64-pc-windows-gnullvm]
+# ARM64 GNU LLVM target - uses LLVM linker with GNU ABI
+linker = "rust-lld"
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.x86_64-pc-windows-gnullvm]
+# x86_64 GNU LLVM target
+linker = "rust-lld"
+rustflags = ["-C", "target-feature=+crt-static"]
+
+# Legacy MSVC targets (kept for reference but recommend using GNU LLVM)
 [target.aarch64-pc-windows-msvc]
 # Uses default MSVC linker
+linker = "rust-lld"
+
+[target.arm64ec-pc-windows-msvc]
+# ARM64EC (Emulation Compatible) target
+linker = "rust-lld"
 
 [target.x86_64-pc-windows-msvc]
 # Uses default MSVC linker
+linker = "rust-lld"
 
 # Linux targets
 [target.x86_64-unknown-linux-gnu]

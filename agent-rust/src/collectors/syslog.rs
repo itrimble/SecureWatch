@@ -34,7 +34,11 @@ impl SyslogCollector {
     async fn start_udp_server(&self) -> Result<(), CollectorError> {
         let bind_addr = format!("{}:{}", self.config.bind_address, self.config.port);
         let socket = UdpSocket::bind(&bind_addr).await
-            .map_err(|e| CollectorError::Network(format!("Failed to bind UDP socket to {}: {}", bind_addr, e)))?;
+            .map_err(|e| CollectorError::NetworkError {
+                protocol: "UDP".to_string(),
+                endpoint: bind_addr.to_string(),
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::AddrInUse, e.to_string())),
+            })?;
             
         info!("🌐 Syslog UDP server listening on {}", bind_addr);
         
@@ -78,7 +82,11 @@ impl SyslogCollector {
     async fn start_tcp_server(&self) -> Result<(), CollectorError> {
         let bind_addr = format!("{}:{}", self.config.bind_address, self.config.port);
         let listener = TcpListener::bind(&bind_addr).await
-            .map_err(|e| CollectorError::Network(format!("Failed to bind TCP listener to {}: {}", bind_addr, e)))?;
+            .map_err(|e| CollectorError::NetworkError {
+                protocol: "TCP".to_string(),
+                endpoint: bind_addr.to_string(),
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::AddrInUse, e.to_string())),
+            })?;
             
         info!("🌐 Syslog TCP server listening on {}", bind_addr);
         
@@ -144,7 +152,11 @@ impl SyslogCollector {
                     }
                 }
                 Err(e) => {
-                    return Err(CollectorError::Network(format!("TCP read error: {}", e)));
+                    return Err(CollectorError::NetworkError {
+                        protocol: "TCP".to_string(),
+                        endpoint: "unknown".to_string(),
+                        source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                    });
                 }
             }
         }

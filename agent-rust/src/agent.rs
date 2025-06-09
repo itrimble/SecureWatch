@@ -4,10 +4,13 @@ use crate::buffer::{EventBuffer, BufferStats};
 use crate::collectors::{CollectorManager, RawLogEvent};
 use crate::collectors::syslog::SyslogCollector;
 use crate::collectors::file_monitor::FileMonitorCollector;
-use crate::config::AgentConfig;
+use crate::config::{AgentConfig, ConfigManager};
 use crate::errors::{AgentError, Result};
 // use crate::management::ManagementServer; // Disabled for simplified build
 use crate::parsers::{ParsingEngine, ParsedEvent};
+use crate::resource_monitor::{ResourceMonitor, ResourceAlert};
+use crate::throttle::{AdaptiveThrottle, ThrottleEvent};
+use crate::emergency_shutdown::{EmergencyShutdownCoordinator, ShutdownEvent, ShutdownState};
 use crate::transport::SecureTransport;
 use crate::utils::AgentStats;
 use std::sync::Arc;
@@ -16,7 +19,7 @@ use tokio::time::{interval, Duration, sleep};
 use tracing::{info, warn, error, debug};
 use uuid::Uuid;
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "persistent-storage"))]
 use crate::collectors::windows_event::WindowsEventCollector;
 
 pub struct Agent {
@@ -28,6 +31,9 @@ pub struct Agent {
     parsing_engine: Option<ParsingEngine>,
     transport: Option<SecureTransport>,
     buffer: Option<EventBuffer>,
+    resource_monitor: Option<ResourceMonitor>,
+    throttle: Option<AdaptiveThrottle>,
+    emergency_shutdown: Option<EmergencyShutdownCoordinator>,
     // management_server: Option<ManagementServer>, // Disabled for simplified build
     
     // Statistics and monitoring
@@ -58,6 +64,9 @@ impl Agent {
             parsing_engine: None,
             transport: None,
             buffer: None,
+            resource_monitor: None,
+            throttle: None,
+            emergency_shutdown: None,
             // management_server: None, // Disabled for simplified build
             stats,
             shutdown_sender: None,
@@ -118,7 +127,7 @@ impl Agent {
         }
         
         // Add Windows event collector (Windows only)
-        #[cfg(windows)]
+        #[cfg(all(windows, feature = "persistent-storage"))]
         if let Some(windows_config) = &self.config.collectors.windows_event {
             if windows_config.enabled {
                 let collector = WindowsEventCollector::new(
@@ -131,6 +140,21 @@ impl Agent {
         }
         
         self.collector_manager = Some(collector_manager);
+        
+        // Initialize resource monitor
+        let resource_monitor = ResourceMonitor::new(self.config.resource_monitor.clone())?;
+        self.resource_monitor = Some(resource_monitor);
+        info!("📊 Resource monitor initialized");
+        
+        // Initialize adaptive throttling
+        let throttle = AdaptiveThrottle::new(self.config.throttle.clone())?;
+        self.throttle = Some(throttle);
+        info!("🚦 Adaptive throttling initialized");
+        
+        // Initialize emergency shutdown coordinator
+        let emergency_shutdown = EmergencyShutdownCoordinator::new(self.config.emergency_shutdown.clone())?;
+        self.emergency_shutdown = Some(emergency_shutdown);
+        info!("🚨 Emergency shutdown coordinator initialized");
         
         // Initialize management server (disabled for simplified build)
         info!("🌐 Management server would be initialized here");
@@ -167,6 +191,13 @@ impl Agent {
         
         // Start health monitoring
         self.start_health_monitoring(shutdown_sender.clone()).await;
+        
+        // Start resource monitoring and throttling
+        self.start_resource_monitoring(shutdown_sender.clone()).await?;
+        self.start_adaptive_throttling(shutdown_sender.clone()).await?;
+        
+        // Start emergency shutdown monitoring
+        self.start_emergency_shutdown_monitoring(shutdown_sender.clone()).await?;
         
         info!("✅ All agent services started successfully");
         
@@ -221,27 +252,26 @@ impl Agent {
     }
     
     async fn start_config_hot_reload(&self, shutdown_sender: tokio::sync::broadcast::Sender<()>) -> Result<()> {
-        let config_path = "agent.toml".to_string(); // This should be configurable
-        let mut config_receiver = self.config.watch_for_changes(config_path).await?;
+        // Note: This method is now deprecated in favor of ConfigManager
+        // For demonstration purposes, we'll create a temporary config manager
+        info!("📝 Note: Consider using ConfigManager::new() for advanced hot-reloading features");
+        
+        // In a real implementation, you would use ConfigManager like this:
+        // let mut config_manager = ConfigManager::new("agent.toml".to_string()).await?;
+        // config_manager.start_watching().await?;
+        // let mut event_receiver = config_manager.subscribe();
+        
         let mut shutdown_receiver = shutdown_sender.subscribe();
         
         tokio::spawn(async move {
             loop {
                 tokio::select! {
-                    Some(new_config) = config_receiver.recv() => {
-                        info!("🔄 Configuration file changed, reloading...");
-                        
-                        // In a full implementation, you would:
-                        // 1. Validate the new configuration
-                        // 2. Compare with current configuration to identify changes
-                        // 3. Gracefully restart affected components
-                        // 4. Update the parsing engine with new parser definitions
-                        
-                        info!("✅ Configuration reloaded successfully");
-                    }
                     _ = shutdown_receiver.recv() => {
                         info!("🛑 Configuration hot-reload shutting down");
                         break;
+                    }
+                    _ = tokio::time::sleep(Duration::from_secs(30)) => {
+                        debug!("⚡ Config hot-reload heartbeat (consider upgrading to ConfigManager)");
                     }
                 }
             }
@@ -309,6 +339,165 @@ impl Agent {
         info!("💓 Health monitoring started");
     }
     
+    async fn start_resource_monitoring(&self, shutdown_sender: tokio::sync::broadcast::Sender<()>) -> Result<()> {
+        if let Some(resource_monitor) = &self.resource_monitor {
+            let shutdown_receiver = shutdown_sender.subscribe();
+            resource_monitor.start_monitoring(shutdown_receiver).await?;
+            
+            // Start alert handling
+            let mut alert_receiver = resource_monitor.subscribe_to_alerts();
+            let agent_id = self.agent_id.clone();
+            
+            tokio::spawn(async move {
+                while let Ok(alert) = alert_receiver.recv().await {
+                    match alert.alert_level {
+                        crate::resource_monitor::AlertLevel::Warning => {
+                            warn!("⚠️ [{}] Resource Alert: {} - {} ({}%)", 
+                                  agent_id, alert.resource_type, alert.message, alert.current_value);
+                        }
+                        crate::resource_monitor::AlertLevel::Critical => {
+                            error!("🚨 [{}] CRITICAL Resource Alert: {} - {} ({}%)", 
+                                   agent_id, alert.resource_type, alert.message, alert.current_value);
+                        }
+                        crate::resource_monitor::AlertLevel::Emergency => {
+                            error!("🔥 [{}] EMERGENCY Resource Alert: {} - {} ({}%)", 
+                                   agent_id, alert.resource_type, alert.message, alert.current_value);
+                            
+                            // In a production system, this could trigger:
+                            // 1. Automatic throttling of collectors
+                            // 2. Emergency buffer flushing
+                            // 3. Notification to management console
+                            // 4. Potential graceful shutdown in extreme cases
+                        }
+                        _ => {}
+                    }
+                }
+            });
+            
+            info!("📊 Resource monitoring started with alerts handling");
+        } else {
+            warn!("⚠️ Resource monitor not initialized, skipping monitoring");
+        }
+        
+        Ok(())
+    }
+    
+    async fn start_adaptive_throttling(&self, shutdown_sender: tokio::sync::broadcast::Sender<()>) -> Result<()> {
+        if let (Some(throttle), Some(resource_monitor)) = (&self.throttle, &self.resource_monitor) {
+            // Get resource metrics broadcast receiver from resource monitor
+            let metrics_receiver = resource_monitor.subscribe_to_metrics();
+            let shutdown_receiver = shutdown_sender.subscribe();
+            
+            // Start throttling monitoring
+            throttle.start_monitoring(metrics_receiver, shutdown_receiver).await?;
+            
+            // Start throttle event handling
+            let mut throttle_event_receiver = throttle.subscribe_to_events();
+            let agent_id = self.agent_id.clone();
+            
+            tokio::spawn(async move {
+                while let Ok(event) = throttle_event_receiver.recv().await {
+                    match event.event_type {
+                        crate::throttle::ThrottleEventType::Emergency => {
+                            error!("🚨 [{}] EMERGENCY THROTTLING: {} -> {} permits ({}) - {}",
+                                   agent_id, event.old_permits, event.new_permits, 
+                                   format!("{:?}", event.throttle_level), event.trigger_reason);
+                        }
+                        crate::throttle::ThrottleEventType::Decrease => {
+                            warn!("📉 [{}] Throttling decreased: {} -> {} permits ({}) - {}",
+                                  agent_id, event.old_permits, event.new_permits,
+                                  format!("{:?}", event.throttle_level), event.trigger_reason);
+                        }
+                        crate::throttle::ThrottleEventType::Increase => {
+                            info!("📈 [{}] Throttling increased: {} -> {} permits ({}) - {}",
+                                  agent_id, event.old_permits, event.new_permits,
+                                  format!("{:?}", event.throttle_level), event.trigger_reason);
+                        }
+                        crate::throttle::ThrottleEventType::BurstStart => {
+                            info!("🚀 [{}] Burst mode activated: {} permits",
+                                  agent_id, event.new_permits);
+                        }
+                        crate::throttle::ThrottleEventType::BurstEnd => {
+                            info!("🛑 [{}] Burst mode deactivated: {} permits",
+                                  agent_id, event.new_permits);
+                        }
+                        _ => {
+                            debug!("🔄 [{}] Throttling event: {:?}", agent_id, event.event_type);
+                        }
+                    }
+                }
+            });
+            
+            info!("🚦 Adaptive throttling started with event handling");
+        } else {
+            warn!("⚠️ Adaptive throttling or resource monitor not initialized, skipping throttling");
+        }
+        
+        Ok(())
+    }
+    
+    async fn start_emergency_shutdown_monitoring(&self, shutdown_sender: tokio::sync::broadcast::Sender<()>) -> Result<()> {
+        if let (Some(emergency_shutdown), Some(resource_monitor)) = (&self.emergency_shutdown, &self.resource_monitor) {
+            // Get alert and metrics receivers from resource monitor
+            let alert_receiver = resource_monitor.subscribe_to_alerts();
+            let metrics_receiver = resource_monitor.subscribe_to_metrics();
+            
+            // Start emergency shutdown monitoring
+            emergency_shutdown.start_monitoring(alert_receiver, metrics_receiver, shutdown_sender.clone()).await?;
+            
+            // Start emergency shutdown event handling
+            let mut shutdown_event_receiver = emergency_shutdown.subscribe_to_events();
+            let mut emergency_shutdown_receiver = emergency_shutdown.subscribe_to_shutdown();
+            let agent_id = self.agent_id.clone();
+            let final_shutdown_sender = shutdown_sender.clone();
+            
+            tokio::spawn(async move {
+                loop {
+                    tokio::select! {
+                        // Handle emergency shutdown events
+                        event_result = shutdown_event_receiver.recv() => {
+                            if let Ok(event) = event_result {
+                                match event.event_type {
+                                    crate::emergency_shutdown::ShutdownEventType::ShutdownInitiated => {
+                                        error!("🚨 [{}] EMERGENCY SHUTDOWN INITIATED: {}", agent_id, event.reason);
+                                    }
+                                    crate::emergency_shutdown::ShutdownEventType::GracefulShutdown => {
+                                        warn!("⏰ [{}] Graceful shutdown period started: {}", agent_id, event.reason);
+                                    }
+                                    crate::emergency_shutdown::ShutdownEventType::ForcefulShutdown => {
+                                        error!("⚠️ [{}] FORCEFUL SHUTDOWN: {}", agent_id, event.reason);
+                                    }
+                                    crate::emergency_shutdown::ShutdownEventType::RecoveryDetected => {
+                                        info!("✅ [{}] Recovery detected: {}", agent_id, event.reason);
+                                    }
+                                    crate::emergency_shutdown::ShutdownEventType::ShutdownAborted => {
+                                        info!("🔄 [{}] Shutdown aborted: {}", agent_id, event.reason);
+                                    }
+                                    _ => {
+                                        debug!("🚨 [{}] Emergency shutdown event: {:?} - {}", 
+                                               agent_id, event.event_type, event.reason);
+                                    }
+                                }
+                            }
+                        }
+                        // Handle final shutdown signal
+                        _ = emergency_shutdown_receiver.recv() => {
+                            error!("🚨 [{}] FINAL EMERGENCY SHUTDOWN SIGNAL RECEIVED", agent_id);
+                            let _ = final_shutdown_sender.send(());
+                            break;
+                        }
+                    }
+                }
+            });
+            
+            info!("🚨 Emergency shutdown monitoring started with event handling");
+        } else {
+            warn!("⚠️ Emergency shutdown or resource monitor not initialized, skipping emergency monitoring");
+        }
+        
+        Ok(())
+    }
+    
     async fn shutdown(&mut self) -> Result<()> {
         info!("🛑 Initiating agent shutdown...");
         
@@ -338,8 +527,64 @@ impl Agent {
         self.stats.read().await.clone()
     }
     
+    pub async fn get_resource_metrics(&self) -> Result<Option<crate::resource_monitor::ResourceMetrics>> {
+        if let Some(resource_monitor) = &self.resource_monitor {
+            Ok(Some(resource_monitor.get_current_metrics().await?))
+        } else {
+            Ok(None)
+        }
+    }
+    
+    pub async fn get_resource_stats(&self) -> Option<crate::resource_monitor::ResourceMonitorStats> {
+        if let Some(resource_monitor) = &self.resource_monitor {
+            Some(resource_monitor.get_stats().await)
+        } else {
+            None
+        }
+    }
+    
     pub fn get_agent_id(&self) -> &str {
         &self.agent_id
+    }
+    
+    pub async fn get_throttle_stats(&self) -> Option<crate::throttle::ThrottleStats> {
+        if let Some(throttle) = &self.throttle {
+            Some(throttle.get_stats().await)
+        } else {
+            None
+        }
+    }
+    
+    pub async fn get_emergency_shutdown_stats(&self) -> Option<crate::emergency_shutdown::EmergencyShutdownStats> {
+        if let Some(emergency_shutdown) = &self.emergency_shutdown {
+            Some(emergency_shutdown.get_stats().await)
+        } else {
+            None
+        }
+    }
+    
+    pub async fn get_emergency_shutdown_state(&self) -> Option<crate::emergency_shutdown::ShutdownState> {
+        if let Some(emergency_shutdown) = &self.emergency_shutdown {
+            Some(emergency_shutdown.get_state().await)
+        } else {
+            None
+        }
+    }
+    
+    pub async fn request_emergency_shutdown(&self, reason: String) -> Result<()> {
+        if let Some(emergency_shutdown) = &self.emergency_shutdown {
+            emergency_shutdown.request_shutdown(reason).await
+        } else {
+            Err(AgentError::Configuration("Emergency shutdown not initialized".to_string()))
+        }
+    }
+    
+    pub async fn abort_emergency_shutdown(&self) -> Result<()> {
+        if let Some(emergency_shutdown) = &self.emergency_shutdown {
+            emergency_shutdown.abort_shutdown().await
+        } else {
+            Err(AgentError::Configuration("Emergency shutdown not initialized".to_string()))
+        }
     }
 }
 

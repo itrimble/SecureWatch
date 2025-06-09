@@ -60,10 +60,20 @@ impl FileMonitorCollector {
         discovered_files: &mut Vec<PathBuf>,
     ) -> Result<(), CollectorError> {
         let mut entries = tokio::fs::read_dir(dir).await
-            .map_err(|e| CollectorError::FileSystem(format!("Failed to read directory {}: {}", dir.display(), e)))?;
+            .map_err(|e| CollectorError::FileSystemError {
+                operation: "read_directory".to_string(),
+                path: dir.to_string_lossy().to_string(),
+                permissions_issue: false,
+                source: e,
+            })?;
             
         while let Some(entry) = entries.next_entry().await
-            .map_err(|e| CollectorError::FileSystem(format!("Failed to read directory entry: {}", e)))? 
+            .map_err(|e| CollectorError::FileSystemError {
+                operation: "read_directory_entry".to_string(),
+                path: "unknown".to_string(),
+                permissions_issue: false,
+                source: e,
+            })? 
         {
             let path = entry.path();
             
@@ -99,13 +109,23 @@ impl FileMonitorCollector {
     
     async fn read_file_tail(&mut self, file_path: &Path) -> Result<Vec<String>, CollectorError> {
         let mut file = File::open(file_path).await
-            .map_err(|e| CollectorError::FileSystem(format!("Failed to open file {}: {}", file_path.display(), e)))?;
+            .map_err(|e| CollectorError::FileSystemError {
+                operation: "open_file".to_string(),
+                path: file_path.to_string_lossy().to_string(),
+                permissions_issue: false,
+                source: e,
+            })?;
             
         let current_position = self.file_positions.get(file_path).copied().unwrap_or(0);
         
         // Get current file size
         let metadata = file.metadata().await
-            .map_err(|e| CollectorError::FileSystem(format!("Failed to get file metadata: {}", e)))?;
+            .map_err(|e| CollectorError::FileSystemError {
+                operation: "get_metadata".to_string(),
+                path: "unknown".to_string(),
+                permissions_issue: false,
+                source: e,
+            })?;
         let file_size = metadata.len();
         
         // If file was truncated, start from beginning
@@ -117,7 +137,12 @@ impl FileMonitorCollector {
         
         // Seek to our last known position
         file.seek(SeekFrom::Start(start_position)).await
-            .map_err(|e| CollectorError::FileSystem(format!("Failed to seek in file: {}", e)))?;
+            .map_err(|e| CollectorError::FileSystemError {
+                operation: "seek_file".to_string(),
+                path: "unknown".to_string(),
+                permissions_issue: false,
+                source: e,
+            })?;
             
         let mut reader = BufReader::new(file);
         let mut lines = Vec::new();
@@ -135,7 +160,12 @@ impl FileMonitorCollector {
                     }
                 }
                 Err(e) => {
-                    return Err(CollectorError::FileSystem(format!("Failed to read line: {}", e)));
+                    return Err(CollectorError::FileSystemError {
+                        operation: "read_line".to_string(),
+                        path: "unknown".to_string(),
+                        permissions_issue: false,
+                        source: e,
+                    });
                 }
             }
         }
@@ -159,7 +189,12 @@ impl FileMonitorCollector {
                 }
             },
             notify::Config::default(),
-        ).map_err(|e| CollectorError::InitializationFailed(format!("Failed to create file watcher: {}", e)))?;
+        ).map_err(|e| CollectorError::InitializationFailed {
+            name: "file_monitor".to_string(),
+            collector_type: "file_watcher".to_string(),
+            reason: e.to_string(),
+            configuration: "notify::RecommendedWatcher".to_string(),
+        })?;
         
         // Watch all monitored files and their directories
         for file_path in &self.monitored_files.clone() {

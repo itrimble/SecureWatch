@@ -1,18 +1,21 @@
-// Persistent buffering with backpressure and SQLite storage
+// Advanced persistent buffering with SQLite WAL mode, checkpointing, and vacuum operations
 
-use crate::config::BufferConfig;
+use crate::config::{BufferConfig, SqliteSynchronousMode, SqliteAutoVacuum, SqliteTempStore, CleanupStrategy};
 use crate::errors::BufferError;
 use crate::parsers::ParsedEvent;
+#[cfg(feature = "persistent-storage")]
 use rusqlite::{Connection, OpenFlags, Result as SqliteResult};
 use std::path::Path;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::{mpsc, watch, Mutex};
-use tokio::time::{interval, Duration};
+use tokio::time::{interval, Duration, Instant};
 use tracing::{info, warn, error, debug};
 
 const HIGH_WATER_MARK: f32 = 0.8; // 80% capacity triggers disk buffering
 const LOW_WATER_MARK: f32 = 0.3;  // 30% capacity clears backpressure
 
+#[derive(Clone)]
 pub struct EventBuffer {
     config: BufferConfig,
     
@@ -20,8 +23,15 @@ pub struct EventBuffer {
     memory_sender: mpsc::Sender<ParsedEvent>,
     memory_receiver: Arc<Mutex<mpsc::Receiver<ParsedEvent>>>,
     
-    // Persistent storage
+    // Persistent storage (conditional)
+    #[cfg(feature = "persistent-storage")]
     db_connection: Arc<Mutex<Connection>>,
+    
+    // WAL mode management
+    #[cfg(feature = "persistent-storage")]
+    last_checkpoint: Arc<Mutex<Instant>>,
+    #[cfg(feature = "persistent-storage")]
+    last_vacuum: Arc<Mutex<SystemTime>>,
     
     // Backpressure signaling
     backpressure_sender: watch::Sender<bool>,
@@ -29,6 +39,10 @@ pub struct EventBuffer {
     
     // Statistics
     stats: Arc<Mutex<BufferStats>>,
+    
+    // Cleanup management
+    #[cfg(feature = "persistent-storage")]
+    last_cleanup: Arc<Mutex<SystemTime>>,
 }
 
 #[derive(Debug, Clone)]
@@ -39,6 +53,70 @@ pub struct BufferStats {
     pub backpressure_active: bool,
     pub events_processed: u64,
     pub events_dropped: u64,
+    
+    // WAL mode statistics
+    pub wal_enabled: bool,
+    pub wal_frames: i64,
+    pub wal_size_kb: i64,
+    pub last_checkpoint: Option<SystemTime>,
+    pub last_vacuum: Option<SystemTime>,
+    pub database_size_kb: i64,
+    pub page_count: i64,
+    pub auto_vacuum_enabled: bool,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct DatabaseSizeInfo {
+    pub database_size_bytes: u64,
+    pub used_space_bytes: u64,
+    pub free_space_bytes: u64,
+    pub wal_size_bytes: u64,
+    pub page_count: u64,
+    pub page_size: u64,
+    pub freelist_count: u64,
+}
+
+impl DatabaseSizeInfo {
+    pub fn database_size_mb(&self) -> f64 {
+        self.database_size_bytes as f64 / (1024.0 * 1024.0)
+    }
+    
+    pub fn used_space_mb(&self) -> f64 {
+        self.used_space_bytes as f64 / (1024.0 * 1024.0)
+    }
+    
+    pub fn free_space_mb(&self) -> f64 {
+        self.free_space_bytes as f64 / (1024.0 * 1024.0)
+    }
+    
+    pub fn wal_size_mb(&self) -> f64 {
+        self.wal_size_bytes as f64 / (1024.0 * 1024.0)
+    }
+    
+    pub fn utilization_percent(&self) -> f64 {
+        if self.database_size_bytes == 0 {
+            0.0
+        } else {
+            (self.used_space_bytes as f64 / self.database_size_bytes as f64) * 100.0
+        }
+    }
+    
+    pub fn exceeds_limit(&self, limit_mb: Option<usize>) -> bool {
+        if let Some(limit) = limit_mb {
+            self.database_size_mb() > limit as f64
+        } else {
+            false
+        }
+    }
+    
+    pub fn exceeds_threshold(&self, threshold_percent: f64, limit_mb: Option<usize>) -> bool {
+        if let Some(limit) = limit_mb {
+            let threshold_bytes = (limit as f64 * 1024.0 * 1024.0 * threshold_percent / 100.0) as u64;
+            self.database_size_bytes > threshold_bytes
+        } else {
+            false
+        }
+    }
 }
 
 impl EventBuffer {
@@ -46,7 +124,8 @@ impl EventBuffer {
         // Create in-memory channel
         let (memory_sender, memory_receiver) = mpsc::channel(config.max_events);
         
-        // Setup persistent storage
+        // Setup persistent storage (conditional)
+        #[cfg(feature = "persistent-storage")]
         let db_connection = Self::setup_database(&config).await?;
         
         // Setup backpressure signaling
@@ -59,16 +138,33 @@ impl EventBuffer {
             backpressure_active: false,
             events_processed: 0,
             events_dropped: 0,
+            
+            // WAL mode statistics
+            wal_enabled: config.wal_mode,
+            wal_frames: 0,
+            wal_size_kb: 0,
+            last_checkpoint: None,
+            last_vacuum: None,
+            database_size_kb: 0,
+            page_count: 0,
+            auto_vacuum_enabled: matches!(config.auto_vacuum, SqliteAutoVacuum::Full | SqliteAutoVacuum::Incremental),
         }));
         
         info!("📦 Event buffer initialized with memory capacity: {}, persistent: {}", 
               config.max_events, config.persistent);
         
         let buffer = Self {
-            config,
+            config: config.clone(),
             memory_sender,
             memory_receiver: Arc::new(Mutex::new(memory_receiver)),
+            #[cfg(feature = "persistent-storage")]
             db_connection: Arc::new(Mutex::new(db_connection)),
+            #[cfg(feature = "persistent-storage")]
+            last_checkpoint: Arc::new(Mutex::new(Instant::now())),
+            #[cfg(feature = "persistent-storage")]
+            last_vacuum: Arc::new(Mutex::new(SystemTime::now())),
+            #[cfg(feature = "persistent-storage")]
+            last_cleanup: Arc::new(Mutex::new(SystemTime::now())),
             backpressure_sender,
             backpressure_receiver,
             stats,
@@ -77,6 +173,15 @@ impl EventBuffer {
         // Start background tasks
         buffer.start_flush_task().await;
         buffer.start_monitoring_task().await;
+        #[cfg(feature = "persistent-storage")]
+        if config.wal_mode {
+            buffer.start_wal_management_task().await;
+        }
+        
+        #[cfg(feature = "persistent-storage")]
+        if config.max_database_size_mb.is_some() {
+            buffer.start_cleanup_management_task().await;
+        }
         
         Ok(buffer)
     }
@@ -84,24 +189,188 @@ impl EventBuffer {
     async fn setup_database(config: &BufferConfig) -> Result<Connection, BufferError> {
         if !config.persistent {
             // Use in-memory database for non-persistent mode
-            return Connection::open_in_memory()
-                .map_err(|e| BufferError::Database(format!("Failed to create in-memory database: {}", e)));
+            let conn = Connection::open_in_memory()
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "create_in_memory_database".to_string(),
+                    database_path: ":memory:".to_string(),
+                    recoverable: false,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+            
+            Self::configure_sqlite_settings(&conn, config)?;
+            Self::create_schema(&conn)?;
+            return Ok(conn);
         }
         
         // Create persistent storage directory
         let db_path = Path::new(&config.persistence_path).join("events.db");
         if let Some(parent) = db_path.parent() {
             tokio::fs::create_dir_all(parent).await
-                .map_err(|e| BufferError::Persistence(format!("Failed to create buffer directory: {}", e)))?;
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "create_directory".to_string(),
+                    database_path: parent.to_string_lossy().to_string(),
+                    recoverable: true,
+                    source: Box::new(e),
+                })?;
         }
         
-        // Open SQLite database
-        let conn = Connection::open_with_flags(
-            &db_path,
-            OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE
-        ).map_err(|e| BufferError::Database(format!("Failed to open database: {}", e)))?;
+        let db_path_str = db_path.to_string_lossy().to_string();
         
-        // Create tables
+        // Open SQLite database with advanced flags
+        let mut open_flags = OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE;
+        
+        // Add performance flags
+        if config.mmap_size_mb > 0 {
+            open_flags |= OpenFlags::SQLITE_OPEN_NO_MUTEX; // Better performance for single-threaded access
+        }
+        
+        let conn = Connection::open_with_flags(&db_path, open_flags)
+            .map_err(|e| BufferError::PersistenceError {
+                operation: "open_database".to_string(),
+                database_path: db_path_str.clone(),
+                recoverable: true,
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            })?;
+        
+        // Configure advanced SQLite settings
+        Self::configure_sqlite_settings(&conn, config)?;
+        
+        // Perform vacuum on startup if requested
+        if config.vacuum_on_startup {
+            info!("🧹 Performing startup vacuum operation...");
+            conn.execute("VACUUM", [])
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "startup_vacuum".to_string(),
+                    database_path: db_path_str.clone(),
+                    recoverable: true,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+        }
+        
+        // Create schema
+        Self::create_schema(&conn)?;
+        
+        info!("💾 Advanced SQLite buffer initialized at: {} (WAL: {}, Sync: {:?})", 
+              db_path.display(), config.wal_mode, config.synchronous_mode);
+        
+        Ok(conn)
+    }
+    
+    fn configure_sqlite_settings(conn: &Connection, config: &BufferConfig) -> Result<(), BufferError> {
+        // Enable WAL mode if requested
+        if config.wal_mode {
+            conn.pragma_update(None, "journal_mode", "WAL")
+                .map_err(|e| BufferError::WalError {
+                    operation: "enable_wal_mode".to_string(),
+                    wal_file: "unknown".to_string(),
+                    checkpoint_lag: None,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+            
+            // Set WAL journal size limit
+            let journal_size_bytes = config.journal_size_limit_mb * 1024 * 1024;
+            conn.pragma_update(None, "journal_size_limit", journal_size_bytes)
+                .map_err(|e| BufferError::WalError {
+                    operation: "set_journal_size_limit".to_string(),
+                    wal_file: "unknown".to_string(),
+                    checkpoint_lag: None,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+        }
+        
+        // Set synchronous mode
+        let sync_value = match config.synchronous_mode {
+            SqliteSynchronousMode::Off => 0,
+            SqliteSynchronousMode::Normal => 1,
+            SqliteSynchronousMode::Full => 2,
+            SqliteSynchronousMode::Extra => 3,
+        };
+        conn.pragma_update(None, "synchronous", sync_value)
+            .map_err(|e| BufferError::PersistenceError {
+                operation: "set_synchronous_mode".to_string(),
+                database_path: "unknown".to_string(),
+                recoverable: false,
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            })?;
+        
+        // Set cache size (negative value = KB, positive = pages)
+        let cache_size = -(config.cache_size_kb as i32);
+        conn.pragma_update(None, "cache_size", cache_size)
+            .map_err(|e| BufferError::PersistenceError {
+                operation: "set_cache_size".to_string(),
+                database_path: "unknown".to_string(),
+                recoverable: false,
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            })?;
+        
+        // Set auto vacuum mode
+        let auto_vacuum_value = match config.auto_vacuum {
+            SqliteAutoVacuum::None => 0,
+            SqliteAutoVacuum::Full => 1,
+            SqliteAutoVacuum::Incremental => 2,
+        };
+        conn.pragma_update(None, "auto_vacuum", auto_vacuum_value)
+            .map_err(|e| BufferError::PersistenceError {
+                operation: "set_auto_vacuum".to_string(),
+                database_path: "unknown".to_string(),
+                recoverable: false,
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            })?;
+        
+        // Set temp store mode
+        let temp_store_value = match config.temp_store {
+            SqliteTempStore::Default => 0,
+            SqliteTempStore::File => 1,
+            SqliteTempStore::Memory => 2,
+        };
+        conn.pragma_update(None, "temp_store", temp_store_value)
+            .map_err(|e| BufferError::PersistenceError {
+                operation: "set_temp_store".to_string(),
+                database_path: "unknown".to_string(),
+                recoverable: false,
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            })?;
+        
+        // Set memory-mapped I/O size
+        if config.mmap_size_mb > 0 {
+            let mmap_size_bytes = config.mmap_size_mb * 1024 * 1024;
+            conn.pragma_update(None, "mmap_size", mmap_size_bytes)
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "set_mmap_size".to_string(),
+                    database_path: "unknown".to_string(),
+                    recoverable: false,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+        }
+        
+        // Set maximum page count if specified
+        if let Some(max_pages) = config.max_page_count {
+            conn.pragma_update(None, "max_page_count", max_pages)
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "set_max_page_count".to_string(),
+                    database_path: "unknown".to_string(),
+                    recoverable: false,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+        }
+        
+        // Set secure delete mode
+        conn.pragma_update(None, "secure_delete", config.secure_delete)
+            .map_err(|e| BufferError::PersistenceError {
+                operation: "set_secure_delete".to_string(),
+                database_path: "unknown".to_string(),
+                recoverable: false,
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            })?;
+        
+        debug!("✅ SQLite settings configured: WAL={}, Sync={:?}, Cache={}KB", 
+               config.wal_mode, config.synchronous_mode, config.cache_size_kb);
+        
+        Ok(())
+    }
+    
+    fn create_schema(conn: &Connection) -> Result<(), BufferError> {
+        // Create main events table with optimized schema
         conn.execute(
             "CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,19 +381,55 @@ impl EventBuffer {
                 fields TEXT NOT NULL,
                 raw_data TEXT NOT NULL,
                 parser_name TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+                size_bytes INTEGER NOT NULL DEFAULT 0
             )",
             [],
-        ).map_err(|e| BufferError::Database(format!("Failed to create events table: {}", e)))?;
+        ).map_err(|e| BufferError::PersistenceError {
+            operation: "create_events_table".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: false,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?;
         
-        // Create index for efficient retrieval
+        // Create indexes for efficient queries
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at)",
             [],
-        ).map_err(|e| BufferError::Database(format!("Failed to create index: {}", e)))?;
+        ).map_err(|e| BufferError::PersistenceError {
+            operation: "create_created_at_index".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: false,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?;
         
-        info!("💾 Persistent buffer database initialized at: {}", db_path.display());
-        Ok(conn)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_events_source ON events(source)",
+            [],
+        ).map_err(|e| BufferError::PersistenceError {
+            operation: "create_source_index".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: false,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?;
+        
+        // Create buffer metadata table for tracking statistics
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS buffer_metadata (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+            )",
+            [],
+        ).map_err(|e| BufferError::PersistenceError {
+            operation: "create_metadata_table".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: false,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?;
+        
+        debug!("✅ Database schema created successfully");
+        Ok(())
     }
     
     pub async fn send(&self, event: ParsedEvent) -> Result<(), BufferError> {
@@ -145,12 +450,22 @@ impl EventBuffer {
                 } else {
                     warn!("📦 Buffer full and persistence disabled, dropping event");
                     self.update_stats(|stats| stats.events_dropped += 1).await;
-                    Err(BufferError::BufferFull)
+                    Err(BufferError::CapacityExceeded {
+                        current: self.config.max_events,
+                        max: self.config.max_events,
+                        buffer_type: "memory".to_string(),
+                        oldest_item_age: None,
+                    })
                 }
             }
             Err(mpsc::error::TrySendError::Closed(_)) => {
                 error!("📦 Buffer channel closed");
-                Err(BufferError::Persistence("Buffer channel closed".to_string()))
+                Err(BufferError::ChannelError {
+                    operation: "try_send".to_string(),
+                    channel_name: "memory_buffer".to_string(),
+                    buffer_size: Some(self.config.max_events),
+                    is_closed: true,
+                })
             }
         }
     }
@@ -164,25 +479,46 @@ impl EventBuffer {
             let conn = db.blocking_lock();
             
             let fields_json = serde_json::to_string(&event_clone.fields)
-                .map_err(|e| BufferError::Serialization(format!("Failed to serialize fields: {}", e)))?;
+                .map_err(|e| BufferError::SerializationError {
+                    data_type: "event_fields".to_string(),
+                    operation: "serialize".to_string(),
+                    size_bytes: None,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string())),
+                })?;
+            
+            // Calculate event size for statistics
+            let event_size = event_clone.raw_data.len() + fields_json.len() + 
+                           event_clone.message.len() + event_clone.source.len() +
+                           event_clone.parser_name.len();
             
             conn.execute(
-                "INSERT INTO events (timestamp, source, level, message, fields, raw_data, parser_name)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                "INSERT INTO events (timestamp, source, level, message, fields, raw_data, parser_name, size_bytes)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                 [
-                    event_clone.timestamp.to_rfc3339(),
-                    event_clone.source,
-                    event_clone.level.unwrap_or_default(),
-                    event_clone.message,
-                    fields_json,
-                    event_clone.raw_data,
-                    event_clone.parser_name,
+                    &event_clone.timestamp.to_rfc3339() as &dyn rusqlite::ToSql,
+                    &event_clone.source,
+                    &event_clone.level.unwrap_or_default(),
+                    &event_clone.message,
+                    &fields_json,
+                    &event_clone.raw_data,
+                    &event_clone.parser_name,
+                    &(event_size as i64),
                 ],
-            ).map_err(|e| BufferError::Database(format!("Failed to insert event: {}", e)))?;
+            ).map_err(|e| BufferError::PersistenceError {
+                operation: "insert_event".to_string(),
+                database_path: "unknown".to_string(),
+                recoverable: true,
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            })?;
             
             Ok::<(), BufferError>(())
         }).await
-        .map_err(|e| BufferError::Database(format!("Database task failed: {}", e)))??;
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "database_task".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })??;
         
         self.update_stats(|stats| {
             stats.disk_events += 1;
@@ -218,7 +554,12 @@ impl EventBuffer {
             let mut stmt = conn.prepare(
                 "SELECT id, timestamp, source, level, message, fields, raw_data, parser_name 
                  FROM events ORDER BY created_at LIMIT 1"
-            ).map_err(|e| BufferError::Database(format!("Failed to prepare statement: {}", e)))?;
+            ).map_err(|e| BufferError::PersistenceError {
+                operation: "prepare_statement".to_string(),
+                database_path: "unknown".to_string(),
+                recoverable: true,
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            })?;
             
             let mut rows = stmt.query_map([], |row| {
                 let id: i64 = row.get(0)?;
@@ -249,14 +590,29 @@ impl EventBuffer {
                     raw_data: row.get(6)?,
                     parser_name: row.get(7)?,
                 }))
-            }).map_err(|e| BufferError::Database(format!("Failed to query events: {}", e)))?;
+            }).map_err(|e| BufferError::PersistenceError {
+                operation: "query_events".to_string(),
+                database_path: "unknown".to_string(),
+                recoverable: true,
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            })?;
             
             if let Some(result) = rows.next() {
-                let (id, event) = result.map_err(|e| BufferError::Database(format!("Failed to parse row: {}", e)))?;
+                let (id, event) = result.map_err(|e| BufferError::PersistenceError {
+                    operation: "parse_row".to_string(),
+                    database_path: "unknown".to_string(),
+                    recoverable: false,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string())),
+                })?;
                 
                 // Delete the event from the database
                 conn.execute("DELETE FROM events WHERE id = ?1", [id])
-                    .map_err(|e| BufferError::Database(format!("Failed to delete event: {}", e)))?;
+                    .map_err(|e| BufferError::PersistenceError {
+                        operation: "delete_event".to_string(),
+                        database_path: "unknown".to_string(),
+                        recoverable: true,
+                        source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                    })?;
                 
                 debug!("💾 Event loaded from disk and removed");
                 Ok(Some(event))
@@ -264,7 +620,223 @@ impl EventBuffer {
                 Ok(None)
             }
         }).await
-        .map_err(|e| BufferError::Database(format!("Database task failed: {}", e)))?
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "database_task".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?
+    }
+    
+    /// Perform WAL checkpoint to sync data from WAL to main database
+    #[cfg(feature = "persistent-storage")]
+    async fn checkpoint_wal(&self) -> Result<(), BufferError> {
+        if !self.config.wal_mode {
+            return Ok(());
+        }
+        
+        let db = self.db_connection.clone();
+        let should_checkpoint = {
+            let last_checkpoint = self.last_checkpoint.lock().await;
+            last_checkpoint.elapsed() >= Duration::from_secs(self.config.checkpoint_interval_sec)
+        };
+        
+        if !should_checkpoint {
+            return Ok(());
+        }
+        
+        debug!("🔄 Performing WAL checkpoint...");
+        
+        let result = tokio::task::spawn_blocking(move || {
+            let conn = db.blocking_lock();
+            
+            // Perform PRAGMA wal_checkpoint(TRUNCATE) for maximum WAL cleanup
+            let mut stmt = conn.prepare("PRAGMA wal_checkpoint(TRUNCATE)")?;
+            let mut rows = stmt.query_map([], |row| {
+                Ok((
+                    row.get::<_, i32>(0)?, // 0=ok, 1=ok but no work, others=error
+                    row.get::<_, i32>(1)?, // Total number of frames in WAL
+                    row.get::<_, i32>(2)?, // Number of frames checkpointed
+                ))
+            })?;
+            
+            if let Some(result) = rows.next() {
+                let (status, total_frames, checkpointed_frames) = result?;
+                debug!("✅ WAL checkpoint completed: status={}, frames={}/{}", 
+                       status, checkpointed_frames, total_frames);
+                       
+                if status != 0 && status != 1 {
+                    return Err(BufferError::WalError {
+                        operation: "wal_checkpoint".to_string(),
+                        wal_file: "unknown".to_string(),
+                        checkpoint_lag: Some((total_frames - checkpointed_frames) as u64),
+                        source: Box::new(std::io::Error::new(
+                            std::io::ErrorKind::Other, 
+                            format!("Checkpoint failed with status: {}", status)
+                        )),
+                    });
+                }
+            }
+            
+            Ok::<(), BufferError>(())
+        }).await
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "checkpoint_task".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })??;
+        
+        // Update last checkpoint time
+        {
+            let mut last_checkpoint = self.last_checkpoint.lock().await;
+            *last_checkpoint = Instant::now();
+        }
+        
+        // Update statistics
+        self.update_wal_stats().await?;
+        
+        Ok(())
+    }
+    
+    /// Perform incremental vacuum to reclaim disk space
+    #[cfg(feature = "persistent-storage")]
+    async fn incremental_vacuum(&self) -> Result<(), BufferError> {
+        if !matches!(self.config.auto_vacuum, SqliteAutoVacuum::Incremental) {
+            return Ok(());
+        }
+        
+        // Only vacuum if it's been more than 24 hours since last vacuum
+        let should_vacuum = {
+            let last_vacuum = self.last_vacuum.lock().await;
+            last_vacuum.elapsed().unwrap_or_default() >= Duration::from_secs(24 * 60 * 60)
+        };
+        
+        if !should_vacuum {
+            return Ok(());
+        }
+        
+        let db = self.db_connection.clone();
+        
+        debug!("🧹 Performing incremental vacuum...");
+        
+        tokio::task::spawn_blocking(move || {
+            let conn = db.blocking_lock();
+            
+            // Get current page count before vacuum
+            let page_count_before: i64 = conn.pragma_query_value(None, "page_count", |row| {
+                row.get(0)
+            })?;
+            
+            // Perform incremental vacuum (reclaim up to 1000 pages at a time)
+            conn.execute("PRAGMA incremental_vacuum(1000)", [])?;
+            
+            // Get page count after vacuum
+            let page_count_after: i64 = conn.pragma_query_value(None, "page_count", |row| {
+                row.get(0)
+            })?;
+            
+            let pages_reclaimed = page_count_before - page_count_after;
+            if pages_reclaimed > 0 {
+                info!("🧹 Incremental vacuum reclaimed {} pages", pages_reclaimed);
+            }
+            
+            Ok::<(), rusqlite::Error>(())
+        }).await
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "vacuum_task".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "incremental_vacuum".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?;
+        
+        // Update last vacuum time
+        {
+            let mut last_vacuum = self.last_vacuum.lock().await;
+            *last_vacuum = SystemTime::now();
+        }
+        
+        Ok(())
+    }
+    
+    /// Update WAL-related statistics
+    #[cfg(feature = "persistent-storage")]
+    async fn update_wal_stats(&self) -> Result<(), BufferError> {
+        let db = self.db_connection.clone();
+        
+        let wal_stats = tokio::task::spawn_blocking(move || {
+            let conn = db.blocking_lock();
+            
+            // Get WAL status
+            let journal_mode: String = conn.pragma_query_value(None, "journal_mode", |row| {
+                row.get(0)
+            })?;
+            
+            let wal_enabled = journal_mode.to_lowercase() == "wal";
+            
+            // Get WAL size and frame count if WAL is enabled
+            let (wal_frames, wal_size_kb) = if wal_enabled {
+                let wal_autocheckpoint: i64 = conn.pragma_query_value(None, "wal_autocheckpoint", |row| {
+                    row.get(0)
+                }).unwrap_or(1000);
+                
+                // Estimate WAL size (this is approximate)
+                let page_size: i64 = conn.pragma_query_value(None, "page_size", |row| {
+                    row.get(0)
+                })?;
+                
+                (wal_autocheckpoint, (wal_autocheckpoint * page_size) / 1024)
+            } else {
+                (0, 0)
+            };
+            
+            // Get database size
+            let page_count: i64 = conn.pragma_query_value(None, "page_count", |row| {
+                row.get(0)
+            })?;
+            
+            let page_size: i64 = conn.pragma_query_value(None, "page_size", |row| {
+                row.get(0)
+            })?;
+            
+            let database_size_kb = (page_count * page_size) / 1024;
+            
+            Ok::<(bool, i64, i64, i64, i64), rusqlite::Error>((
+                wal_enabled,
+                wal_frames,
+                wal_size_kb,
+                database_size_kb,
+                page_count,
+            ))
+        }).await
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "wal_stats_task".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "get_wal_stats".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?;
+        
+        // Update statistics
+        let mut stats = self.stats.lock().await;
+        stats.wal_enabled = wal_stats.0;
+        stats.wal_frames = wal_stats.1;
+        stats.wal_size_kb = wal_stats.2;
+        stats.database_size_kb = wal_stats.3;
+        stats.page_count = wal_stats.4;
+        
+        Ok(())
     }
     
     async fn check_backpressure(&self) {
@@ -304,11 +876,12 @@ impl EventBuffer {
                     stats.clone()
                 };
                 
-                debug!("📊 Buffer stats - Memory: {}, Disk: {}, Processed: {}, Dropped: {}", 
+                debug!("📊 Buffer stats - Memory: {}, Disk: {}, Processed: {}, Dropped: {}, WAL: {}KB", 
                        stats_snapshot.memory_events, 
                        stats_snapshot.disk_events,
                        stats_snapshot.events_processed, 
-                       stats_snapshot.events_dropped);
+                       stats_snapshot.events_dropped,
+                       stats_snapshot.wal_size_kb);
             }
         });
     }
@@ -337,6 +910,149 @@ impl EventBuffer {
         });
     }
     
+    #[cfg(feature = "persistent-storage")]
+    async fn start_wal_management_task(&self) {
+        let db_connection = self.db_connection.clone();
+        let last_checkpoint = self.last_checkpoint.clone();
+        let last_vacuum = self.last_vacuum.clone();
+        let stats = self.stats.clone();
+        let config = self.config.clone();
+        
+        tokio::spawn(async move {
+            let mut wal_timer = interval(Duration::from_secs(30)); // Check every 30 seconds
+            
+            loop {
+                wal_timer.tick().await;
+                
+                // Perform checkpoint if needed
+                if config.wal_mode {
+                    let should_checkpoint = {
+                        let last_checkpoint_time = last_checkpoint.lock().await;
+                        last_checkpoint_time.elapsed() >= Duration::from_secs(config.checkpoint_interval_sec)
+                    };
+                    
+                    if should_checkpoint {
+                        debug!("🔄 Performing scheduled WAL checkpoint...");
+                        
+                        if let Err(e) = Self::perform_checkpoint(&db_connection).await {
+                            warn!("⚠️  WAL checkpoint failed: {}", e);
+                        } else {
+                            let mut last_checkpoint_time = last_checkpoint.lock().await;
+                            *last_checkpoint_time = Instant::now();
+                        }
+                    }
+                }
+                
+                // Perform incremental vacuum if needed (once per day)
+                if matches!(config.auto_vacuum, SqliteAutoVacuum::Incremental) {
+                    let should_vacuum = {
+                        let last_vacuum_time = last_vacuum.lock().await;
+                        last_vacuum_time.elapsed().unwrap_or_default() >= Duration::from_secs(24 * 60 * 60)
+                    };
+                    
+                    if should_vacuum {
+                        debug!("🧹 Performing scheduled incremental vacuum...");
+                        
+                        if let Err(e) = Self::perform_incremental_vacuum(&db_connection).await {
+                            warn!("⚠️  Incremental vacuum failed: {}", e);
+                        } else {
+                            let mut last_vacuum_time = last_vacuum.lock().await;
+                            *last_vacuum_time = SystemTime::now();
+                        }
+                    }
+                }
+            }
+        });
+        
+        debug!("🔄 WAL management task started (checkpoint interval: {}s)", config.checkpoint_interval_sec);
+    }
+    
+    #[cfg(feature = "persistent-storage")]
+    async fn perform_checkpoint(db_connection: &Arc<Mutex<Connection>>) -> Result<(), BufferError> {
+        let db = db_connection.clone();
+        
+        tokio::task::spawn_blocking(move || {
+            let conn = db.blocking_lock();
+            
+            // Perform PRAGMA wal_checkpoint(TRUNCATE) for maximum WAL cleanup
+            let mut stmt = conn.prepare("PRAGMA wal_checkpoint(TRUNCATE)")?;
+            let mut rows = stmt.query_map([], |row| {
+                Ok((
+                    row.get::<_, i32>(0)?, // 0=ok, 1=ok but no work, others=error
+                    row.get::<_, i32>(1)?, // Total number of frames in WAL
+                    row.get::<_, i32>(2)?, // Number of frames checkpointed
+                ))
+            })?;
+            
+            if let Some(result) = rows.next() {
+                let (status, total_frames, checkpointed_frames) = result?;
+                debug!("✅ WAL checkpoint completed: status={}, frames={}/{}", 
+                       status, checkpointed_frames, total_frames);
+                       
+                if status != 0 && status != 1 {
+                    return Err(BufferError::WalError {
+                        operation: "wal_checkpoint".to_string(),
+                        wal_file: "unknown".to_string(),
+                        checkpoint_lag: Some((total_frames - checkpointed_frames) as u64),
+                        source: Box::new(std::io::Error::new(
+                            std::io::ErrorKind::Other, 
+                            format!("Checkpoint failed with status: {}", status)
+                        )),
+                    });
+                }
+            }
+            
+            Ok::<(), BufferError>(())
+        }).await
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "checkpoint_task".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?
+    }
+    
+    #[cfg(feature = "persistent-storage")]
+    async fn perform_incremental_vacuum(db_connection: &Arc<Mutex<Connection>>) -> Result<(), BufferError> {
+        let db = db_connection.clone();
+        
+        tokio::task::spawn_blocking(move || {
+            let conn = db.blocking_lock();
+            
+            // Get current page count before vacuum
+            let page_count_before: i64 = conn.pragma_query_value(None, "page_count", |row| {
+                row.get(0)
+            })?;
+            
+            // Perform incremental vacuum (reclaim up to 1000 pages at a time)
+            conn.execute("PRAGMA incremental_vacuum(1000)", [])?;
+            
+            // Get page count after vacuum
+            let page_count_after: i64 = conn.pragma_query_value(None, "page_count", |row| {
+                row.get(0)
+            })?;
+            
+            let pages_reclaimed = page_count_before - page_count_after;
+            if pages_reclaimed > 0 {
+                info!("🧹 Incremental vacuum reclaimed {} pages", pages_reclaimed);
+            }
+            
+            Ok::<(), rusqlite::Error>(())
+        }).await
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "vacuum_task".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "incremental_vacuum".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })
+    }
+    
     async fn update_stats<F>(&self, update_fn: F) 
     where
         F: FnOnce(&mut BufferStats),
@@ -353,6 +1069,406 @@ impl EventBuffer {
         self.stats.lock().await.clone()
     }
     
+    /// Get comprehensive buffer statistics including real-time WAL metrics
+    #[cfg(feature = "persistent-storage")]
+    pub async fn get_comprehensive_stats(&self) -> Result<BufferStats, BufferError> {
+        // Update WAL stats first
+        self.update_wal_stats().await?;
+        
+        // Return updated stats
+        Ok(self.stats.lock().await.clone())
+    }
+    
+    /// Force a WAL checkpoint (useful for testing or manual maintenance)
+    #[cfg(feature = "persistent-storage")]
+    pub async fn force_checkpoint(&self) -> Result<(), BufferError> {
+        if !self.config.wal_mode {
+            return Err(BufferError::WalError {
+                operation: "force_checkpoint".to_string(),
+                wal_file: "unknown".to_string(),
+                checkpoint_lag: None,
+                source: Box::new(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "WAL mode is not enabled"
+                )),
+            });
+        }
+        
+        info!("🔄 Forcing WAL checkpoint...");
+        
+        Self::perform_checkpoint(&self.db_connection).await?;
+        
+        // Update checkpoint time
+        {
+            let mut last_checkpoint = self.last_checkpoint.lock().await;
+            *last_checkpoint = Instant::now();
+        }
+        
+        // Update statistics
+        self.update_wal_stats().await?;
+        
+        info!("✅ Forced WAL checkpoint completed");
+        Ok(())
+    }
+    
+    /// Get database file size information
+    #[cfg(feature = "persistent-storage")]
+    pub async fn get_database_size_info(&self) -> Result<DatabaseSizeInfo, BufferError> {
+        let db = self.db_connection.clone();
+        
+        tokio::task::spawn_blocking(move || {
+            let conn = db.blocking_lock();
+            
+            let page_count: i64 = conn.pragma_query_value(None, "page_count", |row| row.get(0))?;
+            let page_size: i64 = conn.pragma_query_value(None, "page_size", |row| row.get(0))?;
+            let freelist_count: i64 = conn.pragma_query_value(None, "freelist_count", |row| row.get(0))?;
+            
+            let database_size_bytes = page_count * page_size;
+            let free_space_bytes = freelist_count * page_size;
+            let used_space_bytes = database_size_bytes - free_space_bytes;
+            
+            // Get WAL size if available
+            let journal_mode: String = conn.pragma_query_value(None, "journal_mode", |row| row.get(0))?;
+            let wal_size_bytes = if journal_mode.to_lowercase() == "wal" {
+                // This is an approximation - actual WAL size would require filesystem access
+                let wal_autocheckpoint: i64 = conn.pragma_query_value(None, "wal_autocheckpoint", |row| {
+                    row.get(0)
+                }).unwrap_or(1000);
+                wal_autocheckpoint * page_size
+            } else {
+                0
+            };
+            
+            Ok(DatabaseSizeInfo {
+                database_size_bytes: database_size_bytes as u64,
+                used_space_bytes: used_space_bytes as u64,
+                free_space_bytes: free_space_bytes as u64,
+                wal_size_bytes: wal_size_bytes as u64,
+                page_count: page_count as u64,
+                page_size: page_size as u64,
+                freelist_count: freelist_count as u64,
+            })
+        }).await
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "get_db_size_info".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?
+        .map_err(|e: rusqlite::Error| BufferError::PersistenceError {
+            operation: "get_db_size_info".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })
+    }
+    
+    /// Automatic cleanup management task
+    #[cfg(feature = "persistent-storage")]
+    async fn start_cleanup_management_task(&self) {
+        let db_connection = self.db_connection.clone();
+        let last_cleanup = self.last_cleanup.clone();
+        let config = self.config.clone();
+        let cleanup_interval_sec = config.cleanup_interval_sec;
+        
+        tokio::spawn(async move {
+            let mut cleanup_timer = interval(Duration::from_secs(config.cleanup_interval_sec));
+            
+            loop {
+                cleanup_timer.tick().await;
+                
+                // Check if cleanup is needed
+                let should_cleanup = {
+                    let last_cleanup_time = last_cleanup.lock().await;
+                    last_cleanup_time.elapsed().unwrap_or_default() >= Duration::from_secs(config.cleanup_interval_sec)
+                };
+                
+                if should_cleanup {
+                    if let Err(e) = Self::perform_automatic_cleanup(&db_connection, &config).await {
+                        warn!("⚠️  Automatic cleanup failed: {}", e);
+                    } else {
+                        let mut last_cleanup_time = last_cleanup.lock().await;
+                        *last_cleanup_time = SystemTime::now();
+                    }
+                }
+            }
+        });
+        
+        debug!("🧹 Cleanup management task started (interval: {}s)", cleanup_interval_sec);
+    }
+    
+    /// Perform automatic cleanup based on database size and configuration
+    #[cfg(feature = "persistent-storage")]
+    async fn perform_automatic_cleanup(db_connection: &Arc<Mutex<Connection>>, config: &BufferConfig) -> Result<usize, BufferError> {
+        let db = db_connection.clone();
+        let config_clone = config.clone();
+        
+        let cleanup_result = tokio::task::spawn_blocking(move || {
+            let conn = db.blocking_lock();
+            
+            // Get current database size
+            let size_info = Self::get_database_size_info_sync(&conn)?;
+            
+            // Check if cleanup is needed
+            if !size_info.exceeds_threshold(config_clone.cleanup_trigger_percent, config_clone.max_database_size_mb) {
+                debug!("🧹 Database size OK: {:.2}MB (threshold not reached)", size_info.database_size_mb());
+                return Ok(0);
+            }
+            
+            info!("🧹 Database cleanup triggered: {:.2}MB exceeds threshold of {:.1}%", 
+                  size_info.database_size_mb(), config_clone.cleanup_trigger_percent);
+            
+            // Calculate target size
+            let target_size_bytes = if let Some(max_size_mb) = config_clone.max_database_size_mb {
+                (max_size_mb as f64 * 1024.0 * 1024.0 * config_clone.cleanup_target_percent / 100.0) as u64
+            } else {
+                return Ok(0); // No limit set
+            };
+            
+            let bytes_to_remove = size_info.database_size_bytes.saturating_sub(target_size_bytes);
+            
+            if bytes_to_remove == 0 {
+                debug!("🧹 No cleanup needed after recalculation");
+                return Ok(0);
+            }
+            
+            // Perform cleanup based on strategy
+            Self::cleanup_events_by_strategy(&conn, &config_clone, bytes_to_remove)
+        }).await
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "cleanup_task".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })??;
+        
+        if cleanup_result > 0 {
+            info!("✅ Cleanup completed: removed {} events", cleanup_result);
+        }
+        
+        Ok(cleanup_result)
+    }
+    
+    /// Clean up events based on the configured strategy
+    #[cfg(feature = "persistent-storage")]
+    fn cleanup_events_by_strategy(conn: &Connection, config: &BufferConfig, _target_bytes: u64) -> Result<usize, BufferError> {
+        let min_retention_seconds = config.min_retention_hours * 3600;
+        let max_events = config.max_events_per_cleanup;
+        
+        let cleanup_query = match config.cleanup_strategy {
+            CleanupStrategy::Fifo => {
+                format!(
+                    "DELETE FROM events WHERE id IN (
+                        SELECT id FROM events 
+                        WHERE created_at < strftime('%s', 'now', '-{} seconds')
+                        ORDER BY created_at ASC 
+                        LIMIT {}
+                    )",
+                    min_retention_seconds, max_events
+                )
+            }
+            CleanupStrategy::Lru => {
+                // For LRU, we assume events that haven't been "accessed" are older
+                // In practice, this is similar to FIFO since we don't track access times
+                format!(
+                    "DELETE FROM events WHERE id IN (
+                        SELECT id FROM events 
+                        WHERE created_at < strftime('%s', 'now', '-{} seconds')
+                        ORDER BY created_at ASC 
+                        LIMIT {}
+                    )",
+                    min_retention_seconds, max_events
+                )
+            }
+            CleanupStrategy::Priority => {
+                // Prioritize keeping high-priority events (assuming level field indicates priority)
+                format!(
+                    "DELETE FROM events WHERE id IN (
+                        SELECT id FROM events 
+                        WHERE created_at < strftime('%s', 'now', '-{} seconds')
+                        AND (level IS NULL OR level NOT IN ('ERROR', 'CRITICAL', 'FATAL'))
+                        ORDER BY 
+                            CASE level 
+                                WHEN 'CRITICAL' THEN 1
+                                WHEN 'ERROR' THEN 2
+                                WHEN 'WARN' THEN 3
+                                WHEN 'INFO' THEN 4
+                                ELSE 5
+                            END DESC,
+                            created_at ASC
+                        LIMIT {}
+                    )",
+                    min_retention_seconds, max_events
+                )
+            }
+            CleanupStrategy::Intelligent => {
+                // Intelligent strategy: Remove old events but keep important ones
+                format!(
+                    "DELETE FROM events WHERE id IN (
+                        SELECT id FROM events 
+                        WHERE (
+                            -- Remove very old events regardless of priority
+                            created_at < strftime('%s', 'now', '-{} seconds')
+                            OR (
+                                -- Remove old low-priority events
+                                created_at < strftime('%s', 'now', '-{} seconds')
+                                AND (level IS NULL OR level IN ('DEBUG', 'TRACE', 'INFO'))
+                            )
+                        )
+                        ORDER BY 
+                            -- Prioritize removal of low-priority events
+                            CASE level 
+                                WHEN 'CRITICAL' THEN 6
+                                WHEN 'FATAL' THEN 5
+                                WHEN 'ERROR' THEN 4
+                                WHEN 'WARN' THEN 3
+                                WHEN 'INFO' THEN 2
+                                ELSE 1
+                            END ASC,
+                            created_at ASC
+                        LIMIT {}
+                    )",
+                    min_retention_seconds * 2, // Keep critical events longer
+                    min_retention_seconds,     // Standard retention for normal events
+                    max_events
+                )
+            }
+        };
+        
+        debug!("🧹 Executing cleanup query: {}", cleanup_query);
+        
+        let deleted_count = conn.execute(&cleanup_query, [])
+            .map_err(|e| BufferError::PersistenceError {
+                operation: "cleanup_events".to_string(),
+                database_path: "unknown".to_string(),
+                recoverable: true,
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            })?;
+        
+        // After cleanup, perform a VACUUM to reclaim space if significant data was removed
+        if deleted_count > 1000 {
+            debug!("🧹 Performing VACUUM after removing {} events", deleted_count);
+            conn.execute("VACUUM", [])
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "post_cleanup_vacuum".to_string(),
+                    database_path: "unknown".to_string(),
+                    recoverable: true,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+        }
+        
+        Ok(deleted_count)
+    }
+    
+    /// Get database size information synchronously (for use in blocking tasks)
+    #[cfg(feature = "persistent-storage")]
+    fn get_database_size_info_sync(conn: &Connection) -> Result<DatabaseSizeInfo, rusqlite::Error> {
+        let page_count: i64 = conn.pragma_query_value(None, "page_count", |row| row.get(0))?;
+        let page_size: i64 = conn.pragma_query_value(None, "page_size", |row| row.get(0))?;
+        let freelist_count: i64 = conn.pragma_query_value(None, "freelist_count", |row| row.get(0))?;
+        
+        let database_size_bytes = page_count * page_size;
+        let free_space_bytes = freelist_count * page_size;
+        let used_space_bytes = database_size_bytes - free_space_bytes;
+        
+        // Get WAL size if available
+        let journal_mode: String = conn.pragma_query_value(None, "journal_mode", |row| row.get(0))?;
+        let wal_size_bytes = if journal_mode.to_lowercase() == "wal" {
+            let wal_autocheckpoint: i64 = conn.pragma_query_value(None, "wal_autocheckpoint", |row| {
+                row.get(0)
+            }).unwrap_or(1000);
+            wal_autocheckpoint * page_size
+        } else {
+            0
+        };
+        
+        Ok(DatabaseSizeInfo {
+            database_size_bytes: database_size_bytes as u64,
+            used_space_bytes: used_space_bytes as u64,
+            free_space_bytes: free_space_bytes as u64,
+            wal_size_bytes: wal_size_bytes as u64,
+            page_count: page_count as u64,
+            page_size: page_size as u64,
+            freelist_count: freelist_count as u64,
+        })
+    }
+    
+    /// Force cleanup operation (useful for testing or manual maintenance)
+    #[cfg(feature = "persistent-storage")]
+    pub async fn force_cleanup(&self) -> Result<usize, BufferError> {
+        if self.config.max_database_size_mb.is_none() {
+            return Err(BufferError::PersistenceError {
+                operation: "force_cleanup".to_string(),
+                database_path: "unknown".to_string(),
+                recoverable: false,
+                source: Box::new(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "No database size limit configured"
+                )),
+            });
+        }
+        
+        info!("🧹 Forcing database cleanup...");
+        
+        let result = Self::perform_automatic_cleanup(&self.db_connection, &self.config).await?;
+        
+        // Update cleanup time
+        {
+            let mut last_cleanup = self.last_cleanup.lock().await;
+            *last_cleanup = SystemTime::now();
+        }
+        
+        info!("✅ Forced cleanup completed");
+        Ok(result)
+    }
+    
+    /// Get current cleanup statistics
+    #[cfg(feature = "persistent-storage")]
+    pub async fn get_cleanup_stats(&self) -> Result<CleanupStats, BufferError> {
+        let db = self.db_connection.clone();
+        
+        let stats = tokio::task::spawn_blocking(move || {
+            let conn = db.blocking_lock();
+            
+            // Get total event count
+            let total_events: i64 = conn.query_row(
+                "SELECT COUNT(*) FROM events",
+                [],
+                |row| row.get(0)
+            )?;
+            
+            // Get oldest event age
+            let oldest_event_age: Option<i64> = conn.query_row(
+                "SELECT strftime('%s', 'now') - MIN(created_at) FROM events",
+                [],
+                |row| row.get(0)
+            ).ok();
+            
+            // Get database size info
+            let size_info = Self::get_database_size_info_sync(&conn)?;
+            
+            Ok::<CleanupStats, rusqlite::Error>(CleanupStats {
+                total_events: total_events as u64,
+                oldest_event_age_seconds: oldest_event_age.map(|age| age as u64),
+                database_size_info: size_info,
+            })
+        }).await
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "get_cleanup_stats".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "get_cleanup_stats".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?;
+        
+        Ok(stats)
+    }
+    
     pub async fn flush(&self) -> Result<(), BufferError> {
         info!("🔄 Flushing buffer...");
         
@@ -365,6 +1481,48 @@ impl EventBuffer {
         info!("✅ Buffer flushed, processed {} events", drained_count);
         Ok(())
     }
+}
+
+/// Cleanup statistics for monitoring and debugging
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CleanupStats {
+    pub total_events: u64,
+    pub oldest_event_age_seconds: Option<u64>,
+    pub database_size_info: DatabaseSizeInfo,
+}
+
+impl CleanupStats {
+    pub fn oldest_event_age_hours(&self) -> Option<f64> {
+        self.oldest_event_age_seconds.map(|seconds| seconds as f64 / 3600.0)
+    }
+    
+    pub fn cleanup_urgency(&self, max_size_mb: Option<usize>, trigger_percent: f64) -> CleanupUrgency {
+        if let Some(max_size) = max_size_mb {
+            let current_size_mb = self.database_size_info.database_size_mb();
+            let trigger_size_mb = max_size as f64 * trigger_percent / 100.0;
+            
+            if current_size_mb >= max_size as f64 {
+                CleanupUrgency::Critical
+            } else if current_size_mb >= trigger_size_mb {
+                CleanupUrgency::High
+            } else if current_size_mb >= trigger_size_mb * 0.8 {
+                CleanupUrgency::Medium
+            } else {
+                CleanupUrgency::Low
+            }
+        } else {
+            CleanupUrgency::None
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub enum CleanupUrgency {
+    None,     // No size limit configured
+    Low,      // Well below threshold
+    Medium,   // Approaching threshold
+    High,     // At or above threshold
+    Critical, // At or above maximum size
 }
 
 impl Drop for EventBuffer {
@@ -390,6 +1548,26 @@ mod tests {
             compression: false,
             persistent: true,
             persistence_path: temp_dir.path().to_string_lossy().to_string(),
+            
+            // Add required cleanup fields for test
+            wal_mode: false,
+            synchronous_mode: crate::config::SqliteSynchronousMode::Normal,
+            journal_size_limit_mb: 64,
+            checkpoint_interval_sec: 300,
+            cache_size_kb: 8192,
+            vacuum_on_startup: false,
+            auto_vacuum: crate::config::SqliteAutoVacuum::None,
+            temp_store: crate::config::SqliteTempStore::Memory,
+            mmap_size_mb: 0,
+            max_page_count: None,
+            secure_delete: false,
+            max_database_size_mb: None,
+            cleanup_trigger_percent: 80.0,
+            cleanup_target_percent: 60.0,
+            cleanup_strategy: crate::config::CleanupStrategy::Fifo,
+            cleanup_interval_sec: 300,
+            min_retention_hours: 1,
+            max_events_per_cleanup: 1000,
         };
         
         let buffer = EventBuffer::new(config).await;
@@ -406,6 +1584,26 @@ mod tests {
             compression: false,
             persistent: false, // Use in-memory for faster tests
             persistence_path: temp_dir.path().to_string_lossy().to_string(),
+            
+            // Add required cleanup fields for test
+            wal_mode: false,
+            synchronous_mode: crate::config::SqliteSynchronousMode::Normal,
+            journal_size_limit_mb: 64,
+            checkpoint_interval_sec: 300,
+            cache_size_kb: 8192,
+            vacuum_on_startup: false,
+            auto_vacuum: crate::config::SqliteAutoVacuum::None,
+            temp_store: crate::config::SqliteTempStore::Memory,
+            mmap_size_mb: 0,
+            max_page_count: None,
+            secure_delete: false,
+            max_database_size_mb: None,
+            cleanup_trigger_percent: 80.0,
+            cleanup_target_percent: 60.0,
+            cleanup_strategy: crate::config::CleanupStrategy::Fifo,
+            cleanup_interval_sec: 300,
+            min_retention_hours: 1,
+            max_events_per_cleanup: 1000,
         };
         
         let buffer = EventBuffer::new(config).await.unwrap();

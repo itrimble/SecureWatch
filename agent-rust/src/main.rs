@@ -6,17 +6,7 @@ use tokio::signal;
 use tracing::{error, info, Level};
 use tracing_subscriber;
 
-mod config;
-mod errors;
-mod agent;
-mod collectors;
-mod transport;
-mod buffer;
-mod parsers;
-mod utils;
-
-use config::AgentConfig;
-use agent::Agent;
+use securewatch_agent::{AgentConfig, Agent};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

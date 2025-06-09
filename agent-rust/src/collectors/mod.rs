@@ -10,7 +10,7 @@ use tokio::sync::mpsc;
 pub mod syslog;
 pub mod file_monitor;
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "persistent-storage"))]
 pub mod windows_event;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
