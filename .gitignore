@@ -83,4 +83,9 @@ node_modules/
 # OS specific
 # Task files
 tasks.json
-tasks/ 
+tasks/
+
+# Rust
+agent-rust/target/
+**/target/
+**/.xwin-cache/ 
