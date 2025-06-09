@@ -7,6 +7,64 @@ All notable changes to the SecureWatch SIEM platform will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-01-09
+
+### 🚀 ENTERPRISE RUST AGENT - COMPLETE IMPLEMENTATION
+
+#### Added
+- **🚨 Emergency Shutdown System**: Comprehensive emergency shutdown coordinator for critical resource conditions
+  - Configurable thresholds for CPU, memory, and disk usage
+  - Alert aggregation and counting with time windows
+  - Graceful shutdown with configurable grace periods
+  - Recovery detection and shutdown abort mechanisms
+  - Event broadcasting for monitoring and debugging
+
+- **📊 Adaptive Throttling System**: Dynamic resource-based throttling with semaphore management
+  - Multi-level throttling (Light, Moderate, Aggressive, Emergency)
+  - Burst mode support for high-performance scenarios
+  - Real-time adjustment based on CPU and memory metrics
+  - Comprehensive event tracking and statistics
+
+- **📊 System Resource Monitoring**: Real-time CPU, memory, disk, and network monitoring
+  - Per-core CPU metrics and load average tracking
+  - Memory usage with swap monitoring
+  - Disk usage monitoring across multiple mount points
+  - Network interface statistics and throughput
+  - Alert system with configurable thresholds
+
+- **🔧 Enhanced Configuration System**: JSON schema validation with detailed error reporting
+  - Hot-reloading configuration manager with file watching
+  - Automatic rollback on validation failures
+  - Structured validation errors with suggestions
+  - Configuration backup and restore capabilities
+
+- **🏗️ Cross-Platform Windows Support**: Native TLS backend for better cross-compilation compatibility
+  - Windows ARM64 support with comprehensive build scripts
+  - xwin integration for Windows SDK cross-compilation
+  - Multiple Windows targets (GNU, MSVC, GNULLVM)
+  - Troubleshooting documentation for Windows ARM64
+
+#### Technical Improvements
+- **Configuration & Validation**: Advanced JSON schema with pattern validation, ReDoS protection
+- **Build System**: Feature-based compilation (native-tls vs rustls), minimal builds without C dependencies
+- **Code Architecture**: Async-first design with proper shutdown coordination, event-driven architecture
+- **Cross-compilation**: Support for aarch64, x86_64, i686 Windows targets
+
+#### Files Added
+- `agent-rust/src/emergency_shutdown.rs` - Emergency shutdown coordinator (660+ lines)
+- `agent-rust/src/throttle.rs` - Adaptive throttling system (728+ lines)  
+- `agent-rust/src/resource_monitor.rs` - System resource monitoring (850+ lines)
+- `agent-rust/src/buffer_minimal.rs` - Minimal buffer for lightweight builds
+- `agent-rust/src/retry.rs` - Retry mechanisms for resilient operations
+- `agent-rust/WINDOWS_ARM64_TROUBLESHOOTING.md` - Comprehensive Windows troubleshooting
+- `agent-rust/Cross.toml` - Cross-compilation configuration
+- `agent-rust/setup-windows-sdk.sh` - Windows SDK setup automation
+
+#### Changed
+- Enhanced `Cargo.toml` with feature flags and TLS backends (native-tls vs rustls)
+- Updated `.cargo/config.toml` with cross-compilation settings for all Windows targets
+- Improved `build_all_platforms.sh` with Windows ARM64, x86_64, and i686 support
+
 ## [2.1.1] - 2025-12-08
 
 ### 🔧 TYPESCRIPT COMPILATION FIXES - ALL ERRORS RESOLVED
