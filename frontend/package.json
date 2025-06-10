@@ -10,7 +10,10 @@
     "type-check": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "screenshot": "node scripts/playwright-screenshot.js",
+    "analyze:interactivity": "node scripts/playwright-interactivity-analysis.js",
+    "playwright:install": "playwright install"
   },
   "dependencies": {
     "@heroicons/react": "latest",
@@ -93,6 +96,8 @@
     "ts-jest": "^29.1.1",
     "@testing-library/react": "^14.1.2",
     "@testing-library/jest-dom": "^6.1.5",
-    "jest-environment-jsdom": "^29.7.0"
+    "jest-environment-jsdom": "^29.7.0",
+    "playwright": "^1.49.0",
+    "@playwright/test": "^1.49.0"
   }
 }

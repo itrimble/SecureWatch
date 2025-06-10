@@ -167,4 +167,8 @@
 - Documentation for the SecureWatch platform architecture is located at: /Users/ian/Scripts/SecureWatch/docs/securewatch_architecture.md
 - Always refer to this document for the latest architectural overview and design principles
 
+### Memory Update: Vision Clarification
+
+- when i say vision, i mean use MCP visioncraft
+
 ## Agent Development Status (Rust Implementation)

@@ -1,41 +1,41 @@
-'use client'
+'use client';
 
-import React, { ReactNode } from 'react'
-import { SplunkHeader } from './splunk-header'
-import { cn } from '@/lib/utils'
+import React, { ReactNode } from 'react';
+import { SplunkHeader } from './splunk-header';
+import { cn } from '@/lib/utils';
 
 interface SplunkLayoutProps {
-  children: ReactNode
-  className?: string
-  showSidebar?: boolean
-  sidebar?: ReactNode
+  children: ReactNode;
+  className?: string;
+  showSidebar?: boolean;
+  sidebar?: ReactNode;
 }
 
-export function SplunkLayout({ 
-  children, 
+export function SplunkLayout({
+  children,
   className,
   showSidebar = false,
-  sidebar
+  sidebar,
 }: SplunkLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100">
+    <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col">
       {/* Splunk Header (Top Bar + App Context Bar) */}
       <SplunkHeader />
-      
+
       {/* Main Content Area */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0">
         {/* Optional Sidebar (for settings pages, etc) */}
         {showSidebar && sidebar && (
-          <div className="w-64 bg-gray-800 border-r border-gray-700">
+          <div className="w-80 bg-gray-800 border-r border-gray-700 flex-shrink-0">
             {sidebar}
           </div>
         )}
-        
+
         {/* Main Content */}
-        <main className={cn("flex-1", className)}>
+        <main className={cn('flex-1 min-w-0 overflow-hidden', className)}>
           {children}
         </main>
       </div>
     </div>
-  )
+  );
 }
