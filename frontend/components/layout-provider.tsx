@@ -22,11 +22,11 @@ export function LayoutProvider({ children }: LayoutProviderProps) {
     setIsClient(true);
   }, []);
 
-  // Determine if we should show the sidebar layout - APPLY TO ALL PAGES
+  // Determine if we should show the sidebar layout - EXCLUDE HOMEPAGE
   const showSidebarLayout =
     isClient &&
-    (pathname === '/' ||
-      pathname.startsWith('/explorer') ||
+    pathname !== '/' &&
+    (pathname.startsWith('/explorer') ||
       pathname.startsWith('/alerts') ||
       pathname.startsWith('/notifications') ||
       pathname.startsWith('/reporting') ||
@@ -55,13 +55,8 @@ export function LayoutProvider({ children }: LayoutProviderProps) {
   }
 
   if (!showSidebarLayout) {
-    // For pages that don't need sidebar (like auth pages)
-    return (
-      <>
-        <Header />
-        <main>{children}</main>
-      </>
-    );
+    // For pages that don't need sidebar (like homepage and auth pages)
+    return <main>{children}</main>;
   }
 
   return (
