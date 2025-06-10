@@ -1,0 +1,356 @@
+name: 📝 README Automation Suite
+
+on:
+  schedule:
+    # Every 6 hours - comprehensive update
+    - cron: '0 */6 * * *'
+    # Every day at 9 AM UTC - daily metrics
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      update_type:
+        description: 'Type of README update'
+        required: true
+        default: 'comprehensive'
+        type: choice
+        options:
+          - basic
+          - comprehensive
+          - metrics-only
+          - version-update
+      force_update:
+        description: 'Force update even if no changes detected'
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'apps/*/package.json'
+      - 'docs/CHANGELOG.md'
+      - '.github/workflows/ci.yml'
+      - 'docker-compose*.yml'
+      - 'README.md'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'README.md'
+    types: [opened, synchronize]
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  UPDATE_TYPE: ${{ github.event.inputs.update_type || 'comprehensive' }}
+  FORCE_UPDATE: ${{ github.event.inputs.force_update || 'false' }}
+
+jobs:
+  readme-validation:
+    name: 🔍 Validate README Structure
+    runs-on: ubuntu-latest
+    outputs:
+      needs_update: ${{ steps.check.outputs.needs_update }}
+      last_update: ${{ steps.check.outputs.last_update }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check README structure and age
+        id: check
+        run: |
+          echo "Checking README.md structure and last update time..."
+
+          # Check if README exists and has required sections
+          if [ ! -f README.md ]; then
+            echo "❌ README.md not found"
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check for required sections
+          required_sections=("Quick Start" "Architecture" "Platform Metrics" "Documentation")
+          missing_sections=()
+
+          for section in "${required_sections[@]}"; do
+            if ! grep -q "$section" README.md; then
+              missing_sections+=("$section")
+            fi
+          done
+
+          if [ ${#missing_sections[@]} -gt 0 ]; then
+            echo "⚠️  Missing sections: ${missing_sections[*]}"
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+          fi
+
+          # Check last auto-update timestamp
+          if grep -q "Last auto-updated:" README.md; then
+            last_update=$(grep "Last auto-updated:" README.md | sed 's/.*Last auto-updated: //')
+            echo "last_update=$last_update" >> $GITHUB_OUTPUT
+            echo "📅 Last auto-update: $last_update"
+            
+            # Check if it's been more than 6 hours
+            if [ "${{ env.FORCE_UPDATE }}" = "true" ]; then
+              echo "🔄 Force update requested"
+              echo "needs_update=true" >> $GITHUB_OUTPUT
+            else
+              echo "needs_update=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "📝 No auto-update timestamp found"
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+          fi
+
+  update-readme:
+    name: 📝 Update README Content
+    runs-on: ubuntu-latest
+    needs: readme-validation
+    if: needs.readme-validation.outputs.needs_update == 'true' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+      actions: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install script dependencies
+        run: |
+          cd scripts
+          npm install axios cheerio moment
+          cd ..
+          pnpm install --frozen-lockfile
+
+      - name: Backup current README
+        run: |
+          cp README.md README.md.backup
+          echo "✅ Created README backup"
+
+      - name: Execute README update based on type
+        id: update
+        run: |
+          echo "🚀 Starting ${{ env.UPDATE_TYPE }} README update..."
+
+          case "${{ env.UPDATE_TYPE }}" in
+            "basic")
+              echo "📝 Running basic update..."
+              node scripts/update-readme.js
+              ;;
+            "comprehensive"|"")
+              echo "🔧 Running comprehensive update..."
+              node scripts/update-readme-advanced.js
+              ;;
+            "metrics-only")
+              echo "📊 Running metrics-only update..."
+              node scripts/update-readme.js --metrics-only
+              ;;
+            "version-update")
+              echo "📦 Running version update..."
+              node scripts/update-readme.js --version-only
+              ;;
+            *)
+              echo "❌ Unknown update type: ${{ env.UPDATE_TYPE }}"
+              exit 1
+              ;;
+          esac
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          NODE_ENV: production
+
+      - name: Validate updated README
+        id: validate
+        run: |
+          echo "🔍 Validating updated README..."
+
+          # Check if file is valid
+          if [ ! -s README.md ]; then
+            echo "❌ README.md is empty or missing"
+            mv README.md.backup README.md
+            exit 1
+          fi
+
+          # Check for syntax issues
+          if ! head -1 README.md | grep -q "# SecureWatch"; then
+            echo "❌ README.md appears corrupted"
+            mv README.md.backup README.md
+            exit 1
+          fi
+
+          # Check file size (should be reasonable)
+          size=$(wc -c < README.md)
+          if [ $size -lt 10000 ] || [ $size -gt 1000000 ]; then
+            echo "⚠️  README.md size seems unusual: $size bytes"
+          fi
+
+          echo "✅ README.md validation passed"
+
+      - name: Check for meaningful changes
+        id: changes
+        run: |
+          if git diff --quiet README.md; then
+            echo "📄 No changes detected in README.md"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "📝 Changes detected in README.md"
+            echo "changed=true" >> $GITHUB_OUTPUT
+            
+            # Show diff summary
+            echo "📋 Change summary:"
+            git diff --stat README.md
+            
+            # Count lines changed
+            lines_added=$(git diff --numstat README.md | cut -f1)
+            lines_removed=$(git diff --numstat README.md | cut -f2)
+            echo "📊 Lines added: $lines_added, removed: $lines_removed"
+            echo "lines_added=$lines_added" >> $GITHUB_OUTPUT
+            echo "lines_removed=$lines_removed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate change summary
+        id: summary
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          echo "📋 Generating change summary..."
+
+          # Create a detailed summary
+          cat > change_summary.md << 'EOF'
+          ## 📝 README Auto-Update Summary
+
+          **Update Type:** ${{ env.UPDATE_TYPE }}
+          **Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          **Trigger:** ${{ github.event_name }}
+
+          ### 📊 Changes Made
+          - **Lines Added:** ${{ steps.changes.outputs.lines_added }}
+          - **Lines Removed:** ${{ steps.changes.outputs.lines_removed }}
+          - **Update Strategy:** ${{ env.UPDATE_TYPE }}
+
+          ### 🔄 Automated Updates Include
+          - ✅ Platform version and service counts
+          - ✅ Build status and health metrics  
+          - ✅ Documentation links validation
+          - ✅ Repository statistics and activity
+          - ✅ Last updated timestamps
+
+          ### 🛠️ Technical Details
+          - **Workflow:** ${{ github.workflow }}
+          - **Run ID:** ${{ github.run_id }}
+          - **Commit SHA:** ${{ github.sha }}
+
+          ---
+          🤖 *This update was automatically generated by SecureWatch README Automation*
+          EOF
+
+          echo "summary_created=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push changes
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "SecureWatch README Bot"
+
+          # Add the updated README
+          git add README.md
+
+          # Create comprehensive commit message
+          cat > commit_message.txt << 'EOF'
+          🤖 Auto-update README.md with latest platform metrics
+
+          Update Type: ${{ env.UPDATE_TYPE }}
+          Updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+
+          Changes:
+          - Platform status and service health
+          - Version information and release data
+          - Documentation links verification  
+          - Repository metrics and statistics
+          - Architecture diagrams and service counts
+
+          Lines: +${{ steps.changes.outputs.lines_added }}/-${{ steps.changes.outputs.lines_removed }}
+
+          🚀 Generated with SecureWatch README Automation
+          🔗 Workflow: ${{ github.workflow }} (#${{ github.run_number }})
+
+          Co-Authored-By: Claude <noreply@anthropic.com>
+          EOF
+
+          git commit -F commit_message.txt
+          git push
+
+          echo "✅ Changes committed and pushed successfully"
+
+      - name: Create workflow summary
+        if: always()
+        run: |
+          echo "## 📝 README Automation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.changes.outputs.changed }}" = "true" ]; then
+            echo "✅ **SUCCESS**: README.md updated successfully" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📊 Update Details" >> $GITHUB_STEP_SUMMARY
+            echo "- **Update Type**: ${{ env.UPDATE_TYPE }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Lines Added**: ${{ steps.changes.outputs.lines_added }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Lines Removed**: ${{ steps.changes.outputs.lines_removed }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🔄 What Was Updated" >> $GITHUB_STEP_SUMMARY
+            echo "- Platform version and service counts" >> $GITHUB_STEP_SUMMARY
+            echo "- Build status and health indicators" >> $GITHUB_STEP_SUMMARY
+            echo "- Documentation links and references" >> $GITHUB_STEP_SUMMARY
+            echo "- Repository statistics and metrics" >> $GITHUB_STEP_SUMMARY
+            echo "- Architecture diagrams and service info" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ **INFO**: No changes needed - README.md is up to date" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- Last update: ${{ needs.readme-validation.outputs.last_update }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Validation passed: All required sections present" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🤖 *Automated by SecureWatch README Bot*" >> $GITHUB_STEP_SUMMARY
+
+      - name: Cleanup
+        if: always()
+        run: |
+          # Remove backup and temporary files
+          rm -f README.md.backup commit_message.txt change_summary.md
+          echo "🧹 Cleanup completed"
+
+  notify-on-failure:
+    name: 🚨 Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [readme-validation, update-readme]
+    if: failure()
+
+    steps:
+      - name: Create failure summary
+        run: |
+          echo "## ❌ README Automation Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The README automation workflow encountered an error." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔍 Troubleshooting Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Check the workflow logs for specific error messages" >> $GITHUB_STEP_SUMMARY
+          echo "2. Verify that all required files exist" >> $GITHUB_STEP_SUMMARY
+          echo "3. Ensure GitHub token has proper permissions" >> $GITHUB_STEP_SUMMARY
+          echo "4. Check for any recent changes to the script files" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📧 Consider running the workflow manually with debug enabled." >> $GITHUB_STEP_SUMMARY

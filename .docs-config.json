@@ -1,0 +1,191 @@
+{
+  "name": "SecureWatch Documentation Configuration",
+  "version": "1.0.0",
+  "description": "Advanced documentation automation configuration using Context7 and MCP best practices",
+
+  "requiredDocs": [
+    "README.md",
+    "QUICK_START.md",
+    "DEPLOYMENT_GUIDE.md",
+    "API_REFERENCE.md",
+    "ARCHITECTURE.md",
+    "TROUBLESHOOTING.md",
+    "SECURITY_CONFIGURATION_GUIDE.md",
+    "PERFORMANCE_OPTIMIZATION_GUIDE.md"
+  ],
+
+  "categories": {
+    "Getting Started": ["README.md", "QUICK_START.md", "MONOREPO_SETUP.md"],
+    "Deployment & Configuration": [
+      "DEPLOYMENT_GUIDE.md",
+      "ENTERPRISE_DEPLOYMENT.md",
+      "SECURITY_CONFIGURATION_GUIDE.md",
+      "PORT_CONFIGURATION.md"
+    ],
+    "API & Integration": [
+      "API_REFERENCE.md",
+      "KQL_API_GUIDE.md",
+      "OPENSEARCH_INTEGRATION_GUIDE.md",
+      "SSO_SETUP_GUIDE.md"
+    ],
+    "Architecture & Design": [
+      "ARCHITECTURE.md",
+      "ENTITY_RELATIONSHIP_DIAGRAM.md",
+      "TYPESCRIPT_ARCHITECTURE_GUIDE.md",
+      "ERD_VISUAL_DIAGRAMS.md"
+    ],
+    "User Guides": [
+      "*_USER_GUIDE.md",
+      "RBAC_USER_GUIDE.md",
+      "LOOKUP_TABLES_USER_GUIDE.md",
+      "VISUALIZATION_USER_GUIDE.md",
+      "TROUBLESHOOTING_EXPORT_USER_GUIDE.md"
+    ],
+    "Performance & Optimization": [
+      "PERFORMANCE_OPTIMIZATION_GUIDE.md",
+      "PERFORMANCE_API_GUIDE.md"
+    ],
+    "Data & Analytics": [
+      "DATA_INGESTION_GUIDE.md",
+      "LOG_FORMATS_GUIDE.md",
+      "EVTX_PARSER_ENHANCED.md",
+      "EVTX_PARSING_STRATEGY.md"
+    ],
+    "Security & Compliance": [
+      "SECURITY_CONFIGURATION_GUIDE.md",
+      "INCIDENT_RESPONSE_PROCEDURES.md",
+      "SECURITY_FIXES_SUMMARY.md"
+    ],
+    "Development": [
+      "TYPESCRIPT_ARCHITECTURE_GUIDE.md",
+      "CLI_DASHBOARD_IMPLEMENTATION.md",
+      "CORRELATION_RULES_ENGINE_ERD.md"
+    ],
+    "Testing & Quality": [
+      "EVTX_ATTACK_SAMPLES_TESTING.md",
+      "testing-framework.md"
+    ],
+    "Troubleshooting": [
+      "TROUBLESHOOTING.md",
+      "*_TROUBLESHOOTING.md",
+      "TROUBLESHOOTING_EXPORT_USER_GUIDE.md"
+    ]
+  },
+
+  "linkPatterns": {
+    "internal": "\\[([^\\]]+)\\]\\((?!https?:\\/\\/)([^)]+)\\)",
+    "external": "\\[([^\\]]+)\\]\\((https?:\\/\\/[^)]+)\\)",
+    "anchor": "\\[([^\\]]+)\\]\\(#([^)]+)\\)",
+    "relative": "\\[([^\\]]+)\\]\\(\\.\\./([^)]+)\\)"
+  },
+
+  "excludePatterns": [
+    "node_modules",
+    ".git",
+    "target",
+    "dist",
+    "build",
+    "coverage",
+    ".next",
+    ".vercel",
+    "temp",
+    "tmp"
+  ],
+
+  "validationRules": {
+    "maxWordCount": 10000,
+    "minWordCount": 100,
+    "requiredSections": ["Overview", "Getting Started"],
+    "forbiddenPatterns": ["TODO:", "FIXME:", "XXX:"],
+    "linkTimeout": 5000,
+    "markdownLinting": true
+  },
+
+  "generation": {
+    "tableOfContents": {
+      "enabled": true,
+      "maxDepth": 4,
+      "includeWordCount": true,
+      "includeLastModified": true
+    },
+    "indexes": {
+      "generateCategoryIndexes": true,
+      "generateMainIndex": true,
+      "includeMetrics": true
+    },
+    "apiDocs": {
+      "extractFromCode": true,
+      "scanDirectories": ["apps", "src"],
+      "routePatterns": [
+        "app\\.(get|post|put|delete|patch)\\s*\\(\\s*['\"`]([^'\"`]+)['\"`]",
+        "router\\.(get|post|put|delete|patch)\\s*\\(\\s*['\"`]([^'\"`]+)['\"`]",
+        "@(Get|Post|Put|Delete|Patch)\\s*\\(\\s*['\"`]([^'\"`]+)['\"`]"
+      ]
+    }
+  },
+
+  "automation": {
+    "updateFrequency": "daily",
+    "autoFix": {
+      "brokenLinks": true,
+      "missingDocs": true,
+      "inconsistentFormatting": true,
+      "outdatedTimestamps": true
+    },
+    "notifications": {
+      "onErrors": true,
+      "onUpdates": false,
+      "channels": ["github-actions"]
+    }
+  },
+
+  "integration": {
+    "context7": {
+      "enabled": true,
+      "libraryQueries": [
+        "documentation automation",
+        "github actions best practices",
+        "markdown processing"
+      ]
+    },
+    "mcp": {
+      "enabled": true,
+      "tools": ["github", "context7", "openmemory"]
+    },
+    "readthedocs": {
+      "enabled": true,
+      "syncOnUpdate": true
+    }
+  },
+
+  "templates": {
+    "newDocument": {
+      "header": "# {{title}}\n\n*Last updated: {{date}}*\n\n## Overview\n\nTODO: Add overview\n\n## Getting Started\n\nTODO: Add getting started information\n\n---\n\n*This document is part of the SecureWatch SIEM Platform documentation.*",
+      "apiReference": "# {{service}} API Reference\n\n*Auto-generated on {{date}}*\n\n## Endpoints\n\n{{endpoints}}\n\n---\n\n*This API reference is automatically synchronized with the codebase*"
+    },
+    "placeholders": {
+      "missingDoc": "# {{title}}\n\n*This document is under construction.*\n\n## Overview\n\nTODO: Add content for {{title}}\n\n## Getting Started\n\nTODO: Add getting started information\n\n---\n\n*Last updated: {{date}}*",
+      "categoryIndex": "# {{category}} Documentation\n\n*Last updated: {{date}}*\n\nThis section contains documentation related to {{category}}.\n\n## Documents\n\n{{documents}}\n\n---\n\n*Part of the SecureWatch Documentation Suite*"
+    }
+  },
+
+  "metrics": {
+    "tracking": {
+      "wordCount": true,
+      "linkHealth": true,
+      "freshness": true,
+      "coverage": true,
+      "consistency": true
+    },
+    "thresholds": {
+      "minCoverage": 80,
+      "maxBrokenLinks": 5,
+      "minFreshness": 70
+    },
+    "reporting": {
+      "generateMetricsFile": true,
+      "includeTrends": true,
+      "compareWithPrevious": true
+    }
+  }
+}

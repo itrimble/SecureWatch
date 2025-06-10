@@ -1,0 +1,103 @@
+name: Update README with Dynamic Content
+
+on:
+  schedule:
+    # Update every 6 hours to balance freshness with rate limits
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'apps/*/package.json'
+      - 'docs/CHANGELOG.md'
+      - '.github/workflows/ci.yml'
+      - 'docker-compose*.yml'
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  update-readme:
+    name: Update README with Latest Data
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies for script
+        run: |
+          npm install -g axios cheerio moment
+          pnpm install --frozen-lockfile
+
+      - name: Generate dynamic README content
+        id: generate
+        run: |
+          node scripts/update-readme.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Check for README changes
+        id: changes
+        run: |
+          if git diff --quiet README.md; then
+            echo "No changes detected"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected in README.md"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "SecureWatch Bot"
+          git add README.md
+          git commit -m "🤖 Auto-update README with latest platform metrics and stats
+
+          Updated on: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+
+          - Platform status and service health
+          - Recent releases and version info  
+          - Documentation links verification
+          - Performance metrics and statistics
+          - Community engagement metrics
+
+          🚀 Generated with [Claude Code](https://claude.ai/code)"
+          git push
+
+      - name: Create summary
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          echo "## 📝 README Updated Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ README.md has been automatically updated with:" >> $GITHUB_STEP_SUMMARY
+          echo "- Latest platform metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- Service health status" >> $GITHUB_STEP_SUMMARY
+          echo "- Recent release information" >> $GITHUB_STEP_SUMMARY
+          echo "- Updated documentation links" >> $GITHUB_STEP_SUMMARY
+          echo "- Community engagement stats" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🕐 Updated at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
