@@ -3,7 +3,7 @@ services:
     image: timescale/timescaledb:latest-pg14 # Using latest pg14 version
     container_name: eventlog_db_timescale_local
     ports:
-      - "5432:5432" # Expose PostgreSQL port to the host
+      - '5432:5432' # Expose PostgreSQL port to the host
     volumes:
       - pgdata_eventlog:/var/lib/postgresql/data # Named volume for data persistence
       # To automatically run init scripts, you can mount them to /docker-entrypoint-initdb.d/
@@ -11,14 +11,14 @@ services:
       # - ./create_tables.sql:/docker-entrypoint-initdb.d/01_init_schema.sql
       # Note: Scripts in docker-entrypoint-initdb.d are only run when the database is first initialized (empty pgdata).
     environment:
-      POSTGRES_USER: eventlogger        # Default user for the database
+      POSTGRES_USER: eventlogger # Default user for the database
       POSTGRES_PASSWORD: localdevpassword # Password for the default user
-      POSTGRES_DB: eventlog_dev         # Name of the default database to create
+      POSTGRES_DB: eventlog_dev # Name of the default database to create
       # Optional TimescaleDB specific settings if needed at init:
       # TS_TUNE_MEMORY: "4GB" # Example: Adjust based on your system
       # TS_TUNE_NUM_CPUS: "2" # Example: Adjust based on your system
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U eventlogger -d eventlog_dev"]
+      test: ['CMD-SHELL', 'pg_isready -U eventlogger -d eventlog_dev']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,8 +29,8 @@ services:
     image: confluentinc/cp-kafka:7.4.0
     container_name: securewatch_kafka
     ports:
-      - "9092:9092"
-      - "19092:19092"
+      - '9092:9092'
+      - '19092:19092'
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
@@ -52,7 +52,7 @@ services:
     image: confluentinc/cp-zookeeper:7.4.0
     container_name: securewatch_zookeeper
     ports:
-      - "2181:2181"
+      - '2181:2181'
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -65,7 +65,7 @@ services:
       dockerfile: Dockerfile
     container_name: securewatch_hec
     ports:
-      - "8888:8888"
+      - '8888:8888'
     environment:
       - PORT=8888
       - KAFKA_BROKERS=kafka:29092
@@ -79,7 +79,7 @@ services:
       - kafka
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:8888/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -91,12 +91,12 @@ services:
       dockerfile: Dockerfile
     container_name: securewatch_log_ingestion
     ports:
-      - "4002:4002"
+      - '4002:4002'
       # Standard syslog ports
-      - "514:514/udp"    # UDP syslog
-      - "514:514/tcp"    # TCP syslog
-      - "601:601/tcp"    # TCP syslog (RFC 5425)
-      - "6514:6514/tcp"  # TLS syslog
+      - '514:514/udp' # UDP syslog
+      - '514:514/tcp' # TCP syslog
+      - '601:601/tcp' # TCP syslog (RFC 5425)
+      - '6514:6514/tcp' # TLS syslog
     environment:
       - PORT=4002
       - KAFKA_BROKERS=kafka:29092
@@ -113,7 +113,7 @@ services:
       - kafka
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4002/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:4002/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -125,13 +125,13 @@ services:
       dockerfile: Dockerfile
     container_name: securewatch_correlation
     ports:
-      - "4005:4005"
+      - '4005:4005'
     environment:
       - PORT=4005
       - LOG_LEVEL=info
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4005/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:4005/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -143,7 +143,7 @@ services:
       dockerfile: ./apps/education-service/Dockerfile
     container_name: securewatch_education
     ports:
-      - "4011:4011"
+      - '4011:4011'
     environment:
       - PORT=4011
       - NODE_ENV=production
@@ -171,7 +171,7 @@ services:
       - db
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4011/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:4011/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -181,20 +181,20 @@ services:
     image: bitnami/spark:3.5.0
     container_name: securewatch_spark_master
     ports:
-      - "7077:7077"
-      - "8080:8080"
+      - '7077:7077'
+      - '8080:8080'
     environment:
       SPARK_MODE: master
       SPARK_RPC_AUTHENTICATION_ENABLED: no
       SPARK_RPC_ENCRYPTION_ENABLED: no
       SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
       SPARK_SSL_ENABLED: no
-      SPARK_MASTER_OPTS: "-Dspark.deploy.defaultCores=2"
+      SPARK_MASTER_OPTS: '-Dspark.deploy.defaultCores=2'
     volumes:
       - spark_data:/opt/bitnami/spark/work-dir
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -225,7 +225,7 @@ services:
       dockerfile: Dockerfile
     container_name: securewatch_spark_batch_processor
     ports:
-      - "3009:3000"
+      - '3009:3000'
     environment:
       NODE_ENV: development
       PORT: 3000
@@ -249,7 +249,58 @@ services:
       - spark-master
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Data Retention Manager
+  retention-manager:
+    build:
+      context: ./apps/retention-manager
+      dockerfile: Dockerfile
+    container_name: securewatch_retention_manager
+    ports:
+      - '3012:3012'
+    environment:
+      NODE_ENV: development
+      RETENTION_MANAGER_PORT: 3012
+      DATABASE_URL: postgresql://postgres:postgres@postgres-eventlog:5432/eventlog
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LOG_LEVEL: info
+      # Storage backends
+      AWS_REGION: ${AWS_REGION:-us-west-2}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      S3_BUCKET: ${S3_BUCKET:-securewatch-archive}
+      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING:-}
+      AZURE_CONTAINER: ${AZURE_CONTAINER:-securewatch-archive}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
+      GCS_BUCKET: ${GCS_BUCKET:-securewatch-archive}
+      # Alert webhooks
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      CRITICAL_ALERT_WEBHOOK: ${CRITICAL_ALERT_WEBHOOK:-}
+      # Storage limits (GB)
+      HOT_STORAGE_LIMIT_GB: 10000
+      WARM_STORAGE_LIMIT_GB: 50000
+      COLD_STORAGE_LIMIT_GB: 100000
+    volumes:
+      - ./apps/retention-manager/logs:/app/logs
+    depends_on:
+      - postgres-eventlog
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3012/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3

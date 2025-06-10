@@ -7,10 +7,16 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src/**/*.ts",
     "test": "jest"
   },
-  "keywords": ["siem", "query", "async", "jobs", "processing"],
+  "keywords": [
+    "siem",
+    "query",
+    "async",
+    "jobs",
+    "processing"
+  ],
   "author": "SecureWatch Team",
   "private": true,
   "dependencies": {

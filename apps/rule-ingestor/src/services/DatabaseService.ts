@@ -85,7 +85,7 @@ export class DatabaseService {
     try {
       // Test connection
       const client = await this.pool.connect();
-      
+
       // Verify detection_rules table exists
       const tableCheck = await client.query(`
         SELECT EXISTS (
@@ -96,13 +96,14 @@ export class DatabaseService {
       `);
 
       if (!tableCheck.rows[0].exists) {
-        throw new Error('detection_rules table not found. Please run the schema migration first.');
+        throw new Error(
+          'detection_rules table not found. Please run the schema migration first.'
+        );
       }
 
       client.release();
       this.isInitialized = true;
       logger.info('Database service initialized successfully');
-
     } catch (error) {
       logger.error('Failed to initialize database service:', error);
       throw error;
@@ -112,7 +113,7 @@ export class DatabaseService {
   // Insert a new rule
   async insertRule(rule: Rule): Promise<string> {
     const client = await this.pool.connect();
-    
+
     try {
       const query = `
         INSERT INTO detection_rules (
@@ -139,20 +140,41 @@ export class DatabaseService {
       `;
 
       const values = [
-        rule.rule_id, rule.title, rule.description, rule.author, rule.date, rule.modified,
-        rule.category, rule.product, rule.service, rule.level, rule.severity,
-        rule.mitre_attack_techniques, rule.mitre_attack_tactics,
-        rule.detection_query, rule.condition, rule.timeframe,
-        rule.aggregation?.field, rule.aggregation?.operation, rule.aggregation?.threshold,
-        rule.source_type, rule.source_url, rule.source_version, rule.original_rule,
-        rule.tags, rule.references, rule.false_positives,
-        rule.enabled, rule.custom_modified,
-        rule.created_at, rule.updated_at, rule.imported_at
+        rule.rule_id,
+        rule.title,
+        rule.description,
+        rule.author,
+        rule.date,
+        rule.modified,
+        rule.category,
+        rule.product,
+        rule.service,
+        rule.level,
+        rule.severity,
+        rule.mitre_attack_techniques,
+        rule.mitre_attack_tactics,
+        rule.detection_query,
+        rule.condition,
+        rule.timeframe,
+        rule.aggregation?.field,
+        rule.aggregation?.operation,
+        rule.aggregation?.threshold,
+        rule.source_type,
+        rule.source_url,
+        rule.source_version,
+        rule.original_rule,
+        rule.tags,
+        rule.references,
+        rule.false_positives,
+        rule.enabled,
+        rule.custom_modified,
+        rule.created_at,
+        rule.updated_at,
+        rule.imported_at,
       ];
 
       const result = await client.query(query, values);
       return result.rows[0].id;
-
     } finally {
       client.release();
     }
@@ -161,7 +183,7 @@ export class DatabaseService {
   // Update an existing rule
   async updateRule(rule: Rule): Promise<boolean> {
     const client = await this.pool.connect();
-    
+
     try {
       const query = `
         UPDATE detection_rules SET
@@ -177,19 +199,37 @@ export class DatabaseService {
       `;
 
       const values = [
-        rule.rule_id, rule.title, rule.description, rule.author, rule.date, rule.modified,
-        rule.category, rule.product, rule.service, rule.level, rule.severity,
-        rule.mitre_attack_techniques, rule.mitre_attack_tactics,
-        rule.detection_query, rule.condition, rule.timeframe,
-        rule.aggregation?.field, rule.aggregation?.operation, rule.aggregation?.threshold,
-        rule.source_url, rule.source_version, rule.original_rule,
-        rule.tags, rule.references, rule.false_positives,
-        new Date().toISOString(), rule.imported_at
+        rule.rule_id,
+        rule.title,
+        rule.description,
+        rule.author,
+        rule.date,
+        rule.modified,
+        rule.category,
+        rule.product,
+        rule.service,
+        rule.level,
+        rule.severity,
+        rule.mitre_attack_techniques,
+        rule.mitre_attack_tactics,
+        rule.detection_query,
+        rule.condition,
+        rule.timeframe,
+        rule.aggregation?.field,
+        rule.aggregation?.operation,
+        rule.aggregation?.threshold,
+        rule.source_url,
+        rule.source_version,
+        rule.original_rule,
+        rule.tags,
+        rule.references,
+        rule.false_positives,
+        new Date().toISOString(),
+        rule.imported_at,
       ];
 
       const result = await client.query(query, values);
       return result.rowCount > 0;
-
     } finally {
       client.release();
     }
@@ -198,20 +238,19 @@ export class DatabaseService {
   // Get rule by rule_id
   async getRuleByRuleId(ruleId: string): Promise<Rule | null> {
     const client = await this.pool.connect();
-    
+
     try {
       const query = `
         SELECT * FROM detection_rules WHERE rule_id = $1;
       `;
 
       const result = await client.query(query, [ruleId]);
-      
+
       if (result.rows.length === 0) {
         return null;
       }
 
       return this.mapRowToRule(result.rows[0]);
-
     } finally {
       client.release();
     }
@@ -220,15 +259,17 @@ export class DatabaseService {
   // Search rules with filters
   async searchRules(params: RuleSearchParams): Promise<RuleSearchResult> {
     const client = await this.pool.connect();
-    
+
     try {
-      let whereConditions = [];
-      let queryParams = [];
+      const whereConditions = [];
+      const queryParams = [];
       let paramIndex = 1;
 
       // Build WHERE conditions
       if (params.query) {
-        whereConditions.push(`search_vector @@ plainto_tsquery($${paramIndex})`);
+        whereConditions.push(
+          `search_vector @@ plainto_tsquery($${paramIndex})`
+        );
         queryParams.push(params.query);
         paramIndex++;
       }
@@ -257,9 +298,10 @@ export class DatabaseService {
         paramIndex++;
       }
 
-      const whereClause = whereConditions.length > 0 
-        ? `WHERE ${whereConditions.join(' AND ')}`
-        : '';
+      const whereClause =
+        whereConditions.length > 0
+          ? `WHERE ${whereConditions.join(' AND ')}`
+          : '';
 
       // Get total count
       const countQuery = `
@@ -275,14 +317,13 @@ export class DatabaseService {
         ORDER BY created_at DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
       `;
-      
+
       queryParams.push(params.limit, params.offset);
       const result = await client.query(selectQuery, queryParams);
 
-      const rules = result.rows.map(row => this.mapRowToRule(row));
+      const rules = result.rows.map((row) => this.mapRowToRule(row));
 
       return { rules, total };
-
     } finally {
       client.release();
     }
@@ -291,7 +332,7 @@ export class DatabaseService {
   // Update rule status (enabled/disabled)
   async updateRuleStatus(ruleId: string, enabled: boolean): Promise<boolean> {
     const client = await this.pool.connect();
-    
+
     try {
       const query = `
         UPDATE detection_rules 
@@ -299,18 +340,24 @@ export class DatabaseService {
         WHERE rule_id = $1;
       `;
 
-      const result = await client.query(query, [ruleId, enabled, new Date().toISOString()]);
+      const result = await client.query(query, [
+        ruleId,
+        enabled,
+        new Date().toISOString(),
+      ]);
       return result.rowCount > 0;
-
     } finally {
       client.release();
     }
   }
 
   // Bulk update rule status
-  async bulkUpdateRuleStatus(ruleIds: string[], enabled: boolean): Promise<BulkUpdateResult> {
+  async bulkUpdateRuleStatus(
+    ruleIds: string[],
+    enabled: boolean
+  ): Promise<BulkUpdateResult> {
     const client = await this.pool.connect();
-    
+
     try {
       const query = `
         UPDATE detection_rules 
@@ -318,19 +365,22 @@ export class DatabaseService {
         WHERE rule_id = ANY($1);
       `;
 
-      const result = await client.query(query, [ruleIds, enabled, new Date().toISOString()]);
-      
+      const result = await client.query(query, [
+        ruleIds,
+        enabled,
+        new Date().toISOString(),
+      ]);
+
       return {
         updated: result.rowCount,
         failed: ruleIds.length - result.rowCount,
-        errors: []
+        errors: [],
       };
-
     } catch (error) {
       return {
         updated: 0,
         failed: ruleIds.length,
-        errors: [error instanceof Error ? error.message : 'Unknown error']
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
       };
     } finally {
       client.release();
@@ -340,12 +390,11 @@ export class DatabaseService {
   // Delete rule
   async deleteRule(ruleId: string): Promise<boolean> {
     const client = await this.pool.connect();
-    
+
     try {
       const query = `DELETE FROM detection_rules WHERE rule_id = $1;`;
       const result = await client.query(query, [ruleId]);
       return result.rowCount > 0;
-
     } finally {
       client.release();
     }
@@ -354,7 +403,7 @@ export class DatabaseService {
   // Record import batch
   async recordImportBatch(batch: ImportBatch): Promise<string> {
     const client = await this.pool.connect();
-    
+
     try {
       const query = `
         INSERT INTO rule_import_batches (
@@ -366,29 +415,38 @@ export class DatabaseService {
       `;
 
       const values = [
-        batch.source_type, batch.source_url, batch.source_version,
-        batch.total_rules, batch.successful_imports, batch.failed_imports, batch.skipped_rules,
-        `${batch.import_duration} milliseconds`, batch.error_summary
+        batch.source_type,
+        batch.source_url,
+        batch.source_version,
+        batch.total_rules,
+        batch.successful_imports,
+        batch.failed_imports,
+        batch.skipped_rules,
+        `${batch.import_duration} milliseconds`,
+        batch.error_summary,
       ];
 
       const result = await client.query(query, values);
       return result.rows[0].id;
-
     } finally {
       client.release();
     }
   }
 
   // Get import history
-  async getImportHistory(params: { limit: number; offset: number; source?: string }): Promise<any[]> {
+  async getImportHistory(params: {
+    limit: number;
+    offset: number;
+    source?: string;
+  }): Promise<any[]> {
     const client = await this.pool.connect();
-    
+
     try {
       let query = `
         SELECT * FROM rule_import_batches
       `;
       const queryParams = [];
-      
+
       if (params.source) {
         query += ` WHERE source_type = $1`;
         queryParams.push(params.source);
@@ -401,7 +459,6 @@ export class DatabaseService {
 
       const result = await client.query(query, queryParams);
       return result.rows;
-
     } finally {
       client.release();
     }
@@ -410,7 +467,7 @@ export class DatabaseService {
   // Get rule statistics
   async getRuleStatistics(): Promise<RuleStatistics> {
     const client = await this.pool.connect();
-    
+
     try {
       // Basic counts
       const basicStats = await client.query(`
@@ -470,9 +527,8 @@ export class DatabaseService {
           return acc;
         }, {}),
         last_import: importInfo.last_import,
-        avg_import_duration: parseFloat(importInfo.avg_duration_ms) || 0
+        avg_import_duration: parseFloat(importInfo.avg_duration_ms) || 0,
       };
-
     } finally {
       client.release();
     }
@@ -505,11 +561,13 @@ export class DatabaseService {
       detection_query: row.detection_query,
       condition: row.condition,
       timeframe: row.timeframe,
-      aggregation: row.aggregation_field ? {
-        field: row.aggregation_field,
-        operation: row.aggregation_operation,
-        threshold: row.aggregation_threshold
-      } : undefined,
+      aggregation: row.aggregation_field
+        ? {
+            field: row.aggregation_field,
+            operation: row.aggregation_operation,
+            threshold: row.aggregation_threshold,
+          }
+        : undefined,
       source_type: row.source_type,
       source_url: row.source_url,
       source_version: row.source_version,
@@ -526,7 +584,7 @@ export class DatabaseService {
       average_execution_time: row.average_execution_time,
       created_at: row.created_at,
       updated_at: row.updated_at,
-      imported_at: row.imported_at
+      imported_at: row.imported_at,
     };
   }
 }

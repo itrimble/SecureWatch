@@ -28,7 +28,17 @@
     "install:deps": "pnpm install --frozen-lockfile",
     "evtx:parse": "python3 scripts/evtx_parser_enhanced.py",
     "evtx:test": "python3 scripts/test_enhanced_evtx_pipeline.py",
-    "evtx:samples": "python3 scripts/test_enhanced_evtx_pipeline.py --samples-path /Users/ian/Downloads/EVTX-ATTACK-SAMPLES-master"
+    "evtx:samples": "python3 scripts/test_enhanced_evtx_pipeline.py --samples-path /Users/ian/Downloads/EVTX-ATTACK-SAMPLES-master",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "**/*.{md,json,yaml,yml}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@esbuild/darwin-arm64": "^0.25.5",
@@ -74,6 +84,8 @@
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "15.3.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.0",
     "prettier": "^3.3.3",
     "tailwindcss": "^4",
     "turbo": "^2.3.3",
@@ -81,12 +93,20 @@
   },
   "pnpm": {
     "supportedArchitectures": {
-      "os": ["darwin", "linux", "win32"],
-      "cpu": ["x64", "arm64", "ia32"]
+      "os": [
+        "darwin",
+        "linux",
+        "win32"
+      ],
+      "cpu": [
+        "x64",
+        "arm64",
+        "ia32"
+      ]
     }
   },
   "optionalDependencies": {
-    "@esbuild/linux-x64": "^0.25.5",
-    "@esbuild/darwin-arm64": "^0.25.5"
+    "@esbuild/darwin-arm64": "^0.25.5",
+    "@esbuild/linux-x64": "^0.25.5"
   }
 }

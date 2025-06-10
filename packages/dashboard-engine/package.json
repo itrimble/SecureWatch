@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "lint": "eslint src --ext .ts,.tsx",
+    "lint": "eslint src/**/*.{ts,tsx}",
     "type-check": "tsc --noEmit",
     "test": "vitest"
   },
