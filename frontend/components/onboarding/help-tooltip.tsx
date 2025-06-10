@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
-import { HelpCircle, X, Lightbulb } from "lucide-react";
-import { useOnboarding } from "@/hooks/use-onboarding";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { HelpCircle, X, Lightbulb } from 'lucide-react';
+import { useOnboarding } from '@/hooks/use-onboarding';
 
 interface HelpTooltipProps {
   id: string;
@@ -21,13 +21,13 @@ interface HelpTooltipProps {
   children: React.ReactNode;
 }
 
-export function HelpTooltip({ 
-  id, 
-  title, 
-  content, 
+export function HelpTooltip({
+  id,
+  title,
+  content,
   placement = 'top',
   showOnce = true,
-  children 
+  children,
 }: HelpTooltipProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -71,7 +71,7 @@ export function HelpTooltip({
             </Button>
           </div>
         </TooltipTrigger>
-        
+
         <TooltipContent side={placement} className="p-0 max-w-sm">
           <Card className="border-border shadow-lg">
             <CardContent className="p-4">
@@ -109,7 +109,11 @@ interface ContextualHelpProps {
   trigger?: React.ReactNode;
 }
 
-export function ContextualHelp({ feature, steps, trigger }: ContextualHelpProps) {
+export function ContextualHelp({
+  feature,
+  steps,
+  trigger,
+}: ContextualHelpProps) {
   const [isActive, setIsActive] = useState(false);
 
   const defaultTrigger = (
@@ -121,13 +125,14 @@ export function ContextualHelp({ feature, steps, trigger }: ContextualHelpProps)
 
   return (
     <>
-      <div onClick={() => setIsActive(true)}>
-        {trigger || defaultTrigger}
-      </div>
-      
+      <div onClick={() => setIsActive(true)}>{trigger || defaultTrigger}</div>
+
       {/* This would integrate with Joyride for contextual tours */}
       {isActive && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          style={{ pointerEvents: 'auto' }}
+        >
           <Card className="max-w-md mx-4">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -140,18 +145,20 @@ export function ContextualHelp({ feature, steps, trigger }: ContextualHelpProps)
                   <X className="w-4 h-4" />
                 </Button>
               </div>
-              
+
               <div className="space-y-3">
                 {steps.map((step, index) => (
                   <div key={index} className="border-l-2 border-primary pl-3">
                     <h4 className="font-medium text-sm">{step.title}</h4>
-                    <p className="text-sm text-muted-foreground">{step.content}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {step.content}
+                    </p>
                   </div>
                 ))}
               </div>
-              
-              <Button 
-                className="w-full mt-4" 
+
+              <Button
+                className="w-full mt-4"
                 onClick={() => setIsActive(false)}
               >
                 Got it!
