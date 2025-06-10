@@ -9,6 +9,14 @@ export { PaloAltoFirewallParser } from './PaloAltoFirewallParser';
 export { CiscoASAFirewallParser } from './CiscoASAFirewallParser';
 export { FortiGateFirewallParser } from './FortiGateFirewallParser';
 
+// Task 25 - Open Source Tools Parsers
+export { WazuhOSSECParser } from './WazuhOSSECParser';
+export { ModSecurityParser } from './ModSecurityParser';
+export { OpenVPNParser } from './OpenVPNParser';
+export { KubernetesAuditParser } from './KubernetesAuditParser';
+export { DockerParser } from './DockerParser';
+export { MySQLMariaDBParser } from './MySQLMariaDBParser';
+
 // New Enterprise Parsers
 export { CheckPointFirewallParser } from './CheckPointFirewallParser';
 export { CrowdStrikeFalconEDRParser } from './CrowdStrikeFalconEDRParser';
@@ -36,7 +44,7 @@ export { AzureActivityLogsParser } from './AzureActivityParsers';
 export { GoogleCloudAuditLogsParser } from './GoogleCloudAuditLogsParser';
 export { Microsoft365EntraIDParser } from './Microsoft365EntraIDParser';
 
-// Web Server Parsers  
+// Web Server Parsers
 export { NginxLogParser } from './NginxLogParser';
 export { IISLogParser } from './IISLogParser';
 
@@ -53,7 +61,11 @@ export class LinuxAuthLogParser {
   enabled = true;
 
   validate(rawLog: string): boolean {
-    return rawLog.includes('sshd') || rawLog.includes('sudo') || rawLog.includes('su:');
+    return (
+      rawLog.includes('sshd') ||
+      rawLog.includes('sudo') ||
+      rawLog.includes('su:')
+    );
   }
 
   parse(rawLog: string): any {
@@ -64,7 +76,7 @@ export class LinuxAuthLogParser {
       action: 'login_attempt',
       outcome: rawLog.includes('Failed') ? 'failure' : 'success',
       severity: 'medium' as const,
-      rawData: rawLog
+      rawData: rawLog,
     };
   }
 
@@ -79,7 +91,7 @@ export class LinuxAuthLogParser {
       'securewatch.parser.version': this.version,
       'securewatch.parser.name': this.name,
       'securewatch.confidence': 0.8,
-      'securewatch.severity': event.severity
+      'securewatch.severity': event.severity,
     };
   }
 }
@@ -114,7 +126,7 @@ export class AWSCloudTrailParser {
       outcome: event.errorCode ? 'failure' : 'success',
       severity: 'low' as const,
       rawData: rawLog,
-      custom: event
+      custom: event,
     };
   }
 
@@ -133,7 +145,7 @@ export class AWSCloudTrailParser {
       'securewatch.parser.version': this.version,
       'securewatch.parser.name': this.name,
       'securewatch.confidence': 0.9,
-      'securewatch.severity': event.severity
+      'securewatch.severity': event.severity,
     };
   }
 }
@@ -168,7 +180,7 @@ export class Office365AuditParser {
       outcome: 'success',
       severity: 'low' as const,
       rawData: rawLog,
-      custom: event
+      custom: event,
     };
   }
 
@@ -187,7 +199,7 @@ export class Office365AuditParser {
       'securewatch.parser.version': this.version,
       'securewatch.parser.name': this.name,
       'securewatch.confidence': 0.85,
-      'securewatch.severity': event.severity
+      'securewatch.severity': event.severity,
     };
   }
 }
@@ -216,7 +228,7 @@ export class PaloAltoFirewallParserLegacy {
       action: 'network_connection',
       outcome: rawLog.includes('deny') ? 'failure' : 'success',
       severity: 'low' as const,
-      rawData: rawLog
+      rawData: rawLog,
     };
   }
 
@@ -231,7 +243,7 @@ export class PaloAltoFirewallParserLegacy {
       'securewatch.parser.version': this.version,
       'securewatch.parser.name': this.name,
       'securewatch.confidence': 0.85,
-      'securewatch.severity': event.severity
+      'securewatch.severity': event.severity,
     };
   }
 }
@@ -259,7 +271,7 @@ export class CiscoASAParser {
       action: 'firewall_action',
       outcome: rawLog.includes('Deny') ? 'failure' : 'success',
       severity: 'medium' as const,
-      rawData: rawLog
+      rawData: rawLog,
     };
   }
 
@@ -274,7 +286,7 @@ export class CiscoASAParser {
       'securewatch.parser.version': this.version,
       'securewatch.parser.name': this.name,
       'securewatch.confidence': 0.8,
-      'securewatch.severity': event.severity
+      'securewatch.severity': event.severity,
     };
   }
 }
@@ -301,9 +313,10 @@ export class NginxAccessLogParser {
       source: 'nginx-server',
       category: 'web',
       action: 'http_request',
-      outcome: rawLog.includes(' 4') || rawLog.includes(' 5') ? 'failure' : 'success',
+      outcome:
+        rawLog.includes(' 4') || rawLog.includes(' 5') ? 'failure' : 'success',
       severity: 'low' as const,
-      rawData: rawLog
+      rawData: rawLog,
     };
   }
 
@@ -318,7 +331,7 @@ export class NginxAccessLogParser {
       'securewatch.parser.version': this.version,
       'securewatch.parser.name': this.name,
       'securewatch.confidence': 0.8,
-      'securewatch.severity': event.severity
+      'securewatch.severity': event.severity,
     };
   }
 }

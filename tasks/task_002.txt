@@ -1,6 +1,6 @@
 # Task ID: 2
 # Title: Implement Authentication and Authorization System
-# Status: in-progress
+# Status: done
 # Dependencies: 1
 # Priority: high
 # Description: Develop a comprehensive authentication and authorization system with multi-factor authentication, SSO support, and role-based access control.

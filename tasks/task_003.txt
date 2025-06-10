@@ -1,6 +1,6 @@
 # Task ID: 3
 # Title: Develop Log Ingestion and Processing Pipeline
-# Status: in-progress
+# Status: done
 # Dependencies: 1
 # Priority: high
 # Description: Create a high-performance log ingestion system capable of processing 10M+ events per second from diverse sources with support for Windows Event Logs, Syslog, cloud platform logs, and more.
