@@ -2,10 +2,10 @@ export interface OAuthProfile {
   provider: 'google' | 'microsoft' | 'okta';
   providerId: string;
   email: string;
-  name?: string;
   firstName?: string;
   lastName?: string;
-  picture?: string;
+  displayName?: string;
+  avatarUrl?: string;
   locale?: string;
   emailVerified?: boolean;
   rawProfile?: any;
@@ -37,4 +37,5 @@ export interface OAuthConfig {
   callbackUrl: string;
   scope?: string[];
   tenant?: string; // For Microsoft
+  domain?: string; // For Okta
 }

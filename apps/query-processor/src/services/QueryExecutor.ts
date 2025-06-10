@@ -1,18 +1,29 @@
-// Query Executor Service
-// Handles actual execution of different query types (KQL, SQL, OpenSearch)
+// Enhanced Query Executor Service
+// Handles actual execution of different query types (KQL, SQL, OpenSearch) with optimization
 
 import { Pool } from 'pg';
 import { Client } from '@opensearch-project/opensearch';
 import { logger } from '../utils/logger';
 import { QueryJob, QueryResult, QueryColumn, QueryExecutor as IQueryExecutor } from '../types';
+import { QueryCache } from './QueryCache';
+import { CompressedCache } from './CompressedCache';
+import { QueryOptimizer } from './QueryOptimizer';
+import { PerformanceMonitor } from './PerformanceMonitor';
+import { ParallelQueryExecutor } from './ParallelQueryExecutor';
 
 export class QueryExecutorService {
   private pgPool: Pool;
   private opensearchClient: Client;
   private executors: Map<string, IQueryExecutor> = new Map();
+  private queryCache: QueryCache;
+  private compressedCache: CompressedCache;
+  private queryOptimizer: QueryOptimizer;
+  private performanceMonitor: PerformanceMonitor;
+  private parallelExecutor: ParallelQueryExecutor;
+  private useCompressedCache: boolean;
 
   constructor() {
-    // Initialize PostgreSQL connection pool
+    // Initialize PostgreSQL connection pool with enhanced settings
     this.pgPool = new Pool({
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432', 10),
@@ -20,9 +31,12 @@ export class QueryExecutorService {
       user: process.env.DB_USER || 'securewatch',
       password: process.env.DB_PASSWORD || 'securewatch',
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      max: 20,
+      max: parseInt(process.env.DB_POOL_MAX || '32', 10), // Increased for better concurrency
+      min: parseInt(process.env.DB_POOL_MIN || '5', 10),
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
     });
 
     // Initialize OpenSearch client
@@ -37,18 +51,31 @@ export class QueryExecutorService {
       },
     });
 
+    // Initialize optimization services
+    this.useCompressedCache = process.env.USE_COMPRESSED_CACHE === 'true';
+    this.queryCache = new QueryCache(process.env.REDIS_URL || 'redis://localhost:6379');
+    this.compressedCache = new CompressedCache(process.env.REDIS_URL || 'redis://localhost:6379');
+    this.queryOptimizer = new QueryOptimizer(this.pgPool);
+    this.performanceMonitor = new PerformanceMonitor();
+    this.parallelExecutor = new ParallelQueryExecutor(
+      this.pgPool,
+      this.opensearchClient,
+      this.useCompressedCache ? this.compressedCache as any : this.queryCache,
+      this.performanceMonitor
+    );
+
     this.initializeExecutors();
   }
 
   private initializeExecutors(): void {
-    // Register SQL executor
-    this.executors.set('sql', new SQLExecutor(this.pgPool));
+    // Register SQL executor with optimization services
+    this.executors.set('sql', new SQLExecutor(this.pgPool, this.queryOptimizer));
     
     // Register OpenSearch executor
     this.executors.set('opensearch', new OpenSearchExecutor(this.opensearchClient));
     
-    // Register KQL executor (converts to SQL)
-    this.executors.set('kql', new KQLExecutor(this.pgPool));
+    // Register KQL executor (converts to SQL) with optimization
+    this.executors.set('kql', new KQLExecutor(this.pgPool, this.queryOptimizer));
   }
 
   async executeQuery(job: QueryJob, progressCallback?: (progress: number, message?: string) => void): Promise<QueryResult> {
@@ -58,25 +85,135 @@ export class QueryExecutorService {
       throw new Error(`Unsupported query type: ${job.query_type}`);
     }
 
-    const startTime = Date.now();
-    
+    // Start performance monitoring
+    this.performanceMonitor.startQuery(job.id, job.query_type, job.parameters.userId);
+
     try {
+      progressCallback?.(5, 'Checking cache...');
+
+      // Check cache first for eligible queries
+      const cached = await this.checkCache(job);
+      if (cached) {
+        this.performanceMonitor.recordCacheHit(job.id);
+        this.performanceMonitor.endQuery(job.id, {
+          rowsReturned: cached.total_rows,
+          cacheHit: true
+        });
+        
+        progressCallback?.(100, 'Results retrieved from cache');
+        logger.info(`Cache hit for query`, { jobId: job.id, queryType: job.query_type });
+        return cached;
+      }
+
+      progressCallback?.(15, 'Validating and optimizing query...');
+
       // Validate query before execution
       const validation = await executor.validate_query(job.query);
       if (!validation.valid) {
-        throw new Error(`Query validation failed: ${validation.errors.join(', ')}`);
+        const error = `Query validation failed: ${validation.errors.join(', ')}`;
+        this.performanceMonitor.endQuery(job.id, { error });
+        throw new Error(error);
       }
 
-      progressCallback?.(10, 'Query validated, starting execution...');
+      // Optimize query if supported
+      let optimizedJob = job;
+      if (job.query_type === 'sql' || job.query_type === 'kql') {
+        try {
+          const queryPlan = job.query_type === 'sql' 
+            ? await this.queryOptimizer.optimizeSQL(job.query)
+            : await this.queryOptimizer.optimizeKQL(job.query);
 
-      // Execute the query
-      const result = await executor.execute(job);
+          optimizedJob = {
+            ...job,
+            query: queryPlan.optimizedQuery
+          };
+
+          logger.info('Query optimized', {
+            jobId: job.id,
+            optimizations: queryPlan.optimizations,
+            estimatedCost: queryPlan.estimatedCost
+          });
+        } catch (error) {
+          logger.warn('Query optimization failed, using original query', { error });
+        }
+      }
+
+      progressCallback?.(25, 'Analyzing query for parallel execution...');
+
+      // Determine if query should be executed in parallel
+      const shouldUseParallel = await this.shouldUseParallelExecution(optimizedJob);
       
-      progressCallback?.(90, 'Query executed, processing results...');
+      if (shouldUseParallel) {
+        progressCallback?.(30, 'Executing query in parallel...');
+        
+        try {
+          const parallelResult = await this.parallelExecutor.executeParallel(optimizedJob);
+          
+          // Add execution metadata
+          parallelResult.metadata = {
+            ...parallelResult.metadata,
+            cache_hit: false,
+            query_optimized: optimizedJob.query !== job.query,
+            execution_mode: 'parallel'
+          };
+
+          // Cache result if eligible
+          await this.cacheResult(job, parallelResult);
+          
+          // End performance monitoring
+          this.performanceMonitor.endQuery(job.id, {
+            rowsReturned: parallelResult.total_rows,
+            bytesProcessed: this.estimateResultSize(parallelResult),
+            cacheHit: false,
+            parallelExecution: true
+          });
+
+          progressCallback?.(100, 'Parallel query completed successfully');
+
+          logger.info('Parallel query executed successfully', {
+            jobId: job.id,
+            queryType: job.query_type,
+            executionTime: parallelResult.execution_time_ms,
+            rowCount: parallelResult.total_rows,
+            parallelEfficiency: parallelResult.metadata?.parallel_efficiency
+          });
+
+          return parallelResult;
+          
+        } catch (parallelError) {
+          logger.warn('Parallel execution failed, falling back to sequential:', parallelError);
+          // Fall through to sequential execution
+        }
+      }
+
+      progressCallback?.(30, 'Executing optimized query sequentially...');
+
+      // Execute the query sequentially
+      const startTime = Date.now();
+      const result = await executor.execute(optimizedJob);
+      const executionTime = Date.now() - startTime;
+      
+      progressCallback?.(85, 'Processing and caching results...');
 
       // Add execution metadata
-      result.execution_time_ms = Date.now() - startTime;
+      result.execution_time_ms = executionTime;
+      result.metadata = {
+        ...result.metadata,
+        cache_hit: false,
+        query_optimized: optimizedJob.query !== job.query,
+        execution_mode: 'sequential'
+      };
+
+      // Cache result if eligible
+      await this.cacheResult(job, result);
       
+      // End performance monitoring
+      this.performanceMonitor.endQuery(job.id, {
+        rowsReturned: result.total_rows,
+        bytesProcessed: this.estimateResultSize(result),
+        cacheHit: false
+      });
+
       progressCallback?.(100, 'Query completed successfully');
 
       logger.info(`Query executed successfully`, {
@@ -84,11 +221,16 @@ export class QueryExecutorService {
         queryType: job.query_type,
         executionTime: result.execution_time_ms,
         rowCount: result.total_rows,
+        optimized: optimizedJob.query !== job.query
       });
 
       return result;
 
     } catch (error) {
+      this.performanceMonitor.endQuery(job.id, {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      
       logger.error(`Query execution failed for job ${job.id}:`, error);
       throw error;
     }
@@ -122,9 +264,223 @@ export class QueryExecutorService {
   async shutdown(): Promise<void> {
     try {
       await this.pgPool.end();
+      await this.queryCache.close();
+      if (this.useCompressedCache) {
+        await this.compressedCache.close();
+      }
+      this.performanceMonitor.stop();
+      await this.parallelExecutor.shutdown();
       logger.info('Query executor shut down gracefully');
     } catch (error) {
       logger.error('Error during query executor shutdown:', error);
+    }
+  }
+
+  // Parallel execution decision logic
+  
+  private async shouldUseParallelExecution(job: QueryJob): Promise<boolean> {
+    // Check if parallel execution is enabled
+    const parallelEnabled = process.env.PARALLEL_EXECUTION_ENABLED !== 'false';
+    if (!parallelEnabled) {
+      return false;
+    }
+
+    // Don't parallelize small or simple queries
+    const estimatedDuration = await this.estimateQueryDuration(job.query_type, job.query, job.parameters);
+    if (estimatedDuration < 5000) { // Less than 5 seconds
+      return false;
+    }
+
+    // Check if query has time range suitable for partitioning
+    if (job.time_range.start && job.time_range.end) {
+      const startTime = new Date(job.time_range.start);
+      const endTime = new Date(job.time_range.end);
+      const hoursDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+      
+      if (hoursDiff >= 2) { // More than 2 hours of data
+        return true;
+      }
+    }
+
+    // Check for queries that can benefit from index-based parallelization
+    if (job.query_type === 'opensearch' && job.parameters.index?.includes('*')) {
+      return true;
+    }
+
+    // Check for complex aggregation queries
+    const query = job.query.toLowerCase();
+    if (query.includes('group by') && (query.includes('count') || query.includes('sum'))) {
+      return true;
+    }
+
+    // Default to sequential execution for safety
+    return false;
+  }
+
+  // Optimization helper methods
+
+  private async checkCache(job: QueryJob): Promise<QueryResult | null> {
+    // Only cache for certain query types and safe operations
+    if (!this.isCacheEligible(job)) {
+      return null;
+    }
+
+    try {
+      const cache = this.useCompressedCache ? this.compressedCache : this.queryCache;
+      const cached = await cache.get(
+        job.query_type,
+        job.query,
+        { ...job.parameters, timeRange: job.time_range }
+      );
+
+      if (cached) {
+        return {
+          job_id: job.id,
+          ...cached.data,
+          metadata: {
+            ...cached.data.metadata,
+            cache_hit: true,
+            cached_at: cached.metadata.cachedAt,
+            hit_count: cached.metadata.hitCount,
+            cache_type: this.useCompressedCache ? 'compressed' : 'standard'
+          }
+        };
+      }
+    } catch (error) {
+      logger.warn('Cache check failed:', error);
+    }
+
+    return null;
+  }
+
+  private async cacheResult(job: QueryJob, result: QueryResult): Promise<void> {
+    if (!this.isCacheEligible(job) || !this.isResultCacheable(result)) {
+      return;
+    }
+
+    try {
+      const tags = this.generateCacheTags(job);
+      const ttl = this.calculateCacheTTL(job, result);
+      const cache = this.useCompressedCache ? this.compressedCache : this.queryCache;
+
+      await cache.set(
+        job.query_type,
+        job.query,
+        result,
+        { ttl, tags },
+        { ...job.parameters, timeRange: job.time_range },
+        result.execution_time_ms || 0
+      );
+    } catch (error) {
+      logger.warn('Failed to cache result:', error);
+    }
+  }
+
+  private isCacheEligible(job: QueryJob): boolean {
+    // Don't cache real-time queries or those with user-specific data
+    if (job.parameters.realTime || job.parameters.userId) {
+      return false;
+    }
+
+    // Don't cache queries with very recent time ranges
+    if (job.time_range.end) {
+      const endTime = new Date(job.time_range.end);
+      const now = new Date();
+      const diffMinutes = (now.getTime() - endTime.getTime()) / (1000 * 60);
+      
+      if (diffMinutes < 5) { // Don't cache queries with data from last 5 minutes
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private isResultCacheable(result: QueryResult): boolean {
+    // Don't cache very large results or errors
+    const maxCacheableRows = parseInt(process.env.MAX_CACHEABLE_ROWS || '50000', 10);
+    return result.total_rows <= maxCacheableRows && !result.metadata?.error;
+  }
+
+  private generateCacheTags(job: QueryJob): string[] {
+    const tags: string[] = [job.query_type];
+    
+    if (job.parameters.index) {
+      tags.push(`index:${job.parameters.index}`);
+    }
+    
+    if (job.time_range.start) {
+      const date = new Date(job.time_range.start).toISOString().split('T')[0];
+      tags.push(`date:${date}`);
+    }
+
+    return tags;
+  }
+
+  private calculateCacheTTL(job: QueryJob, result: QueryResult): number {
+    // Longer TTL for historical data, shorter for recent data
+    if (job.time_range.end) {
+      const endTime = new Date(job.time_range.end);
+      const now = new Date();
+      const hoursOld = (now.getTime() - endTime.getTime()) / (1000 * 60 * 60);
+      
+      if (hoursOld > 24) return 3600 * 24; // 24 hours for data > 24 hours old
+      if (hoursOld > 1) return 3600 * 4;   // 4 hours for data > 1 hour old
+      return 3600; // 1 hour for recent data
+    }
+    
+    return 3600; // Default 1 hour
+  }
+
+  private estimateResultSize(result: QueryResult): number {
+    try {
+      return JSON.stringify(result.data).length;
+    } catch {
+      return result.total_rows * 1000; // Rough estimate
+    }
+  }
+
+  // Public monitoring and admin methods
+
+  async getPerformanceStats(): Promise<any> {
+    const queryStats = this.performanceMonitor.getAggregatedMetrics();
+    const cacheStats = this.useCompressedCache ? 
+      await this.compressedCache.getStats() : 
+      await this.queryCache.getStats();
+    const optimizerStats = this.queryOptimizer.getStats();
+    const systemStats = await this.performanceMonitor.getSystemMetrics();
+    const parallelStats = this.parallelExecutor.getMetrics();
+
+    return {
+      performance: queryStats,
+      cache: {
+        ...cacheStats,
+        type: this.useCompressedCache ? 'compressed' : 'standard',
+        features: {
+          compression: this.useCompressedCache,
+          deduplication: this.useCompressedCache,
+          parallelExecution: true
+        }
+      },
+      optimizer: optimizerStats,
+      parallel: parallelStats,
+      system: systemStats,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  async warmUpCache(commonQueries?: Array<{ type: string; query: string; params?: any }>): Promise<void> {
+    if (commonQueries) {
+      await this.queryCache.warmUp(commonQueries);
+    }
+  }
+
+  async clearCache(tags?: string[]): Promise<number> {
+    if (tags) {
+      return await this.queryCache.invalidateByTags(tags);
+    } else {
+      await this.queryCache.clear();
+      return 0;
     }
   }
 }
@@ -136,7 +492,7 @@ class SQLExecutor implements IQueryExecutor {
   description = 'Executes SQL queries against PostgreSQL/TimescaleDB';
   supports_query_type = ['sql'];
 
-  constructor(private pgPool: Pool) {}
+  constructor(private pgPool: Pool, private queryOptimizer?: QueryOptimizer) {}
 
   async execute(job: QueryJob): Promise<QueryResult> {
     const client = await this.pgPool.connect();
@@ -367,11 +723,23 @@ class KQLExecutor implements IQueryExecutor {
   description = 'Converts KQL queries to SQL and executes against PostgreSQL';
   supports_query_type = ['kql'];
 
-  constructor(private pgPool: Pool) {}
+  constructor(private pgPool: Pool, private queryOptimizer?: QueryOptimizer) {}
 
   async execute(job: QueryJob): Promise<QueryResult> {
-    // Convert KQL to SQL (simplified conversion)
-    const sqlQuery = this.convertKQLToSQL(job.query, job.time_range);
+    // Convert KQL to SQL using optimizer if available, otherwise use basic conversion
+    let sqlQuery: string;
+    
+    if (this.queryOptimizer) {
+      try {
+        const queryPlan = await this.queryOptimizer.optimizeKQL(job.query);
+        sqlQuery = queryPlan.optimizedQuery;
+      } catch (error) {
+        logger.warn('KQL optimization failed, using basic conversion:', error);
+        sqlQuery = this.convertKQLToSQL(job.query, job.time_range);
+      }
+    } else {
+      sqlQuery = this.convertKQLToSQL(job.query, job.time_range);
+    }
     
     // Create a temporary SQL job
     const sqlJob: QueryJob = {
@@ -381,7 +749,7 @@ class KQLExecutor implements IQueryExecutor {
     };
 
     // Execute using SQL executor
-    const sqlExecutor = new SQLExecutor(this.pgPool);
+    const sqlExecutor = new SQLExecutor(this.pgPool, this.queryOptimizer);
     return await sqlExecutor.execute(sqlJob);
   }
 

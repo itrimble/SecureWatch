@@ -2,6 +2,9 @@
 
 use crate::config::{BufferConfig, SqliteSynchronousMode, SqliteAutoVacuum, SqliteTempStore, CleanupStrategy};
 use crate::errors::BufferError;
+
+#[cfg(test)]
+mod tests;
 use crate::parsers::ParsedEvent;
 #[cfg(feature = "persistent-storage")]
 use rusqlite::{Connection, OpenFlags, Result as SqliteResult};
@@ -1249,93 +1252,161 @@ impl EventBuffer {
         Ok(cleanup_result)
     }
     
-    /// Clean up events based on the configured strategy
+    /// Clean up events based on the configured strategy with enhanced retention policies
     #[cfg(feature = "persistent-storage")]
-    fn cleanup_events_by_strategy(conn: &Connection, config: &BufferConfig, _target_bytes: u64) -> Result<usize, BufferError> {
+    fn cleanup_events_by_strategy(conn: &Connection, config: &BufferConfig, target_bytes: u64) -> Result<usize, BufferError> {
         let min_retention_seconds = config.min_retention_hours * 3600;
         let max_events = config.max_events_per_cleanup;
         
-        let cleanup_query = match config.cleanup_strategy {
+        // First, calculate how many events we need to remove based on size
+        let current_size_info = Self::get_database_size_info_sync(conn)
+            .map_err(|e| BufferError::PersistenceError {
+                operation: "get_size_for_cleanup".to_string(),
+                database_path: "unknown".to_string(),
+                recoverable: true,
+                source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+            })?;
+        
+        // If we don't need to remove any data, return early
+        if current_size_info.database_size_bytes <= target_bytes {
+            debug!("🧹 No cleanup needed: current size {:.2}MB <= target {:.2}MB", 
+                   current_size_info.database_size_mb(), target_bytes as f64 / (1024.0 * 1024.0));
+            return Ok(0);
+        }
+        
+        let bytes_to_remove = current_size_info.database_size_bytes - target_bytes;
+        debug!("🧹 Need to remove {:.2}MB ({} bytes)", 
+               bytes_to_remove as f64 / (1024.0 * 1024.0), bytes_to_remove);
+        
+        // Enhanced cleanup strategy with size-aware deletion
+        let (cleanup_query, estimated_events_to_remove) = match config.cleanup_strategy {
             CleanupStrategy::Fifo => {
-                format!(
+                // Calculate approximate events to remove based on average event size
+                let avg_size_query = "SELECT AVG(size_bytes) FROM events WHERE size_bytes > 0";
+                let avg_event_size: f64 = conn.query_row(avg_size_query, [], |row| {
+                    row.get::<_, Option<f64>>(0).map(|v| v.unwrap_or(1024.0))
+                }).unwrap_or(1024.0);
+                
+                let estimated_events = std::cmp::min(
+                    (bytes_to_remove as f64 / avg_event_size).ceil() as usize,
+                    max_events
+                );
+                
+                let query = format!(
                     "DELETE FROM events WHERE id IN (
                         SELECT id FROM events 
                         WHERE created_at < strftime('%s', 'now', '-{} seconds')
                         ORDER BY created_at ASC 
                         LIMIT {}
                     )",
-                    min_retention_seconds, max_events
-                )
+                    min_retention_seconds, estimated_events
+                );
+                (query, estimated_events)
             }
             CleanupStrategy::Lru => {
-                // For LRU, we assume events that haven't been "accessed" are older
-                // In practice, this is similar to FIFO since we don't track access times
-                format!(
+                // Enhanced LRU: track by access patterns and size
+                let avg_size_query = "SELECT AVG(size_bytes) FROM events WHERE size_bytes > 0";
+                let avg_event_size: f64 = conn.query_row(avg_size_query, [], |row| {
+                    row.get::<_, Option<f64>>(0).map(|v| v.unwrap_or(1024.0))
+                }).unwrap_or(1024.0);
+                
+                let estimated_events = std::cmp::min(
+                    (bytes_to_remove as f64 / avg_event_size).ceil() as usize,
+                    max_events
+                );
+                
+                // Prefer removing larger, older events first
+                let query = format!(
                     "DELETE FROM events WHERE id IN (
                         SELECT id FROM events 
                         WHERE created_at < strftime('%s', 'now', '-{} seconds')
-                        ORDER BY created_at ASC 
+                        ORDER BY size_bytes DESC, created_at ASC 
                         LIMIT {}
                     )",
-                    min_retention_seconds, max_events
-                )
+                    min_retention_seconds, estimated_events
+                );
+                (query, estimated_events)
             }
             CleanupStrategy::Priority => {
-                // Prioritize keeping high-priority events (assuming level field indicates priority)
-                format!(
+                // Priority-based cleanup with size consideration
+                let query = format!(
                     "DELETE FROM events WHERE id IN (
                         SELECT id FROM events 
                         WHERE created_at < strftime('%s', 'now', '-{} seconds')
                         AND (level IS NULL OR level NOT IN ('ERROR', 'CRITICAL', 'FATAL'))
                         ORDER BY 
+                            -- First prioritize by level (lower priority removed first)
                             CASE level 
                                 WHEN 'CRITICAL' THEN 1
-                                WHEN 'ERROR' THEN 2
-                                WHEN 'WARN' THEN 3
-                                WHEN 'INFO' THEN 4
-                                ELSE 5
+                                WHEN 'FATAL' THEN 2
+                                WHEN 'ERROR' THEN 3
+                                WHEN 'WARN' THEN 4
+                                WHEN 'INFO' THEN 5
+                                ELSE 6
                             END DESC,
+                            -- Then by size (larger events removed first)
+                            size_bytes DESC,
+                            -- Finally by age (older events removed first)
                             created_at ASC
                         LIMIT {}
                     )",
                     min_retention_seconds, max_events
-                )
+                );
+                (query, max_events)
             }
             CleanupStrategy::Intelligent => {
-                // Intelligent strategy: Remove old events but keep important ones
-                format!(
+                // Intelligent strategy: adaptive cleanup based on multiple factors
+                let total_events_query = "SELECT COUNT(*) FROM events";
+                let total_events: i64 = conn.query_row(total_events_query, [], |row| row.get(0)).unwrap_or(0);
+                
+                // Adaptive cleanup: more aggressive for very large databases
+                let retention_multiplier = if total_events > 100000 { 1.5 } else { 2.0 };
+                let extended_retention = (min_retention_seconds as f64 * retention_multiplier) as u64;
+                
+                let query = format!(
                     "DELETE FROM events WHERE id IN (
                         SELECT id FROM events 
                         WHERE (
-                            -- Remove very old events regardless of priority
+                            -- Remove very old events regardless of priority (extended retention for critical)
                             created_at < strftime('%s', 'now', '-{} seconds')
                             OR (
-                                -- Remove old low-priority events
+                                -- Remove old low-priority events (standard retention)
                                 created_at < strftime('%s', 'now', '-{} seconds')
                                 AND (level IS NULL OR level IN ('DEBUG', 'TRACE', 'INFO'))
                             )
+                            OR (
+                                -- Remove large events if space is critically low
+                                size_bytes > (SELECT AVG(size_bytes) * 3 FROM events WHERE size_bytes > 0)
+                                AND created_at < strftime('%s', 'now', '-{} seconds')
+                            )
                         )
                         ORDER BY 
-                            -- Prioritize removal of low-priority events
-                            CASE level 
-                                WHEN 'CRITICAL' THEN 6
-                                WHEN 'FATAL' THEN 5
-                                WHEN 'ERROR' THEN 4
-                                WHEN 'WARN' THEN 3
-                                WHEN 'INFO' THEN 2
-                                ELSE 1
+                            -- Multi-factor prioritization
+                            CASE 
+                                -- Critical events have highest retention
+                                WHEN level IN ('CRITICAL', 'FATAL') THEN 1
+                                WHEN level = 'ERROR' THEN 2
+                                WHEN level = 'WARN' THEN 3
+                                WHEN level = 'INFO' THEN 4
+                                ELSE 5
                             END ASC,
+                            -- Larger events are removed first within same priority
+                            size_bytes DESC,
+                            -- Older events are removed first
                             created_at ASC
                         LIMIT {}
                     )",
-                    min_retention_seconds * 2, // Keep critical events longer
-                    min_retention_seconds,     // Standard retention for normal events
+                    extended_retention,       // Keep critical events longer
+                    min_retention_seconds,    // Standard retention for normal events
+                    min_retention_seconds / 2, // Shorter retention for oversized events
                     max_events
-                )
+                );
+                (query, max_events)
             }
         };
         
-        debug!("🧹 Executing cleanup query: {}", cleanup_query);
+        debug!("🧹 Executing enhanced cleanup query (estimated events: {}): {}", 
+               estimated_events_to_remove, cleanup_query);
         
         let deleted_count = conn.execute(&cleanup_query, [])
             .map_err(|e| BufferError::PersistenceError {
@@ -1345,16 +1416,59 @@ impl EventBuffer {
                 source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
             })?;
         
-        // After cleanup, perform a VACUUM to reclaim space if significant data was removed
-        if deleted_count > 1000 {
-            debug!("🧹 Performing VACUUM after removing {} events", deleted_count);
-            conn.execute("VACUUM", [])
+        // Enhanced post-cleanup operations
+        if deleted_count > 0 {
+            // Calculate space reclaimed
+            let new_size_info = Self::get_database_size_info_sync(conn)
                 .map_err(|e| BufferError::PersistenceError {
-                    operation: "post_cleanup_vacuum".to_string(),
+                    operation: "get_size_after_cleanup".to_string(),
                     database_path: "unknown".to_string(),
                     recoverable: true,
                     source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
                 })?;
+            
+            let space_reclaimed = current_size_info.database_size_bytes.saturating_sub(new_size_info.database_size_bytes);
+            info!("🧹 Removed {} events, reclaimed {:.2}MB (database: {:.2}MB -> {:.2}MB)", 
+                  deleted_count, 
+                  space_reclaimed as f64 / (1024.0 * 1024.0),
+                  current_size_info.database_size_mb(),
+                  new_size_info.database_size_mb());
+            
+            // Adaptive VACUUM: only vacuum if significant space was freed or many events removed
+            let should_vacuum = deleted_count > 1000 || 
+                               space_reclaimed > 10 * 1024 * 1024 || // > 10MB freed
+                               new_size_info.freelist_count > new_size_info.page_count / 4; // > 25% free pages
+            
+            if should_vacuum {
+                debug!("🧹 Performing VACUUM to reclaim space (free pages: {}, total pages: {})", 
+                       new_size_info.freelist_count, new_size_info.page_count);
+                
+                let vacuum_start = std::time::Instant::now();
+                conn.execute("VACUUM", [])
+                    .map_err(|e| BufferError::PersistenceError {
+                        operation: "post_cleanup_vacuum".to_string(),
+                        database_path: "unknown".to_string(),
+                        recoverable: true,
+                        source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                    })?;
+                
+                let vacuum_duration = vacuum_start.elapsed();
+                info!("🧹 VACUUM completed in {:.2}s", vacuum_duration.as_secs_f64());
+                
+                // Log final size after vacuum
+                let final_size_info = Self::get_database_size_info_sync(conn)
+                    .map_err(|e| BufferError::PersistenceError {
+                        operation: "get_size_after_vacuum".to_string(),
+                        database_path: "unknown".to_string(),
+                        recoverable: true,
+                        source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                    })?;
+                
+                let total_space_reclaimed = current_size_info.database_size_bytes.saturating_sub(final_size_info.database_size_bytes);
+                info!("✅ Total space reclaimed: {:.2}MB (final database size: {:.2}MB)", 
+                      total_space_reclaimed as f64 / (1024.0 * 1024.0),
+                      final_size_info.database_size_mb());
+            }
         }
         
         Ok(deleted_count)
@@ -1422,6 +1536,254 @@ impl EventBuffer {
         Ok(result)
     }
     
+    /// Apply retention policies for time-based cleanup
+    #[cfg(feature = "persistent-storage")]
+    pub async fn apply_retention_policies(&self) -> Result<usize, BufferError> {
+        let db = self.db_connection.clone();
+        let config = self.config.clone();
+        
+        tokio::task::spawn_blocking(move || {
+            let conn = db.blocking_lock();
+            
+            let min_retention_seconds = config.min_retention_hours * 3600;
+            info!("🗓️ Applying retention policies: minimum retention {} hours ({} seconds)", 
+                  config.min_retention_hours, min_retention_seconds);
+            
+            // Count events older than retention period
+            let count_query = "SELECT COUNT(*) FROM events WHERE created_at < strftime('%s', 'now', '-{} seconds')";
+            let formatted_count_query = count_query.replace("{}", &min_retention_seconds.to_string());
+            
+            let events_to_expire: i64 = conn.query_row(&formatted_count_query, [], |row| row.get(0))
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "count_expired_events".to_string(),
+                    database_path: "unknown".to_string(),
+                    recoverable: true,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+            
+            if events_to_expire == 0 {
+                debug!("✅ No events exceed retention policy");
+                return Ok(0);
+            }
+            
+            info!("⏰ Found {} events exceeding retention policy of {} hours", 
+                  events_to_expire, config.min_retention_hours);
+            
+            // Delete expired events based on retention policy
+            let delete_query = format!(
+                "DELETE FROM events WHERE created_at < strftime('%s', 'now', '-{} seconds')",
+                min_retention_seconds
+            );
+            
+            let deleted_count = conn.execute(&delete_query, [])
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "delete_expired_events".to_string(),
+                    database_path: "unknown".to_string(),
+                    recoverable: true,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+            
+            if deleted_count > 0 {
+                info!("🗑️ Removed {} expired events based on retention policy", deleted_count);
+                
+                // Update metadata
+                let metadata_query = "INSERT OR REPLACE INTO buffer_metadata (key, value) VALUES ('last_retention_cleanup', strftime('%s', 'now'))";
+                let _ = conn.execute(metadata_query, []);
+            }
+            
+            Ok(deleted_count)
+        }).await
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "retention_cleanup_task".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?
+    }
+    
+    /// Perform full VACUUM operation if needed based on database fragmentation
+    #[cfg(feature = "persistent-storage")]
+    pub async fn perform_full_vacuum_if_needed(&self) -> Result<bool, BufferError> {
+        let db = self.db_connection.clone();
+        
+        let vacuum_performed = tokio::task::spawn_blocking(move || {
+            let conn = db.blocking_lock();
+            
+            // Get database fragmentation information
+            let size_info = Self::get_database_size_info_sync(&conn)
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "get_size_for_vacuum".to_string(),
+                    database_path: "unknown".to_string(),
+                    recoverable: true,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+            
+            // Calculate fragmentation ratio
+            let fragmentation_ratio = if size_info.page_count > 0 {
+                size_info.freelist_count as f64 / size_info.page_count as f64
+            } else {
+                0.0
+            };
+            
+            // Only vacuum if fragmentation is significant (>15% free pages) or database is large with moderate fragmentation (>5%)
+            let should_vacuum = (fragmentation_ratio > 0.15) || 
+                               (size_info.database_size_mb() > 100.0 && fragmentation_ratio > 0.05);
+            
+            if !should_vacuum {
+                debug!("📊 Database fragmentation acceptable: {:.1}% free pages ({:.2}MB total)", 
+                       fragmentation_ratio * 100.0, size_info.database_size_mb());
+                return Ok(false);
+            }
+            
+            info!("🧹 Starting full VACUUM operation: {:.1}% fragmentation ({} free pages, {:.2}MB total)", 
+                  fragmentation_ratio * 100.0, size_info.freelist_count, size_info.database_size_mb());
+            
+            let vacuum_start = std::time::Instant::now();
+            
+            // Perform full VACUUM
+            conn.execute("VACUUM", [])
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "full_vacuum".to_string(),
+                    database_path: "unknown".to_string(),
+                    recoverable: true,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+            
+            let vacuum_duration = vacuum_start.elapsed();
+            
+            // Get size information after VACUUM
+            let final_size_info = Self::get_database_size_info_sync(&conn)
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "get_size_after_full_vacuum".to_string(),
+                    database_path: "unknown".to_string(),
+                    recoverable: true,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+            
+            let space_reclaimed = size_info.database_size_bytes.saturating_sub(final_size_info.database_size_bytes);
+            let space_reclaimed_mb = space_reclaimed as f64 / (1024.0 * 1024.0);
+            
+            info!("✅ Full VACUUM completed in {:.2}s: reclaimed {:.2}MB ({:.2}MB -> {:.2}MB)", 
+                  vacuum_duration.as_secs_f64(),
+                  space_reclaimed_mb,
+                  size_info.database_size_mb(),
+                  final_size_info.database_size_mb());
+            
+            // Update metadata
+            let metadata_query = "INSERT OR REPLACE INTO buffer_metadata (key, value) VALUES ('last_full_vacuum', strftime('%s', 'now'))";
+            let _ = conn.execute(metadata_query, []);
+            
+            Ok(true)
+        }).await
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "full_vacuum_task".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })??;
+        
+        Ok(vacuum_performed)
+    }
+    
+    /// Analyze database and provide optimization recommendations
+    #[cfg(feature = "persistent-storage")]
+    pub async fn analyze_database_optimization(&self) -> Result<DatabaseOptimizationReport, BufferError> {
+        let db = self.db_connection.clone();
+        
+        tokio::task::spawn_blocking(move || {
+            let conn = db.blocking_lock();
+            
+            // Run ANALYZE to update statistics
+            conn.execute("ANALYZE", [])
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "analyze_database".to_string(),
+                    database_path: "unknown".to_string(),
+                    recoverable: true,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+            
+            // Get comprehensive database information
+            let size_info = Self::get_database_size_info_sync(&conn)
+                .map_err(|e| BufferError::PersistenceError {
+                    operation: "get_size_for_optimization".to_string(),
+                    database_path: "unknown".to_string(),
+                    recoverable: true,
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+                })?;
+            
+            // Calculate metrics
+            let fragmentation_ratio = if size_info.page_count > 0 {
+                size_info.freelist_count as f64 / size_info.page_count as f64
+            } else {
+                0.0
+            };
+            
+            // Count total events
+            let total_events: i64 = conn.query_row("SELECT COUNT(*) FROM events", [], |row| row.get(0))
+                .unwrap_or(0);
+            
+            // Get oldest event age
+            let oldest_event_age: Option<i64> = conn.query_row(
+                "SELECT strftime('%s', 'now') - MIN(created_at) FROM events",
+                [],
+                |row| row.get(0)
+            ).ok();
+            
+            // Calculate average event size
+            let avg_event_size: f64 = if total_events > 0 {
+                conn.query_row("SELECT AVG(size_bytes) FROM events WHERE size_bytes > 0", [], |row| {
+                    row.get::<_, Option<f64>>(0).map(|v| v.unwrap_or(1024.0))
+                }).unwrap_or(1024.0)
+            } else {
+                0.0
+            };
+            
+            // Generate recommendations
+            let mut recommendations = Vec::new();
+            
+            if fragmentation_ratio > 0.20 {
+                recommendations.push("Consider running VACUUM - high fragmentation detected".to_string());
+            } else if fragmentation_ratio > 0.10 {
+                recommendations.push("Monitor fragmentation - approaching high levels".to_string());
+            }
+            
+            if size_info.database_size_mb() > 500.0 && total_events > 100000 {
+                recommendations.push("Consider implementing data archival for older events".to_string());
+            }
+            
+            if avg_event_size > 5000.0 {
+                recommendations.push("Large average event size - consider event compression".to_string());
+            }
+            
+            if let Some(age_seconds) = oldest_event_age {
+                let age_days = age_seconds / (24 * 3600);
+                if age_days > 90 {
+                    recommendations.push(format!("Oldest events are {} days old - consider retention cleanup", age_days));
+                }
+            }
+            
+            if recommendations.is_empty() {
+                recommendations.push("Database is well optimized - no immediate action needed".to_string());
+            }
+            
+            Ok(DatabaseOptimizationReport {
+                database_size_info: size_info,
+                total_events: total_events as u64,
+                fragmentation_ratio,
+                avg_event_size_bytes: avg_event_size,
+                oldest_event_age_seconds: oldest_event_age.map(|age| age as u64),
+                recommendations,
+                analysis_timestamp: SystemTime::now(),
+            })
+        }).await
+        .map_err(|e| BufferError::PersistenceError {
+            operation: "optimization_analysis_task".to_string(),
+            database_path: "unknown".to_string(),
+            recoverable: true,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
+        })?
+    }
+    
     /// Get current cleanup statistics
     #[cfg(feature = "persistent-storage")]
     pub async fn get_cleanup_stats(&self) -> Result<CleanupStats, BufferError> {
@@ -1481,6 +1843,57 @@ impl EventBuffer {
         info!("✅ Buffer flushed, processed {} events", drained_count);
         Ok(())
     }
+}
+
+/// Database optimization report with analysis and recommendations
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct DatabaseOptimizationReport {
+    pub database_size_info: DatabaseSizeInfo,
+    pub total_events: u64,
+    pub fragmentation_ratio: f64,
+    pub avg_event_size_bytes: f64,
+    pub oldest_event_age_seconds: Option<u64>,
+    pub recommendations: Vec<String>,
+    pub analysis_timestamp: SystemTime,
+}
+
+impl DatabaseOptimizationReport {
+    pub fn fragmentation_percentage(&self) -> f64 {
+        self.fragmentation_ratio * 100.0
+    }
+    
+    pub fn is_fragmented(&self) -> bool {
+        self.fragmentation_ratio > 0.15
+    }
+    
+    pub fn is_heavily_fragmented(&self) -> bool {
+        self.fragmentation_ratio > 0.25
+    }
+    
+    pub fn avg_event_size_kb(&self) -> f64 {
+        self.avg_event_size_bytes / 1024.0
+    }
+    
+    pub fn oldest_event_age_days(&self) -> Option<f64> {
+        self.oldest_event_age_seconds.map(|seconds| seconds as f64 / (24.0 * 3600.0))
+    }
+    
+    pub fn optimization_priority(&self) -> OptimizationPriority {
+        if self.is_heavily_fragmented() || self.database_size_info.database_size_mb() > 1000.0 {
+            OptimizationPriority::High
+        } else if self.is_fragmented() || self.total_events > 100000 {
+            OptimizationPriority::Medium
+        } else {
+            OptimizationPriority::Low
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub enum OptimizationPriority {
+    Low,
+    Medium,
+    High,
 }
 
 /// Cleanup statistics for monitoring and debugging

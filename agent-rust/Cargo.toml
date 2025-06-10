@@ -19,6 +19,8 @@ tokio = { version = "1.45.1", features = ["full"] }
 tokio-tungstenite = "0.24"
 tokio-util = { version = "0.7", features = ["full"] }
 futures = "0.3"
+async-compression = { version = "0.4", features = ["tokio", "zstd"] }
+zstd = "0.13"
 
 # Serialization and config
 serde = { version = "1.0", features = ["derive"] }
@@ -29,7 +31,9 @@ bincode = "1.3"
 # CLI and logging
 clap = { version = "4.0", features = ["derive"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "time", "fmt"] }
+tracing-appender = "0.2"
+tracing-opentelemetry = { version = "0.23", optional = true }
 
 # Networking and TLS - Configurable backends for cross-platform compatibility
 reqwest = { version = "0.12", features = ["json", "gzip", "brotli"], default-features = false }
@@ -73,6 +77,15 @@ quick-xml = "0.36"
 # JSON schema validation for configuration
 jsonschema = "0.18"
 
+# Cryptographic dependencies for secure credential storage
+ring = "0.17"
+base64 = "0.22"
+zeroize = { version = "1.8", features = ["derive"] }
+
+# Resource management dependencies
+parking_lot = "0.12"
+dashmap = "6.0"
+
 # Database for persistent buffering (optional for minimal builds)
 rusqlite = { version = "0.32", features = ["bundled"], optional = true }
 
@@ -110,6 +123,14 @@ opt-level = 3
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile = "3.0"
+mockall = "0.13"
+wiremock = "0.6"
+serial_test = "3.1"
+pretty_assertions = "1.4"
+proptest = "1.5"
+criterion = { version = "0.5", features = ["html_reports"] }
+test-log = "0.2"
+tracing-test = "0.2"
 
 [features]
 default = ["native-tls-backend", "persistent-storage"]
@@ -119,5 +140,7 @@ native-tls-backend = ["native-tls", "reqwest/native-tls"]
 rustls-backend = ["rustls", "webpki-roots", "reqwest/rustls-tls"]
 # Persistent storage using SQLite (may require C compilation)
 persistent-storage = ["rusqlite"]
+# OpenTelemetry integration for enterprise monitoring
+opentelemetry = ["tracing-opentelemetry"]
 # Minimal build without C dependencies (explicitly excludes persistent-storage)
 minimal = ["native-tls-backend"]

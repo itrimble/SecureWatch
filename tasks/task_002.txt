@@ -1,6 +1,6 @@
 # Task ID: 2
 # Title: Implement Authentication and Authorization System
-# Status: completed
+# Status: in-progress
 # Dependencies: 1
 # Priority: high
 # Description: Develop a comprehensive authentication and authorization system with multi-factor authentication, SSO support, and role-based access control.
@@ -54,3 +54,35 @@ const authorizeUser = (requiredPermissions: string[]) => {
 6. User acceptance testing for login flows
 7. Verify compliance with security standards (OWASP, NIST)
 8. Test MFA recovery flows and edge cases
+
+# Subtasks:
+## 1. Implement OAuth 2.0/OIDC Authentication Flow [done]
+### Dependencies: None
+### Description: Develop the authentication flow using OAuth 2.0 and OpenID Connect (OIDC) to securely authenticate users and obtain necessary tokens.
+### Details:
+Implement the OAuth 2.0 Authorization Code Flow with PKCE to enhance security. This involves redirecting users to the authorization server, obtaining an authorization code, and exchanging it for access and ID tokens. Ensure proper handling of scopes and state parameters to prevent CSRF attacks. ([rafaelneto.dev](https://rafaelneto.dev/en/blog/authorization-flows-oauth-2-0-openid-connect/?utm_source=openai))
+
+## 2. Create JWT Token Management System with Expiration and Refresh [done]
+### Dependencies: 2.1
+### Description: Develop a system to manage JSON Web Tokens (JWTs), including setting appropriate expiration times and implementing refresh tokens for session management.
+### Details:
+Generate JWTs with short expiration times (e.g., 15 minutes) to minimize the risk of token theft. Implement refresh tokens with longer expiration times (e.g., 7 days) to allow users to obtain new access tokens without re-authenticating. Store refresh tokens securely and provide endpoints to handle token refresh requests. ([peerdh.com](https://peerdh.com/blogs/programming-insights/implementing-jwt-expiration-and-refresh-tokens-in-node-js-apis-1?utm_source=openai))
+
+## 3. Develop Multi-Factor Authentication (MFA) with Support for Authenticator Apps and Hardware Keys [done]
+### Dependencies: 2.1
+### Description: Implement multi-factor authentication to enhance security by requiring users to provide additional verification factors beyond just a password.
+### Details:
+Integrate support for authenticator apps (e.g., Google Authenticator) and hardware security keys (e.g., YubiKey) to provide users with multiple MFA options. Ensure that the MFA process is user-friendly and can be easily set up and managed by users. ([q5id.com](https://q5id.com/blog/openid-connect-oidc-an-illustrative-guide/?utm_source=openai))
+
+## 4. Implement Single Sign-On (SSO) Integration with Major Providers (Google, Microsoft, Okta) [done]
+### Dependencies: 2.1
+### Description: Enable users to authenticate using their existing accounts from major identity providers to streamline the login process.
+### Details:
+Integrate SSO capabilities by supporting authentication through Google, Microsoft, and Okta. Implement the necessary OAuth 2.0/OIDC flows to authenticate users via these providers and retrieve user information. Ensure that the integration complies with each provider's security and privacy policies. ([medium.com](https://medium.com/lydtech-consulting/authentication-and-authorisation-using-oidc-and-oauth-2-part-1-9403ac2a3ed6?utm_source=openai))
+
+## 5. Create Fine-Grained Role-Based Access Control (RBAC) System with Custom Role Definitions [done]
+### Dependencies: 2.1
+### Description: Develop a system to manage user permissions based on roles, allowing for customized access control tailored to the application's requirements.
+### Details:
+Design and implement an RBAC system that allows for the creation of custom roles with specific permissions. Ensure that roles can be easily assigned to users and that permission checks are efficiently performed during access control decisions. ([github.com](https://github.com/KelvinPhu/Project-User-System-JWT-Token-And-Refresh-Token-Authenticate?utm_source=openai))
+

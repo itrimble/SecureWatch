@@ -99,6 +99,7 @@ pub struct ThrottleStats {
     pub total_acquisitions: u64,
     pub total_throttled: u64,
     pub current_throttle_level: ThrottleLevel,
+    #[serde(skip)]
     pub last_adjustment: Option<Instant>,
     pub emergency_activations: u64,
     pub burst_activations: u64,
@@ -171,10 +172,12 @@ impl AdaptiveThrottle {
             average_memory_usage: 0.0,
         };
         
+        let base_permits = config.base_permits;
+        
         Ok(Self {
             config,
             semaphore,
-            current_permits: Arc::new(RwLock::new(config.base_permits)),
+            current_permits: Arc::new(RwLock::new(base_permits)),
             stats: Arc::new(RwLock::new(stats)),
             burst_active: Arc::new(RwLock::new(false)),
             burst_start_time: Arc::new(RwLock::new(None)),
@@ -203,7 +206,7 @@ impl AdaptiveThrottle {
     
     /// Acquire a permit with throttling
     pub async fn acquire(&self) -> Result<ThrottlePermit> {
-        let permit = self.semaphore.acquire_owned().await
+        let permit = self.semaphore.clone().acquire_owned().await
             .map_err(|_| AgentError::channel_error("semaphore_acquire", "throttle"))?;
         
         // Update statistics
@@ -222,7 +225,7 @@ impl AdaptiveThrottle {
     
     /// Try to acquire a permit without waiting
     pub async fn try_acquire(&self) -> Result<Option<ThrottlePermit>> {
-        match self.semaphore.try_acquire_owned() {
+        match self.semaphore.clone().try_acquire_owned() {
             Ok(permit) => {
                 // Update statistics
                 {
@@ -282,6 +285,7 @@ impl AdaptiveThrottle {
     /// Start the throttling adjustment task
     async fn start_adjustment_task(&self, mut shutdown_receiver: broadcast::Receiver<()>) {
         let config = self.config.clone();
+        let adjustment_interval = config.adjustment_interval;
         let semaphore = self.semaphore.clone();
         let current_permits = self.current_permits.clone();
         let stats = self.stats.clone();
@@ -319,7 +323,7 @@ impl AdaptiveThrottle {
             }
         });
         
-        info!("⚙️ Throttling adjustment task started (interval: {}s)", config.adjustment_interval);
+        info!("⚙️ Throttling adjustment task started (interval: {}s)", adjustment_interval);
     }
     
     /// Perform throttling adjustment based on current metrics
@@ -386,7 +390,7 @@ impl AdaptiveThrottle {
                 // This is a simplified approach - in production you might want more sophisticated logic
                 let permits_to_remove = (-change) as usize;
                 for _ in 0..permits_to_remove {
-                    if let Ok(permit) = semaphore.try_acquire_owned() {
+                    if let Ok(permit) = semaphore.clone().try_acquire_owned() {
                         // Just let the permit drop to reduce available permits
                         drop(permit);
                     } else {

@@ -26,16 +26,25 @@ spec:
           type: tls
     config:
       # High performance settings for 10M+ events/second
-      num.network.threads: 16
-      num.io.threads: 16
-      socket.send.buffer.bytes: 1048576
-      socket.receive.buffer.bytes: 1048576
-      socket.request.max.bytes: 104857600
+      num.network.threads: 24  # Increased from 16 for higher concurrency
+      num.io.threads: 24       # Increased from 16 for higher disk I/O
+      socket.send.buffer.bytes: 2097152    # 2MB, increased from 1MB
+      socket.receive.buffer.bytes: 2097152 # 2MB, increased from 1MB
+      socket.request.max.bytes: 104857600  # 100MB max request size
       
-      # Log retention settings
+      # Network performance optimizations
+      replica.socket.timeout.ms: 30000
+      replica.socket.receive.buffer.bytes: 2097152
+      replica.fetch.max.bytes: 10485760  # 10MB
+      replica.fetch.response.max.bytes: 10485760
+      
+      # Log performance settings
       log.retention.hours: 168  # 7 days default
       log.segment.bytes: 1073741824  # 1GB segments
       log.retention.check.interval.ms: 300000
+      log.index.size.max.bytes: 10485760  # 10MB index files
+      log.flush.interval.messages: 100000  # Flush every 100k messages
+      log.flush.interval.ms: 10000         # Or every 10 seconds
       
       # Replication settings
       offsets.topic.replication.factor: 3
@@ -44,14 +53,28 @@ spec:
       
       # Performance optimizations
       compression.type: zstd
-      batch.size: 1048576
-      linger.ms: 5
+      batch.size: 1048576  # 1MB batches
+      linger.ms: 5         # Wait 5ms for more records
       max.in.flight.requests.per.connection: 5
+      
+      # Producer performance
+      buffer.memory: 134217728  # 128MB producer buffer
+      fetch.max.bytes: 52428800 # 50MB max fetch size
+      max.partition.fetch.bytes: 10485760  # 10MB per partition
+      
+      # Consumer performance
+      fetch.min.bytes: 1024     # 1KB minimum fetch
+      fetch.max.wait.ms: 100    # Max 100ms wait time
       
       # Topic defaults
       auto.create.topics.enable: false
       default.replication.factor: 3
       min.insync.replicas: 2
+      
+      # Background thread optimizations
+      background.threads: 20              # More background threads
+      num.replica.fetchers: 8            # More replica fetchers
+      num.recovery.threads.per.data.dir: 4  # Recovery threads
       
     storage:
       type: persistent-claim
@@ -61,16 +84,30 @@ spec:
     
     resources:
       requests:
-        memory: 16Gi
-        cpu: "4"
+        memory: 28Gi     # Increased to accommodate 24GB heap + OS overhead
+        cpu: "6"         # More CPU for higher throughput
       limits:
-        memory: 32Gi
-        cpu: "8"
+        memory: 48Gi     # Increased limit to handle spikes
+        cpu: "12"        # Higher CPU limit for peak performance
     
     jvmOptions:
-      -Xms: 8192m
-      -Xmx: 16384m
+      -Xms: 12288m      # 12GB initial heap (increased from 8GB)
+      -Xmx: 24576m      # 24GB max heap (increased from 16GB)
       gcLoggingEnabled: true
+      # G1GC optimizations for low latency and high throughput
+      "-XX:+UseG1GC"
+      "-XX:MaxGCPauseMillis=50"     # Target 50ms GC pauses
+      "-XX:G1HeapRegionSize=32m"    # 32MB regions for large heaps
+      "-XX:+G1UseAdaptiveIHOP"      # Adaptive heap occupancy
+      "-XX:G1MixedGCCountTarget=16" # Mixed GC optimization
+      "-XX:+UnlockExperimentalVMOptions"
+      "-XX:+UseJVMCICompiler"       # Modern JIT compiler
+      # Network and IO optimizations
+      "-Djava.net.preferIPv4Stack=true"
+      "-Djava.awt.headless=true"
+      # Memory and performance tuning
+      "-XX:+AlwaysPreTouch"         # Pre-touch memory for consistent performance
+      "-XX:+DisableExplicitGC"      # Disable System.gc() calls
       javaSystemProperties:
         - name: com.sun.management.jmxremote
           value: "true"
@@ -78,6 +115,11 @@ spec:
           value: "false"
         - name: com.sun.management.jmxremote.ssl
           value: "false"
+        # Network buffer optimizations
+        - name: kafka.socket.receive.buffer.bytes
+          value: "2097152"
+        - name: kafka.socket.send.buffer.bytes
+          value: "2097152"
     
     metricsConfig:
       type: jmxPrometheusExporter
@@ -144,14 +186,19 @@ metadata:
   labels:
     strimzi.io/cluster: securewatch-kafka
 spec:
-  partitions: 100
+  partitions: 200          # Increased from 100 for higher parallelism
   replicas: 3
   config:
     retention.ms: 604800000  # 7 days
-    segment.ms: 3600000      # 1 hour
+    segment.ms: 1800000      # 30 minutes (reduced from 1 hour for faster compaction)
     compression.type: zstd
     max.message.bytes: 10485760  # 10MB
     min.insync.replicas: 2
+    # Performance optimizations for high throughput
+    segment.bytes: 536870912    # 512MB segments (smaller for faster processing)
+    index.interval.bytes: 4096  # More frequent indexing
+    flush.messages: 50000       # Flush every 50k messages
+    flush.ms: 5000             # Or every 5 seconds
 
 ---
 apiVersion: kafka.strimzi.io/v1beta2
@@ -162,14 +209,19 @@ metadata:
   labels:
     strimzi.io/cluster: securewatch-kafka
 spec:
-  partitions: 100
+  partitions: 150          # Increased from 100, slightly less than raw due to processing
   replicas: 3
   config:
     retention.ms: 2592000000  # 30 days
-    segment.ms: 3600000       # 1 hour
+    segment.ms: 1800000       # 30 minutes
     compression.type: zstd
     max.message.bytes: 5242880  # 5MB
     min.insync.replicas: 2
+    # Performance optimizations for normalized data
+    segment.bytes: 536870912    # 512MB segments
+    index.interval.bytes: 4096  # More frequent indexing
+    flush.messages: 25000       # Flush every 25k messages (less frequent than raw)
+    flush.ms: 10000            # Or every 10 seconds
 
 ---
 apiVersion: kafka.strimzi.io/v1beta2
@@ -206,6 +258,27 @@ spec:
     compression.type: zstd
     max.message.bytes: 1048576  # 1MB
     min.insync.replicas: 2
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: log-events-dlq
+  namespace: securewatch
+  labels:
+    strimzi.io/cluster: securewatch-kafka
+spec:
+  partitions: 20           # Fewer partitions for DLQ
+  replicas: 3
+  config:
+    retention.ms: 31536000000  # 1 year retention for failed messages
+    segment.ms: 86400000       # 1 day segments
+    compression.type: zstd
+    max.message.bytes: 10485760  # 10MB
+    min.insync.replicas: 2
+    # DLQ-specific optimizations
+    segment.bytes: 134217728    # 128MB segments (smaller for DLQ)
+    index.interval.bytes: 4096
 
 ---
 apiVersion: v1

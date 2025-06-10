@@ -26,7 +26,9 @@
     "defaultPriority": "medium",
     "projectName": "Taskmaster",
     "ollamaBaseURL": "http://localhost:11434/api",
+    "bedrockBaseURL": "https://bedrock.us-east-1.amazonaws.com",
     "ollamaBaseUrl": "http://localhost:11434/api",
-    "azureOpenaiBaseUrl": "https://your-endpoint.openai.azure.com/"
+    "azureOpenaiBaseUrl": "https://your-endpoint.openai.azure.com/",
+    "userId": "1234567890"
   }
 }

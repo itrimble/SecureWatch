@@ -72,12 +72,19 @@ impl Default for EmergencyShutdownConfig {
 
 /// Emergency shutdown state
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ShutdownState {
     Normal,
     Warning,
     Critical,
     ShuttingDown,
     Recovered,
+}
+
+impl Default for ShutdownState {
+    fn default() -> Self {
+        ShutdownState::Normal
+    }
 }
 
 /// Emergency shutdown event for monitoring
@@ -110,6 +117,7 @@ pub struct EmergencyShutdownStats {
     pub total_alerts_received: u64,
     pub shutdown_initiated_count: u64,
     pub recovery_count: u64,
+    #[serde(skip)]
     pub last_critical_alert: Option<Instant>,
     pub consecutive_critical_count: u32,
     pub uptime_seconds: u64,
@@ -189,11 +197,13 @@ impl EmergencyShutdownCoordinator {
             ..Default::default()
         };
         
+        let alert_window_seconds = config.alert_window_seconds;
+        
         Ok(Self {
             config,
             state: Arc::new(RwLock::new(ShutdownState::Normal)),
             stats: Arc::new(RwLock::new(stats)),
-            alert_tracker: Arc::new(Mutex::new(AlertTracker::new(config.alert_window_seconds))),
+            alert_tracker: Arc::new(Mutex::new(AlertTracker::new(alert_window_seconds))),
             shutdown_initiated: Arc::new(AtomicBool::new(false)),
             shutdown_sender,
             event_sender,

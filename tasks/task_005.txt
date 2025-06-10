@@ -1,6 +1,6 @@
 # Task ID: 5
 # Title: Develop Dashboard and Visualization System
-# Status: completed
+# Status: in-progress
 # Dependencies: 2, 4
 # Priority: medium
 # Description: Create a comprehensive dashboard and visualization system with pre-built security dashboards, custom dashboard builder, and advanced visualizations for security analytics.

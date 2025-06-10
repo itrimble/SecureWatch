@@ -25,13 +25,13 @@ export const kafkaConfig: KafkaConfig = {
 export const producerConfig: ProducerConfig = {
   allowAutoTopicCreation: false,
   transactionTimeout: 60000,
-  compression: 2, // Zstandard compression
+  compression: 2, // Zstandard compression (CompressionTypes.ZSTD)
   maxInFlightRequests: 5,
   idempotent: true,
-  // Batch settings for high throughput
+  // Batch settings for high throughput with Zstd optimization
   batch: {
-    size: 1048576, // 1MB
-    lingerMs: 5,
+    size: 1048576, // 1MB - optimal for Zstd compression
+    lingerMs: 5,   // 5ms linger for batching efficiency
   },
 };
 
@@ -61,25 +61,48 @@ export const topics = {
 
 // Performance tuning for 10M+ events/second
 export const performanceConfig = {
-  // Producer settings
+  // Producer settings optimized for 10M+ events/second
   producerPool: {
-    size: 10, // Number of producer instances
-    maxQueueSize: 100000, // Max events in memory queue
+    size: 20, // Increased number of producer instances
+    maxQueueSize: 500000, // Increased memory queue size
+    idleTimeout: 30000, // 30 seconds idle timeout
   },
   // Consumer settings
-  consumerConcurrency: 100, // Parallel message processing
-  // Batch processing
-  batchSize: 10000,
-  batchTimeout: 100, // ms
-  // Circuit breaker
+  consumerConcurrency: 200, // Increased parallel message processing
+  consumerInstances: 50,    // Number of consumer instances per topic
+  // Batch processing optimized for throughput
+  batchSize: 50000,    // Larger batch sizes for higher throughput
+  batchTimeout: 50,    // Reduced timeout for lower latency
+  maxBatchBytes: 52428800, // 50MB max batch size
+  // Circuit breaker with faster recovery
   circuitBreaker: {
-    failureThreshold: 0.5,
-    resetTimeout: 60000, // 1 minute
-    halfOpenRequests: 10,
+    failureThreshold: 0.3,    // Lower threshold for faster detection
+    resetTimeout: 30000,      // 30 seconds reset timeout
+    halfOpenRequests: 20,     // More requests in half-open state
+    monitoringInterval: 5000, // 5 second monitoring
   },
-  // Rate limiting
+  // Rate limiting for spike handling
   rateLimiting: {
-    maxEventsPerSecond: 15000000, // 15M to handle spikes
-    burstSize: 1000000,
+    maxEventsPerSecond: 20000000, // 20M to handle extreme spikes
+    burstSize: 2000000,           // 2M burst capacity
+    slidingWindowSize: 60000,     // 1 minute sliding window
+  },
+  // Partition management
+  partitioning: {
+    strategy: 'round-robin', // or 'hash' for sticky partitioning
+    maxPartitionsPerConsumer: 10,
+    rebalanceTimeout: 30000,
+  },
+  // Memory and resource management
+  memory: {
+    maxHeapSize: '8g',          // JVM heap size
+    gcOptimization: 'g1gc',     // G1 garbage collector
+    bufferPoolSize: 134217728,  // 128MB buffer pool
+  },
+  // Monitoring and metrics
+  monitoring: {
+    metricsInterval: 10000,     // 10 seconds
+    lagThreshold: 100000,       // Alert if lag > 100k
+    throughputThreshold: 8000000, // Alert if < 8M events/sec
   },
 };

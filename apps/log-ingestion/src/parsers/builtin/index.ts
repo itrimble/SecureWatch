@@ -25,6 +25,12 @@ export { SquidProxyParser } from './SquidProxyParser';
 export { VMwareESXiParser } from './VMwareESXiParser';
 export { ZscalerCloudSecurityParser } from './ZscalerCloudSecurityParser';
 
+// Security Event Format Parsers
+export { LEEFParser } from './LEEFParser';
+
+// Enhanced Multi-Format Parsers
+export { EnhancedJSONParser } from './EnhancedJSONParser';
+
 // Cloud Platform Parsers
 export { AzureActivityLogsParser } from './AzureActivityParsers';
 export { GoogleCloudAuditLogsParser } from './GoogleCloudAuditLogsParser';

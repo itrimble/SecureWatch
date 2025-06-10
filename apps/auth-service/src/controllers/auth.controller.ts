@@ -3,6 +3,7 @@ import { AuthService } from '../services/auth.service';
 import { UserService } from '../services/user.service';
 import { MFAService } from '../services/mfa.service';
 import { AuditService } from '../services/audit.service';
+import { JWTService } from '../services/jwt.service';
 import { 
   LoginRequest, 
   RegisterRequest, 
@@ -380,6 +381,94 @@ export class AuthController {
       res.status(500).json({ 
         error: 'Internal Server Error',
         message: 'Failed to fetch user information' 
+      });
+    }
+  }
+
+  /**
+   * Get user active sessions
+   */
+  static async getUserSessions(req: Request & { user?: any }, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ 
+          error: 'Unauthorized',
+          message: 'User not authenticated' 
+        });
+        return;
+      }
+
+      const sessions = await JWTService.getUserActiveSessions(req.user.userId);
+
+      res.status(200).json({
+        sessions,
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: 'Internal Server Error',
+        message: 'Failed to fetch user sessions' 
+      });
+    }
+  }
+
+  /**
+   * Revoke specific session
+   */
+  static async revokeSession(req: Request & { user?: any }, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ 
+          error: 'Unauthorized',
+          message: 'User not authenticated' 
+        });
+        return;
+      }
+
+      const { sessionId } = req.params;
+
+      if (!sessionId) {
+        res.status(400).json({ 
+          error: 'Validation Error',
+          message: 'Session ID is required' 
+        });
+        return;
+      }
+
+      await JWTService.revokeSession(req.user.userId, sessionId);
+
+      res.status(200).json({
+        message: 'Session revoked successfully',
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: 'Internal Server Error',
+        message: 'Failed to revoke session' 
+      });
+    }
+  }
+
+  /**
+   * Revoke all user sessions
+   */
+  static async revokeAllSessions(req: Request & { user?: any }, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ 
+          error: 'Unauthorized',
+          message: 'User not authenticated' 
+        });
+        return;
+      }
+
+      await JWTService.revokeAllUserTokens(req.user.userId);
+
+      res.status(200).json({
+        message: 'All sessions revoked successfully',
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: 'Internal Server Error',
+        message: 'Failed to revoke all sessions' 
       });
     }
   }

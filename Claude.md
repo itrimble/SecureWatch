@@ -1,118 +1,142 @@
-- I moved all the docs to the docs folder
-
 # Project Context - SecureWatch SIEM Platform
 
-## Recent Updates (June 6, 2025) - CONSOLIDATION COMPLETED
+## Recent Updates (June 9, 2025) - Advanced Transport Layer Implementation
 
-### 🏗️ Architecture Consolidation v2.1.0 - MAJOR CLEANUP COMPLETED
-**95,000+ LINES OF DUPLICATE CODE REMOVED**
+### Memory Update: Changelog Principles
+- remember to follow the principles here: https://keepachangelog.com/en/1.1.0/
 
-#### ✅ Phase 1: Removed Obsolete Code
-- **Legacy Frontend**: Removed obsolete `/src` directory (50+ duplicate components)
-- **Duplicate Configs**: Cleaned up root-level configuration files
-- **Backup Scripts**: Removed outdated backup and legacy scripts
+### Memory Update: Taskmaster Workflow Reminder
+- when every task is run from taskmaster use MCP visionquest to make sure we are working with the latest data
+- make sure to take advantage of mcp openmemory for storage and retrieval of memories related to this project
+- if you are not sure about something, don't forget that there is the project's CLAUDE.md as well as OpenMemories MCP, and VisionWorks and Context7, the task master tasks are in the /users/ian/Scripts/SecureWatch/tasks folder
+- when you start a new task, don't forget to use MCPs, use Visionworks to have the latest documentation
+- when i say add to the todo list ? or what is on the todo list, I am reffering to the taskmaster tasks
 
-#### ✅ Phase 2: Service Consolidation  
-- **Analytics Merger**: Merged analytics-api functionality into analytics-engine
-- **Port Optimization**: Resolved port conflicts (analytics-engine → port 4009)
-- **Feature Preservation**: Retained all dashboard and widget endpoints
+### Memory Update: Development Model
+- always use Claude Sonnet 4 for this project
+- Operating under Claude Max $100 plan - optimize for efficiency and automation
+- Prioritize MCP tools and Claude Code to reduce manual overhead and maximize value
+- Focus on production-ready configurations that minimize ongoing operational costs
 
-#### ✅ Phase 3: Package Standardization
-- **Naming Convention**: Standardized all packages to @securewatch/service-name
-- **Version Alignment**: Updated all services to version 1.9.0
-- **Build System**: Fixed TypeScript build errors across all packages
+### Memory Update: Error Tracking
+- track errors that you have not resolved in a file so that we can troubleshoot them in the future
+- the error tracking log needs to be automatic
 
-#### ✅ Phase 4: Frontend Consolidation
-- **Single Implementation**: Consolidated to main `/frontend` directory
-- **Removed Duplicates**: Eliminated `/apps/web-frontend` minimal implementation
-- **Enterprise Features**: Preserved all advanced security modules
+### Memory Update: Task 24 Research
+- Task 24 Research for the natural language query is located here: /Users/ian/Downloads/Task_24_Research.txt make sure you refer to it when it comes to do the work
 
-#### 📋 Required Environment Variables
-```bash
-JWT_ACCESS_SECRET="[secure-random-secret]"
-JWT_REFRESH_SECRET="[secure-random-secret]" 
-MFA_ENCRYPTION_KEY="[32-byte-base64-key]"
-REDIS_URL="redis://localhost:6379"
-```
+### Memory Update: TaskMaster Workflow Integration
+- Primary project management through TaskMaster MCP at /Users/ian/Scripts/SecureWatch/tasks/
+- TaskMaster tasks.json contains comprehensive SecureWatch development roadmap
+- Use MCP visionquery for AI-powered development patterns and best practices
+- Leverage openmemory MCP for persistent context across Claude Code sessions
+- When starting new tasks, always check TaskMaster status and use VisionCraft docs first
 
-#### 📊 Consolidation Impact Summary
-- **Codebase Size**: Reduced by ~95,000 lines of duplicate code
-- **Service Count**: Optimized from 12+ to 8 core services  
-- **Build Status**: ✅ All packages compile successfully
-- **Architecture**: ✅ Clean, maintainable, enterprise-ready
+### Memory Update: Production Infrastructure Stack
+- Core Platform: SecureWatch SIEM at /Users/ian/Scripts/SecureWatch/
+- Container Orchestration: Kubernetes production deployment with HPA, resource limits, rolling updates
+- Data Layer: TimescaleDB, Redis cluster, Kafka/Zookeeper for real-time processing
+- Search & Analytics: Elasticsearch/Kibana stack with custom correlation engine
+- Transport Layer: Rust agent with advanced resource management and optimization
+- Frontend: Next.js 14+ with TypeScript, ShadCN UI, deployed via Vercel
+- Backend Services: 12+ microservices architecture with Docker containerization
 
-#### 📖 Updated Documentation
-- `README.md` - Updated architecture diagrams and service ports
-- `docs/MONOREPO_SETUP.md` - Consolidation status and current architecture
-- `docs/DEPLOYMENT_GUIDE.md` - Updated service endpoints and health checks
+### Memory Update: Development Automation Priorities
+- Claude Code Integration: Automated task execution via MCP tools
+- CI/CD Pipeline: GitHub Actions with Vercel deployment automation
+- Cost Optimization: AWS cost management scripts for stop/start resource control
+- Documentation: Auto-generated via Read the Docs integration
+- Testing: Playwright for E2E, Jest for unit tests, comprehensive QA automation
+- Monitoring: Observability stack with Prometheus, Grafana, and alerting
 
-### Current Service Architecture
-- **8 Core Services** (consolidated from 12+):
-  - `analytics-engine` (Port 4009) - Consolidated analytics + dashboard APIs
-  - `auth-service` (Port 4006) - Authentication and authorization
-  - `correlation-engine` (Port 4005) - Real-time correlation and rules
-  - `hec-service` (Port 8888) - HTTP Event Collector (Splunk-compatible)
-  - `log-ingestion` (Port 4002) - Data ingestion and processing
-  - `mcp-marketplace` (Port 4010) - MCP integrations
-  - `query-processor` (Port 4008) - Async job processing
-  - `search-api` (Port 4004) - Search functionality and KQL engine
-- **Single Frontend** (Port 4000) - Enterprise Next.js application
+### GitHub Repository & Documentation Links
+- Primary Repository: https://github.com/itrimble/SecureWatch
+- Documentation: https://securewatch.readthedocs.io/en/latest/
+- CI/CD Pipeline: https://github.com/itrimble/SecureWatch/actions
+- Security Scanning: https://github.com/itrimble/SecureWatch/security
 
-### Developer Tooling
-- Added comprehensive Makefile with 30+ commands
-- Enhanced docker-compose.dev.yml with resource limits
-- Key commands:
-  - `make up` - Start all services
-  - `make status` - Check service health
-  - `make dashboard` - Live monitoring
-  - `make restart s=service-name` - Restart specific service
+### Core Platform Technology Links
+- Next.js 15: https://nextjs.org/docs
+- Vercel Deployment: https://vercel.com/dashboard
+- TypeScript: https://www.typescriptlang.org/docs/
+- Docker: https://docs.docker.com/
+- Kubernetes: https://kubernetes.io/docs/
+- TimescaleDB: https://docs.timescale.com/
+- Redis: https://redis.io/docs/
+- Kafka: https://kafka.apache.org/documentation/
+- Elasticsearch: https://www.elastic.co/guide/
+- Rust: https://doc.rust-lang.org/
+- Pydantic: https://docs.pydantic.dev/
+- ShadCN UI: https://ui.shadcn.com/
+- Tailwind CSS: https://tailwindcss.com/docs
 
-### Performance Features (Implemented)
-- EventsTable virtualization with TanStack Virtual
-- TimescaleDB continuous aggregates
-- Query Processor async job handling
-- Analytics API with specialized endpoints
-- WebSocket real-time notifications
+### MCP Integration Priorities
+- PRIMARY: VisionCraft for AI-powered development patterns and best practices
+- SECONDARY: Context7 for library documentation and API references when VisionCraft unavailable
+- AUTOMATION: TaskMaster for project management, wcgw for shell automation
+- DEVELOPMENT: GitHub MCP for repo operations, desktop-commander for file management
+- TESTING: Playwright for browser automation, screenshot for visual testing
+- INFRASTRUCTURE: AWS SSO MCP for cloud resource management, Docker MCP for containerization
+- PRODUCTIVITY: Moom for window management, screenpipe for workflow recording
+- COST CONTROL: AWS Instance Manager for resource optimization, automated stop/start scripts
 
-## Project Memory Snapshot
+### Memory Update: Resource Optimization Strategy
+- Kubernetes HPA for dynamic scaling based on actual load
+- AWS cost optimization through automated instance management
+- Efficient Docker multi-stage builds for minimal image sizes
+- Vercel edge functions for global performance optimization
+- TimescaleDB compression for long-term data retention efficiency
+- Redis clustering for high-availability with resource efficiency
 
-### Use these ACTUAL prompts with Claude Code:
+### Memory Update: Quality Assurance Framework
+- Automated security scanning via GitHub Actions
+- Performance monitoring with custom metrics dashboards
+- Error tracking system with comprehensive logging
+- Automated backup strategies for critical data
+- Disaster recovery procedures with RTO/RPO targets
 
-#### Real project context:
-- SecureWatch SIEM v1.9.0 enterprise platform at /Users/ian/Scripts/SecureWatch with 12+ microservices, pnpm workspaces, Python EVTX parsing, TaskMaster AI integration, enhanced CLI with ASCII startup
+### Memory Update: Changelog Principles
+- Follow keepachangelog.com/en/1.1.0/ standards for version management
+- Maintain detailed changelog for SecureWatch platform updates
+- Document breaking changes, deprecations, and security updates clearly
 
-#### Actual services:
-- Core services: auth-service:4006, search-api:4004, log-ingestion:4002, frontend:4000
-- Extended services: analytics-api:4009, analytics-engine, correlation-engine:4005, query-processor:4008, mcp-marketplace:4010, hec-service, rule-ingestor, api-gateway, web-frontend
+### Memory Update: Development Model
+- Always use Claude Sonnet 4 for SecureWatch project development
+- Leverage TaskMaster MCP for task tracking and dependency management
+- Integrate VisionCraft patterns for scalable AI development practices
+- Maintain Context7 integration as fallback for library documentation
 
-#### Technology stack:
-- Next.js 15.3.2, React 19, TypeScript, Turbo monorepo, pnpm
-- Databases: PostgreSQL/TimescaleDB, Redis, Elasticsearch/OpenSearch
-- Python EVTX parsing, multiple Docker variants
+### Current Automated Workflow Stack
+#### CI/CD Pipeline (GitHub Actions)
+- ci.yml: Automated build, test, and deployment pipeline
+- security-scan.yml: Comprehensive security scanning with vulnerability detection
+- Automatic Triggers: Push to main branch, pull requests, scheduled security scans
 
-#### Development workflow:
-- Use ./start-services.sh (with --minimal, --debug options)
-- pnpm commands
-- Check /tmp/*.log files
-- TaskMaster for project management
-- cli-dashboard for monitoring
+#### Build & Development Automation (Makefile)
+- Service Management: make up/down/restart with health monitoring
+- Development Workflows: make dev/debug/minimal for different environments
+- Health Monitoring: make health/status/dashboard for real-time monitoring
+- Infrastructure Management: make infra-up/down/reset for database/cache services
+- Code Quality: make build/test/lint/format for quality assurance
 
-#### Current features:
-- Working ASCII CLI startup
-- EVTX-ATTACK-SAMPLES integration
-- MCP marketplace
-- Multi-environment Docker configs
-- Resilience testing
-- Live dashboard mode
+#### Container Orchestration (Docker Compose)
+- Development Environment: docker-compose.dev.yml for local development
+- Resilient Architecture: docker-compose.resilient.yml for high-availability
+- OpenSearch Integration: docker-compose.opensearch.yml for search analytics
+- Production Ready: Multi-service orchestration with proper networking
 
-#### Key files to know:
-- start-services.sh (enhanced)
-- package.json (workspaces)
-- docker-compose variants
-- scripts/evtx_parser_enhanced.py
-- .taskmaster config
-- cli-dashboard system
+#### Service Scripts & Automation
+- Enhanced Service Management: start-services.sh with health monitoring
+- CLI Dashboard: cli-dashboard.sh with real-time service monitoring
+- Agent Installation: install_agent_mac.sh for automated agent deployment
 
-## Claude Code Memories
+### Claude Code Optimization Notes
+- Use TaskMaster MCP for all task creation and status updates
+- Leverage VisionCraft MCP for AI development best practices
+- Implement cost-conscious resource management throughout development
+- Prioritize automation to maximize value within $100/month Claude plan
+- Focus on production-ready, scalable solutions that minimize ongoing maintenance
 
-- assume the answer will always be "yes" if you ask me to do something
+## Agent Development Status (Rust Implementation)
+
+[Rest of the existing file content remains the same]

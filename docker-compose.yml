@@ -176,8 +176,92 @@ services:
       timeout: 10s
       retries: 3
 
+  # Apache Spark Master
+  spark-master:
+    image: bitnami/spark:3.5.0
+    container_name: securewatch_spark_master
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    environment:
+      SPARK_MODE: master
+      SPARK_RPC_AUTHENTICATION_ENABLED: no
+      SPARK_RPC_ENCRYPTION_ENABLED: no
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
+      SPARK_SSL_ENABLED: no
+      SPARK_MASTER_OPTS: "-Dspark.deploy.defaultCores=2"
+    volumes:
+      - spark_data:/opt/bitnami/spark/work-dir
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Apache Spark Worker
+  spark-worker:
+    image: bitnami/spark:3.5.0
+    container_name: securewatch_spark_worker
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_MEMORY: 2G
+      SPARK_WORKER_CORES: 2
+      SPARK_RPC_AUTHENTICATION_ENABLED: no
+      SPARK_RPC_ENCRYPTION_ENABLED: no
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
+      SPARK_SSL_ENABLED: no
+    volumes:
+      - spark_data:/opt/bitnami/spark/work-dir
+    depends_on:
+      - spark-master
+    restart: unless-stopped
+
+  # Spark Batch Processor
+  spark-batch-processor:
+    build:
+      context: ./apps/spark-batch-processor
+      dockerfile: Dockerfile
+    container_name: securewatch_spark_batch_processor
+    ports:
+      - "3009:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      SPARK_MASTER: spark://spark-master:7077
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PRIMARY_STORAGE: opensearch
+      ARCHIVE_STORAGE: s3
+      ML_ANOMALY_DETECTION_ENABLED: true
+      BATCH_ENABLE_DATA_QUALITY_CHECKS: true
+      LOG_LEVEL: info
+      SPARK_EXECUTOR_MEMORY: 2g
+      SPARK_EXECUTOR_CORES: 2
+      SPARK_DRIVER_MEMORY: 1g
+    volumes:
+      - spark_data:/app/output
+      - spark_models:/app/models
+      - spark_checkpoint:/tmp/spark-checkpoint
+      - ./apps/spark-batch-processor/logs:/app/logs
+    depends_on:
+      - kafka
+      - spark-master
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   pgdata_eventlog: # Defines the named volume for data persistence
     driver: local
   log_buffers: # Volume for log ingestion buffers
+    driver: local
+  spark_data: # Volume for Spark data storage
+    driver: local
+  spark_models: # Volume for ML models
+    driver: local
+  spark_checkpoint: # Volume for Spark checkpoints
     driver: local

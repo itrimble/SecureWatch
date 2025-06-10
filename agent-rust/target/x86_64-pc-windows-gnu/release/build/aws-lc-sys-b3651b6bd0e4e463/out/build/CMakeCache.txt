@@ -62,8 +62,8 @@ CMAKE_ASM_COMPILER:UNINITIALIZED=/usr/local/bin/x86_64-w64-mingw32-gcc
 //No help, variable specified on the command line.
 CMAKE_ASM_FLAGS:UNINITIALIZED= -ffunction-sections -fdata-sections -m64
 
-//ASM_NASM compiler
-CMAKE_ASM_NASM_COMPILER:STRING=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder/prebuilt-nasm.sh
+//No help, variable specified on the command line.
+CMAKE_ASM_NASM_COMPILER:UNINITIALIZED=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/builder/prebuilt-nasm.sh
 
 //No help, variable specified on the command line.
 CMAKE_ASM_NASM_COMPILE_OPTIONS_MSVC_DEBUG_INFORMATION_FORMAT_ProgramDatabase:UNINITIALIZED=
@@ -108,8 +108,8 @@ CMAKE_CXX_COMPILER:UNINITIALIZED=/usr/local/bin/x86_64-w64-mingw32-g++
 //No help, variable specified on the command line.
 CMAKE_CXX_FLAGS:UNINITIALIZED= -ffunction-sections -fdata-sections -m64
 
-//C compiler
-CMAKE_C_COMPILER:STRING=/usr/local/bin/x86_64-w64-mingw32-gcc
+//No help, variable specified on the command line.
+CMAKE_C_COMPILER:UNINITIALIZED=/usr/local/bin/x86_64-w64-mingw32-gcc
 
 //A wrapper around 'ar' adding the appropriate '--plugin' option
 // for the GCC compiler

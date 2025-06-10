@@ -1,0 +1,364 @@
+# Production Ingress and Load Balancer Configuration
+# Enterprise-grade traffic management with SSL termination, rate limiting, and WAF
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: securewatch-main-ingress
+  namespace: securewatch
+  labels:
+    app: securewatch
+    component: ingress
+  annotations:
+    # NGINX Ingress Controller annotations
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-rps: "10"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+    
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+      more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: https:;";
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload";
+    
+    # Load balancing and session affinity
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/affinity-mode: "persistent"
+    nginx.ingress.kubernetes.io/session-cookie-name: "securewatch-affinity"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "3600"
+    
+    # Request size limits
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/client-max-body-size: "100m"
+    
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    
+    # CORS
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://securewatch.example.com,https://admin.securewatch.example.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    
+    # Certificate management
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/acme-challenge-type: "http01"
+
+spec:
+  tls:
+  - hosts:
+    - securewatch.example.com
+    - api.securewatch.example.com
+    - admin.securewatch.example.com
+    secretName: securewatch-tls
+  
+  rules:
+  # Main web application
+  - host: securewatch.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: securewatch-web-frontend
+            port:
+              number: 3000
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: securewatch-api-gateway
+            port:
+              number: 8080
+  
+  # API Gateway for all backend services
+  - host: api.securewatch.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: securewatch-api-gateway
+            port:
+              number: 8080
+  
+  # Admin interface with additional security
+  - host: admin.securewatch.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: securewatch-web-frontend
+            port:
+              number: 3000
+
+---
+# HEC (HTTP Event Collector) Ingress for Splunk-compatible data ingestion
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: securewatch-hec-ingress
+  namespace: securewatch
+  labels:
+    app: securewatch-hec-service
+    component: hec-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    
+    # Higher rate limits for HEC traffic
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/rate-limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    
+    # Larger body size for log ingestion
+    nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+    nginx.ingress.kubernetes.io/client-max-body-size: "500m"
+    
+    # Optimized timeouts for streaming data
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "5"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    
+    # Disable buffering for streaming
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+spec:
+  tls:
+  - hosts:
+    - hec.securewatch.example.com
+    secretName: securewatch-hec-tls
+  
+  rules:
+  - host: hec.securewatch.example.com
+    http:
+      paths:
+      - path: /services/collector
+        pathType: Prefix
+        backend:
+          service:
+            name: securewatch-hec-service
+            port:
+              number: 8088
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: securewatch-hec-service
+            port:
+              number: 8088
+
+---
+# Syslog Ingress for UDP/TCP syslog traffic
+apiVersion: v1
+kind: Service
+metadata:
+  name: securewatch-syslog-nlb
+  namespace: securewatch
+  labels:
+    app: securewatch-log-ingestion
+    component: syslog-nlb
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "60"
+spec:
+  type: LoadBalancer
+  loadBalancerSourceRanges:
+  - 10.0.0.0/8     # Private networks
+  - 172.16.0.0/12  # Private networks
+  - 192.168.0.0/16 # Private networks
+  selector:
+    app: securewatch-log-ingestion
+  ports:
+  - name: syslog-udp
+    port: 514
+    targetPort: 514
+    protocol: UDP
+  - name: syslog-tcp
+    port: 1514
+    targetPort: 1514
+    protocol: TCP
+  - name: syslog-tls
+    port: 6514
+    targetPort: 6514
+    protocol: TCP
+
+---
+# WAF and DDoS Protection using ModSecurity
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: modsecurity-config
+  namespace: securewatch
+  labels:
+    app: securewatch
+    component: waf
+data:
+  modsecurity.conf: |
+    # SecureWatch ModSecurity Configuration
+    SecRuleEngine On
+    SecRequestBodyAccess On
+    SecRequestBodyLimit 104857600
+    SecRequestBodyNoFilesLimit 131072
+    SecRequestBodyInMemoryLimit 131072
+    SecRequestBodyLimitAction Reject
+    SecRule REQUEST_HEADERS:Content-Type "text/xml" \
+      "id:'200000',phase:1,t:none,t:lowercase,pass,nolog,ctl:requestBodyProcessor=XML"
+    SecRule REQUEST_HEADERS:Content-Type "application/xml" \
+      "id:'200001',phase:1,t:none,t:lowercase,pass,nolog,ctl:requestBodyProcessor=XML"
+    SecRule REQUEST_HEADERS:Content-Type "text/json" \
+      "id:'200002',phase:1,t:none,t:lowercase,pass,nolog,ctl:requestBodyProcessor=JSON"
+    SecRule REQUEST_HEADERS:Content-Type "application/json" \
+      "id:'200003',phase:1,t:none,t:lowercase,pass,nolog,ctl:requestBodyProcessor=JSON"
+    SecResponseBodyAccess On
+    SecResponseBodyMimeType text/plain text/html text/xml
+    SecResponseBodyLimit 524288
+    SecResponseBodyLimitAction ProcessPartial
+    SecTmpDir /tmp/
+    SecDataDir /tmp/
+    
+    # Core Rule Set (CRS) for OWASP Top 10 protection
+    Include /etc/modsecurity.d/owasp-crs/crs-setup.conf
+    Include /etc/modsecurity.d/owasp-crs/rules/*.conf
+    
+    # Custom rules for SecureWatch
+    SecRule ARGS "@detectSQLi" \
+      "id:1001,\
+      phase:2,\
+      block,\
+      msg:'SQL Injection Attack Detected',\
+      logdata:'Matched Data: %{MATCHED_VAR} found within %{MATCHED_VAR_NAME}: %{MATCHED_VAR}',\
+      t:none,t:urlDecodeUni,t:htmlEntityDecode,t:normalisePathWin,\
+      severity:'CRITICAL',\
+      tag:'application-multi',\
+      tag:'language-multi',\
+      tag:'platform-multi',\
+      tag:'attack-sqli'"
+    
+    SecRule ARGS "@detectXSS" \
+      "id:1002,\
+      phase:2,\
+      block,\
+      msg:'XSS Attack Detected',\
+      logdata:'Matched Data: %{MATCHED_VAR} found within %{MATCHED_VAR_NAME}: %{MATCHED_VAR}',\
+      t:none,t:urlDecodeUni,t:htmlEntityDecode,\
+      severity:'CRITICAL',\
+      tag:'application-multi',\
+      tag:'language-multi',\
+      tag:'platform-multi',\
+      tag:'attack-xss'"
+
+---
+# Network Load Balancer for direct TCP/UDP traffic
+apiVersion: v1
+kind: Service
+metadata:
+  name: securewatch-network-lb
+  namespace: securewatch
+  labels:
+    app: securewatch
+    component: network-lb
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:region:account:certificate/cert-id"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https,8443"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+spec:
+  type: LoadBalancer
+  selector:
+    app: securewatch-api-gateway
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8080
+    protocol: TCP
+  - name: secure
+    port: 8443
+    targetPort: 8443
+    protocol: TCP
+
+---
+# Global rate limiting using Redis
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rate-limit-config
+  namespace: securewatch
+  labels:
+    app: securewatch
+    component: rate-limiting
+data:
+  config.yaml: |
+    domain: securewatch
+    descriptors:
+      - key: generic_key
+        value: default
+        rate_limit:
+          unit: minute
+          requests_per_unit: 100
+      - key: header_match
+        value: api_key
+        rate_limit:
+          unit: minute
+          requests_per_unit: 1000
+      - key: remote_address
+        rate_limit:
+          unit: minute
+          requests_per_unit: 50
+    redis_socket_type: tcp
+    redis_url: redis-cluster.securewatch.svc.cluster.local:6379
+
+---
+# Circuit breaker configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: circuit-breaker-config
+  namespace: securewatch
+  labels:
+    app: securewatch
+    component: circuit-breaker
+data:
+  config.yaml: |
+    circuit_breakers:
+      - priority: default
+        max_connections: 1000
+        max_pending_requests: 1000
+        max_requests: 1000
+        max_retries: 3
+        retry_on: 5xx,reset,connect-failure,refused-stream
+        per_host_thresholds:
+          max_connections: 100
+          max_pending_requests: 50
+      - priority: high
+        max_connections: 2000
+        max_pending_requests: 2000
+        max_requests: 2000
+        max_retries: 5

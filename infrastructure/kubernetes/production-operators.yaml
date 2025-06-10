@@ -1,0 +1,632 @@
+# Production Operators and Controllers for SecureWatch Platform
+# Advanced automation, self-healing, and operational intelligence
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-platform-operator
+  namespace: securewatch-security
+  labels:
+    app: securewatch-platform-operator
+    component: operator
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: securewatch-platform-operator
+  template:
+    metadata:
+      labels:
+        app: securewatch-platform-operator
+        component: operator
+    spec:
+      serviceAccountName: securewatch-operator-sa
+      containers:
+      - name: operator
+        image: securewatch/platform-operator:v1.0.0
+        ports:
+        - containerPort: 8080
+          name: metrics
+        - containerPort: 9443
+          name: webhook
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        env:
+        - name: WATCH_NAMESPACE
+          value: "securewatch"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: OPERATOR_NAME
+          value: "securewatch-platform-operator"
+        - name: LEADER_ELECTION_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: /tmp/k8s-webhook-server/serving-certs
+          readOnly: true
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: securewatch-operator-webhook-certs
+
+---
+# Auto-scaling operator for intelligent resource management
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-autoscaler-operator
+  namespace: securewatch-security
+  labels:
+    app: securewatch-autoscaler-operator
+    component: autoscaler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: securewatch-autoscaler-operator
+  template:
+    metadata:
+      labels:
+        app: securewatch-autoscaler-operator
+        component: autoscaler
+    spec:
+      serviceAccountName: securewatch-autoscaler-sa
+      containers:
+      - name: autoscaler
+        image: securewatch/autoscaler-operator:v1.0.0
+        ports:
+        - containerPort: 8080
+          name: metrics
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        env:
+        - name: TARGET_NAMESPACE
+          value: "securewatch"
+        - name: SCALING_ALGORITHM
+          value: "predictive"
+        - name: METRICS_WINDOW
+          value: "5m"
+        - name: SCALE_UP_THRESHOLD
+          value: "0.7"
+        - name: SCALE_DOWN_THRESHOLD
+          value: "0.3"
+        - name: MAX_SCALE_FACTOR
+          value: "2.0"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+
+---
+# Backup and disaster recovery operator
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-backup-operator
+  namespace: securewatch-security
+  labels:
+    app: securewatch-backup-operator
+    component: backup
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: securewatch-backup-operator
+  template:
+    metadata:
+      labels:
+        app: securewatch-backup-operator
+        component: backup
+    spec:
+      serviceAccountName: securewatch-backup-sa
+      containers:
+      - name: backup-operator
+        image: securewatch/backup-operator:v1.0.0
+        ports:
+        - containerPort: 8080
+          name: metrics
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        env:
+        - name: BACKUP_SCHEDULE
+          value: "0 2 * * *"  # Daily at 2 AM
+        - name: RETENTION_DAYS
+          value: "30"
+        - name: BACKUP_STORAGE_CLASS
+          value: "fast-ssd"
+        - name: ENCRYPTION_ENABLED
+          value: "true"
+        - name: COMPRESSION_ENABLED
+          value: "true"
+        - name: S3_BUCKET
+          value: "securewatch-backups"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: backup-config
+          mountPath: /etc/backup
+          readOnly: true
+      volumes:
+      - name: backup-config
+        configMap:
+          name: backup-operator-config
+
+---
+# Service mesh controller for advanced traffic management
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-mesh-controller
+  namespace: securewatch-security
+  labels:
+    app: securewatch-mesh-controller
+    component: service-mesh
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: securewatch-mesh-controller
+  template:
+    metadata:
+      labels:
+        app: securewatch-mesh-controller
+        component: service-mesh
+    spec:
+      serviceAccountName: securewatch-mesh-sa
+      containers:
+      - name: mesh-controller
+        image: securewatch/mesh-controller:v1.0.0
+        ports:
+        - containerPort: 8080
+          name: metrics
+        - containerPort: 15000
+          name: admin
+        resources:
+          requests:
+            cpu: 300m
+            memory: 512Mi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+        env:
+        - name: PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION
+          value: "true"
+        - name: PILOT_ENABLE_CROSS_CLUSTER_WORKLOAD_ENTRY
+          value: "true"
+        - name: PILOT_TRACE_SAMPLING
+          value: "1.0"
+        - name: PILOT_ENABLE_STATUS
+          value: "true"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+
+---
+# Custom Resource Definitions for operators
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: securewatchclusters.platform.securewatch.io
+spec:
+  group: platform.securewatch.io
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              version:
+                type: string
+              replicas:
+                type: integer
+                minimum: 1
+                maximum: 100
+              resources:
+                type: object
+                properties:
+                  cpu:
+                    type: string
+                  memory:
+                    type: string
+                  storage:
+                    type: string
+              autoscaling:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                  minReplicas:
+                    type: integer
+                  maxReplicas:
+                    type: integer
+                  targetCPU:
+                    type: integer
+                  targetMemory:
+                    type: integer
+              security:
+                type: object
+                properties:
+                  networkPolicies:
+                    type: boolean
+                  podSecurityStandards:
+                    type: boolean
+                  mTLS:
+                    type: boolean
+                  encryption:
+                    type: boolean
+          status:
+            type: object
+            properties:
+              phase:
+                type: string
+                enum: ["Pending", "Running", "Failed", "Succeeded"]
+              replicas:
+                type: integer
+              readyReplicas:
+                type: integer
+              lastUpdateTime:
+                type: string
+                format: date-time
+  scope: Namespaced
+  names:
+    plural: securewatchclusters
+    singular: securewatchcluster
+    kind: SecureWatchCluster
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: backuppolicies.backup.securewatch.io
+spec:
+  group: backup.securewatch.io
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              schedule:
+                type: string
+              retentionDays:
+                type: integer
+                minimum: 1
+                maximum: 365
+              storageClass:
+                type: string
+              encryption:
+                type: boolean
+              compression:
+                type: boolean
+              targets:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: ["database", "persistent-volume", "secrets", "configmaps"]
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+          status:
+            type: object
+            properties:
+              lastBackupTime:
+                type: string
+                format: date-time
+              nextBackupTime:
+                type: string
+                format: date-time
+              backupCount:
+                type: integer
+              status:
+                type: string
+                enum: ["Active", "Failed", "Suspended"]
+  scope: Namespaced
+  names:
+    plural: backuppolicies
+    singular: backuppolicy
+    kind: BackupPolicy
+
+---
+# Service Accounts and RBAC for operators
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: securewatch-operator-sa
+  namespace: securewatch-security
+  labels:
+    app: securewatch-platform-operator
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: securewatch-autoscaler-sa
+  namespace: securewatch-security
+  labels:
+    app: securewatch-autoscaler-operator
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: securewatch-backup-sa
+  namespace: securewatch-security
+  labels:
+    app: securewatch-backup-operator
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: securewatch-mesh-sa
+  namespace: securewatch-security
+  labels:
+    app: securewatch-mesh-controller
+
+---
+# Cluster roles for operators
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: securewatch-platform-operator
+rules:
+- apiGroups: ["platform.securewatch.io"]
+  resources: ["securewatchclusters"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies", "ingresses"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: securewatch-autoscaler-operator
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+- apiGroups: ["custom.metrics.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: securewatch-backup-operator
+rules:
+- apiGroups: ["backup.securewatch.io"]
+  resources: ["backuppolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["persistentvolumes", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses", "volumesnapshots", "volumesnapshotclasses"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: securewatch-mesh-controller
+rules:
+- apiGroups: ["networking.istio.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["security.istio.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["install.istio.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["services", "endpoints", "pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions", "networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+
+---
+# Cluster role bindings
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: securewatch-platform-operator
+subjects:
+- kind: ServiceAccount
+  name: securewatch-operator-sa
+  namespace: securewatch-security
+roleRef:
+  kind: ClusterRole
+  name: securewatch-platform-operator
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: securewatch-autoscaler-operator
+subjects:
+- kind: ServiceAccount
+  name: securewatch-autoscaler-sa
+  namespace: securewatch-security
+roleRef:
+  kind: ClusterRole
+  name: securewatch-autoscaler-operator
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: securewatch-backup-operator
+subjects:
+- kind: ServiceAccount
+  name: securewatch-backup-sa
+  namespace: securewatch-security
+roleRef:
+  kind: ClusterRole
+  name: securewatch-backup-operator
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: securewatch-mesh-controller
+subjects:
+- kind: ServiceAccount
+  name: securewatch-mesh-sa
+  namespace: securewatch-security
+roleRef:
+  kind: ClusterRole
+  name: securewatch-mesh-controller
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Configuration for backup operator
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-operator-config
+  namespace: securewatch-security
+data:
+  config.yaml: |
+    backup:
+      defaultSchedule: "0 2 * * *"
+      defaultRetentionDays: 30
+      storageClasses:
+        - fast-ssd
+        - high-iops-ssd
+      encryption:
+        enabled: true
+        algorithm: "AES-256"
+      compression:
+        enabled: true
+        algorithm: "gzip"
+      destinations:
+        s3:
+          bucket: "securewatch-backups"
+          region: "us-west-2"
+          encryption: true
+        local:
+          path: "/backups"
+          retention: "7d"
+    targets:
+      databases:
+        - postgresql
+        - redis
+        - elasticsearch
+      volumes:
+        - analytics-models-pvc
+        - correlation-rules-pvc
+      secrets:
+        - securewatch-secrets
+        - securewatch-tls
+      configmaps:
+        - securewatch-config
+        - correlation-rules-config
+
+---
+# Webhook configuration for admission control
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionWebhook
+metadata:
+  name: securewatch-platform-webhook
+webhooks:
+- name: securewatch-mutation.platform.securewatch.io
+  clientConfig:
+    service:
+      name: securewatch-platform-operator
+      namespace: securewatch-security
+      path: "/mutate"
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["platform.securewatch.io"]
+    apiVersions: ["v1"]
+    resources: ["securewatchclusters"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail

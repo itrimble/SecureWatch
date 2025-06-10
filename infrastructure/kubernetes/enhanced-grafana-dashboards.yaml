@@ -1,0 +1,583 @@
+# Enhanced Grafana Dashboards for SecureWatch SIEM Platform
+# Comprehensive visualization for security operations, performance monitoring, and threat analysis
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enhanced-grafana-dashboards
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: siem-dashboards
+data:
+  securewatch-security-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "SecureWatch Security Overview",
+        "tags": ["securewatch", "security", "siem"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Security Events Volume",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(security_events_total[5m])) by (severity)",
+                "legendFormat": "{{ severity }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "yAxes": [
+              {"label": "Events/sec", "min": 0},
+              {"show": false}
+            ],
+            "alert": {
+              "conditions": [
+                {
+                  "evaluator": {"params": [100], "type": "gt"},
+                  "operator": {"type": "and"},
+                  "query": {"params": ["A", "5m", "now"]},
+                  "reducer": {"params": [], "type": "avg"},
+                  "type": "query"
+                }
+              ],
+              "executionErrorState": "alerting",
+              "for": "5m",
+              "frequency": "10s",
+              "handler": 1,
+              "name": "High Security Event Volume",
+              "noDataState": "no_data",
+              "notifications": []
+            }
+          },
+          {
+            "id": 2,
+            "title": "Top Attack Sources",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "topk(10, sum(increase(attack_events_total[1h])) by (source_ip, attack_type))",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "columns": [
+              {"text": "Source IP", "value": "source_ip"},
+              {"text": "Attack Type", "value": "attack_type"},
+              {"text": "Count", "value": "Value"}
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Failed Authentication Attempts",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(increase(authentication_failures_total[1h]))",
+                "legendFormat": "Failed Logins"
+              }
+            ],
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 100},
+                    {"color": "red", "value": 1000}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Correlation Rules Triggered",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(increase(correlation_rules_triggered_total[1h]))",
+                "legendFormat": "Rules Triggered"
+              }
+            ],
+            "gridPos": {"h": 4, "w": 6, "x": 6, "y": 8},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 50},
+                    {"color": "red", "value": 200}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 5,
+            "title": "Data Sources Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=~\"securewatch-.*\"}",
+                "legendFormat": "{{ job }}"
+              }
+            ],
+            "gridPos": {"h": 4, "w": 12, "x": 12, "y": 8},
+            "fieldConfig": {
+              "defaults": {
+                "mappings": [
+                  {"options": {"0": {"text": "DOWN"}}, "type": "value"},
+                  {"options": {"1": {"text": "UP"}}, "type": "value"}
+                ],
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 6,
+            "title": "Security Events Timeline",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(security_events_total[5m])) by (event_type)",
+                "legendFormat": "{{ event_type }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
+            "xAxis": {"show": true, "mode": "time"},
+            "yAxes": [
+              {"label": "Events/sec", "min": 0},
+              {"show": false}
+            ]
+          }
+        ],
+        "time": {"from": "now-6h", "to": "now"},
+        "refresh": "30s"
+      }
+    }
+
+  securewatch-threat-hunting.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "SecureWatch Threat Hunting",
+        "tags": ["securewatch", "threat-hunting", "investigation"],
+        "timezone": "browser",
+        "templating": {
+          "list": [
+            {
+              "name": "source_ip",
+              "type": "query",
+              "query": "label_values(security_events_total, source_ip)",
+              "refresh": 1,
+              "includeAll": true,
+              "multi": true
+            },
+            {
+              "name": "timerange",
+              "type": "interval",
+              "query": "1m,5m,10m,30m,1h,6h,12h,1d,7d",
+              "refresh": 2,
+              "includeAll": false,
+              "multi": false,
+              "current": {"text": "5m", "value": "5m"}
+            }
+          ]
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Suspicious Network Activity",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(network_connections_total{source_ip=~\"$source_ip\"}[$timerange])) by (destination_port, protocol)",
+                "legendFormat": "{{ protocol }}:{{ destination_port }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Lateral Movement Indicators",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "topk(20, sum(increase(lateral_movement_events_total{source_ip=~\"$source_ip\"}[$timerange])) by (source_ip, destination_ip, protocol))",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Process Execution Anomalies",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(process_executions_total{source_ip=~\"$source_ip\", anomaly=\"true\"}[$timerange])) by (process_name)",
+                "legendFormat": "{{ process_name }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "File Access Patterns",
+            "type": "heatmap",
+            "targets": [
+              {
+                "expr": "sum(rate(file_access_events_total{source_ip=~\"$source_ip\"}[$timerange])) by (file_path, access_type)",
+                "legendFormat": "{{ file_path }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "DNS Query Analysis",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "topk(50, sum(increase(dns_queries_total{source_ip=~\"$source_ip\"}[$timerange])) by (query_name, query_type))",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "1m"
+      }
+    }
+
+  securewatch-performance.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "SecureWatch Platform Performance",
+        "tags": ["securewatch", "performance", "monitoring"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Log Ingestion Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(logs_ingested_total[5m])) by (service)",
+                "legendFormat": "{{ service }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "yAxes": [
+              {"label": "Logs/sec", "min": 0},
+              {"show": false}
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Query Response Times",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(query_duration_seconds_bucket[5m])) by (le, service))",
+                "legendFormat": "{{ service }} P95"
+              },
+              {
+                "expr": "histogram_quantile(0.50, sum(rate(query_duration_seconds_bucket[5m])) by (le, service))",
+                "legendFormat": "{{ service }} P50"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "yAxes": [
+              {"label": "Seconds", "min": 0},
+              {"show": false}
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Memory Usage by Service",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(container_memory_usage_bytes{namespace=\"securewatch\"}) by (pod)",
+                "legendFormat": "{{ pod }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "yAxes": [
+              {"label": "Bytes", "min": 0},
+              {"show": false}
+            ]
+          },
+          {
+            "id": 4,
+            "title": "CPU Usage by Service",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"securewatch\"}[5m])) by (pod)",
+                "legendFormat": "{{ pod }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "yAxes": [
+              {"label": "CPU Cores", "min": 0},
+              {"show": false}
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Error Rates",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{status=~\"5..\",namespace=\"securewatch\"}[5m])) by (service)",
+                "legendFormat": "{{ service }} 5xx"
+              },
+              {
+                "expr": "sum(rate(http_requests_total{status=~\"4..\",namespace=\"securewatch\"}[5m])) by (service)",
+                "legendFormat": "{{ service }} 4xx"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "yAxes": [
+              {"label": "Errors/sec", "min": 0},
+              {"show": false}
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Database Performance",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(database_queries_total[5m])) by (operation)",
+                "legendFormat": "{{ operation }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "yAxes": [
+              {"label": "Queries/sec", "min": 0},
+              {"show": false}
+            ]
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "30s"
+      }
+    }
+
+  securewatch-correlation-engine.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "SecureWatch Correlation Engine",
+        "tags": ["securewatch", "correlation", "rules"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Rule Execution Performance",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(correlation_rule_execution_duration_seconds_bucket[5m])) by (le, rule_id))",
+                "legendFormat": "{{ rule_id }} P95"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Rules by Severity",
+            "type": "pie",
+            "targets": [
+              {
+                "expr": "sum(correlation_rules_triggered_total) by (severity)",
+                "legendFormat": "{{ severity }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Event Processing Queue",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "correlation_engine_queue_size",
+                "legendFormat": "Queue Size"
+              },
+              {
+                "expr": "rate(correlation_engine_events_processed_total[5m])",
+                "legendFormat": "Processing Rate"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Rule Hit Rate",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "topk(20, sum(increase(correlation_rules_triggered_total[1h])) by (rule_id, rule_name))",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "False Positive Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(correlation_false_positives_total) / sum(correlation_rules_triggered_total) * 100",
+                "legendFormat": "False Positive %"
+              }
+            ],
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 16},
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "red", "value": 25}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 6,
+            "title": "Critical Alerts",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(correlation_rules_triggered_total{severity=\"critical\"})",
+                "legendFormat": "Critical Alerts"
+              }
+            ],
+            "gridPos": {"h": 4, "w": 6, "x": 6, "y": 16},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 5},
+                    {"color": "red", "value": 20}
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "time": {"from": "now-4h", "to": "now"},
+        "refresh": "1m"
+      }
+    }
+
+  securewatch-infrastructure.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "SecureWatch Infrastructure",
+        "tags": ["securewatch", "infrastructure", "kubernetes"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Pod Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(kube_pod_status_phase{namespace=\"securewatch\"}) by (phase)",
+                "legendFormat": "{{ phase }}"
+              }
+            ],
+            "gridPos": {"h": 4, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Node Resources",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+                "legendFormat": "Memory Usage %"
+              },
+              {
+                "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+                "legendFormat": "CPU Usage %"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Network Traffic",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"securewatch\"}[5m])) by (pod)",
+                "legendFormat": "{{ pod }} RX"
+              },
+              {
+                "expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"securewatch\"}[5m])) by (pod)",
+                "legendFormat": "{{ pod }} TX"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+          },
+          {
+            "id": 4,
+            "title": "Storage Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(kubelet_volume_stats_used_bytes{namespace=\"securewatch\"}) by (persistentvolumeclaim)",
+                "legendFormat": "{{ persistentvolumeclaim }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "HPA Status",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "kube_hpa_status_current_replicas{namespace=\"securewatch\"}",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "30s"
+      }
+    }

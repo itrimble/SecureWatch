@@ -35,7 +35,7 @@ async function initializeServices() {
         // Initialize producer pool for high throughput
         producerPool = new KafkaProducerPool(kafka, producerConfig, performanceConfig.producerPool.size, metricsCollector);
         await producerPool.initialize();
-        // Initialize buffer manager
+        // Initialize buffer manager with enhanced backpressure and flow control
         bufferManager = new BufferManager({
             memoryBufferSize: 1000000, // 1M events in memory
             diskBufferSize: 10000000, // 10M events on disk
@@ -43,6 +43,43 @@ async function initializeServices() {
             highWaterMark: 80, // Start spilling at 80%
             lowWaterMark: 60, // Stop spilling at 60%
             compressionEnabled: true,
+            circuitBreaker: {
+                failureThreshold: performanceConfig.circuitBreaker.failureThreshold,
+                resetTimeout: performanceConfig.circuitBreaker.resetTimeout,
+                halfOpenRequests: performanceConfig.circuitBreaker.halfOpenRequests,
+                monitoringInterval: performanceConfig.circuitBreaker.monitoringInterval,
+                minRequests: 10
+            },
+            backpressure: {
+                queueDepthThreshold: 800000, // 80% of memory buffer
+                latencyThreshold: 1000, // 1 second latency threshold
+                errorRateThreshold: 0.1, // 10% error rate threshold
+                monitoringInterval: 5000, // 5 second monitoring
+                adaptiveThresholds: true,
+                recoveryFactor: 0.1
+            },
+            adaptiveBatch: {
+                initialBatchSize: performanceConfig.batchSize,
+                minBatchSize: 1000,
+                maxBatchSize: 100000,
+                targetLatency: 200, // 200ms target latency
+                adjustmentFactor: 0.1, // 10% adjustment factor
+                evaluationInterval: 10000, // 10 second evaluation
+                throughputTarget: performanceConfig.rateLimiting.maxEventsPerSecond / 10, // Target 10% of max rate
+                adaptiveEnabled: true
+            },
+            flowControl: {
+                maxEventsPerSecond: performanceConfig.rateLimiting.maxEventsPerSecond,
+                burstSize: performanceConfig.rateLimiting.burstSize,
+                slidingWindowSize: performanceConfig.rateLimiting.slidingWindowSize,
+                throttleEnabled: true,
+                priorityLevels: 5,
+                emergencyMode: {
+                    enabled: true,
+                    triggerThreshold: 0.2, // Trigger at 20% error rate
+                    throttleRate: 0.8 // Throttle 80% of events in emergency
+                }
+            }
         }, metricsCollector);
         await bufferManager.initialize();
         // Initialize adapters
@@ -425,14 +462,62 @@ app.get('/adapters/:adapter/stats', (req, res) => {
     }
     res.json(stats);
 });
-// Buffer statistics
+// Buffer statistics with enhanced metrics
 app.get('/buffer/stats', async (req, res) => {
     const stats = {
         memorySize: bufferManager.getSize(),
         totalSize: await bufferManager.getTotalSize(),
+        backpressure: bufferManager.getBackpressureMetrics(),
+        flowControl: bufferManager.getFlowControlMetrics(),
+        adaptiveBatch: bufferManager.getAdaptiveBatchMetrics(),
+        circuitBreaker: bufferManager.getCircuitBreakerStats(),
+        isBackpressureActive: bufferManager.isBackpressureActive(),
+        isCircuitBreakerOpen: bufferManager.isCircuitBreakerOpen(),
         metrics: metricsCollector.getMetrics().buffer || {},
     };
     res.json(stats);
+});
+// Backpressure control endpoints
+app.get('/buffer/backpressure', (req, res) => {
+    res.json(bufferManager.getBackpressureMetrics());
+});
+app.get('/buffer/flow-control', (req, res) => {
+    res.json(bufferManager.getFlowControlMetrics());
+});
+app.post('/buffer/flow-control/rate', (req, res) => {
+    try {
+        const { rate } = req.body;
+        if (typeof rate !== 'number' || rate <= 0) {
+            return res.status(400).json({ error: 'Invalid rate value' });
+        }
+        bufferManager.adjustFlowControlRate(rate);
+        res.json({ message: `Flow control rate adjusted to ${rate} events/sec` });
+    }
+    catch (error) {
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to adjust rate' });
+    }
+});
+app.post('/buffer/batch-size', (req, res) => {
+    try {
+        const { size } = req.body;
+        if (typeof size !== 'number' || size <= 0) {
+            return res.status(400).json({ error: 'Invalid batch size value' });
+        }
+        bufferManager.adjustBatchSize(size);
+        res.json({ message: `Batch size adjusted to ${size}` });
+    }
+    catch (error) {
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to adjust batch size' });
+    }
+});
+app.post('/buffer/circuit-breaker/reset', (req, res) => {
+    try {
+        bufferManager.resetCircuitBreaker();
+        res.json({ message: 'Circuit breaker reset successfully' });
+    }
+    catch (error) {
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to reset circuit breaker' });
+    }
 });
 // Performance statistics
 app.get('/performance/stats', (req, res) => {

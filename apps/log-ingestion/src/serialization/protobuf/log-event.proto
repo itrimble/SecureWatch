@@ -1,0 +1,329 @@
+syntax = "proto3";
+
+package securewatch.logevent;
+
+option optimize_for = SPEED;
+option java_package = "com.securewatch.logevent.proto";
+option java_outer_classname = "LogEventProtos";
+
+// Raw log event optimized for high-throughput ingestion
+message RawLogEventProto {
+  string id = 1;
+  LogSourceProto source = 2;
+  int64 timestamp_ms = 3;
+  bytes raw_data = 4;
+  LogMetadataProto metadata = 5;
+  int64 received_at_ms = 6;
+  map<string, string> fields = 7;
+}
+
+// Normalized log event with structured fields
+message NormalizedLogEventProto {
+  string id = 1;
+  int64 timestamp_ms = 2;
+  LogSourceProto source = 3;
+  LogSeverityProto severity = 4;
+  LogCategoryProto category = 5;
+  string message = 6;
+  map<string, string> fields = 7;
+  repeated string tags = 8;
+  HostInfoProto host = 9;
+  ProcessInfoProto process = 10;
+  UserInfoProto user = 11;
+  NetworkInfoProto network = 12;
+  FileInfoProto file = 13;
+  RegistryInfoProto registry = 14;
+  LogMetadataProto metadata = 15;
+  string raw_event = 16;
+}
+
+// Enriched log event with additional context
+message EnrichedLogEventProto {
+  NormalizedLogEventProto base_event = 1;
+  EnrichmentsProto enrichments = 2;
+  double risk_score = 3;
+  ComplianceInfoProto compliance = 4;
+}
+
+// Log source enumeration
+enum LogSourceProto {
+  UNKNOWN_SOURCE = 0;
+  WINDOWS_EVENT_LOG = 1;
+  SYSLOG = 2;
+  AWS_CLOUDTRAIL = 3;
+  AZURE_ACTIVITY = 4;
+  GCP_LOGGING = 5;
+  OFFICE365 = 6;
+  FIREWALL = 7;
+  IDS_IPS = 8;
+  ENDPOINT = 9;
+  APPLICATION = 10;
+  CSV = 11;
+  XML = 12;
+  JSON = 13;
+  CUSTOM = 14;
+}
+
+// Log severity enumeration
+enum LogSeverityProto {
+  UNKNOWN_SEVERITY = 0;
+  CRITICAL = 1;
+  HIGH = 2;
+  MEDIUM = 3;
+  LOW = 4;
+  INFO = 5;
+  DEBUG = 6;
+}
+
+// Log category enumeration
+enum LogCategoryProto {
+  UNKNOWN_CATEGORY = 0;
+  AUTHENTICATION = 1;
+  AUTHORIZATION = 2;
+  SYSTEM = 3;
+  APPLICATION = 4;
+  SECURITY = 5;
+  NETWORK = 6;
+  FILE = 7;
+  PROCESS = 8;
+  REGISTRY = 9;
+  AUDIT = 10;
+  THREAT = 11;
+  COMPLIANCE = 12;
+}
+
+// Metadata for log events
+message LogMetadataProto {
+  string ingestion_id = 1;
+  int64 ingestion_time_ms = 2;
+  string collector = 3;
+  string collector_version = 4;
+  string organization_id = 5;
+  string tenant_id = 6;
+  string data_center = 7;
+  string environment = 8;
+  RetentionPolicyProto retention = 9;
+  CompressionInfoProto compression = 10;
+  EncryptionInfoProto encryption = 11;
+}
+
+// Host information
+message HostInfoProto {
+  string hostname = 1;
+  repeated string ip = 2;
+  repeated string mac = 3;
+  OSInfoProto os = 4;
+  string domain = 5;
+  string fqdn = 6;
+}
+
+// Operating system information
+message OSInfoProto {
+  string name = 1;
+  string version = 2;
+  string architecture = 3;
+}
+
+// Process information
+message ProcessInfoProto {
+  int32 pid = 1;
+  string name = 2;
+  string path = 3;
+  string command_line = 4;
+  int32 parent_pid = 5;
+  string parent_name = 6;
+  string user = 7;
+  int64 start_time_ms = 8;
+  HashInfoProto hash = 9;
+}
+
+// User information
+message UserInfoProto {
+  string username = 1;
+  string user_id = 2;
+  string domain = 3;
+  string email = 4;
+  repeated string groups = 5;
+  repeated string privileges = 6;
+}
+
+// Network information
+message NetworkInfoProto {
+  string protocol = 1;
+  string source_ip = 2;
+  int32 source_port = 3;
+  string destination_ip = 4;
+  int32 destination_port = 5;
+  string direction = 6; // inbound, outbound, internal
+  int64 bytes_in = 7;
+  int64 bytes_out = 8;
+  int64 packets_in = 9;
+  int64 packets_out = 10;
+}
+
+// File information
+message FileInfoProto {
+  string path = 1;
+  string name = 2;
+  string extension = 3;
+  int64 size = 4;
+  HashInfoProto hash = 5;
+  string permissions = 6;
+  string owner = 7;
+  int64 created_at_ms = 8;
+  int64 modified_at_ms = 9;
+  int64 accessed_at_ms = 10;
+}
+
+// Registry information (Windows-specific)
+message RegistryInfoProto {
+  string key = 1;
+  string value = 2;
+  string operation = 3; // create, modify, delete, read
+  string old_value = 4;
+  string data_type = 5;
+}
+
+// Hash information for files and processes
+message HashInfoProto {
+  string md5 = 1;
+  string sha1 = 2;
+  string sha256 = 3;
+}
+
+// Enrichment information
+message EnrichmentsProto {
+  GeoIpInfoProto geo_ip = 1;
+  ThreatIntelInfoProto threat_intel = 2;
+  AssetInfoProto asset_info = 3;
+  UserContextProto user_context = 4;
+  double anomaly_score = 5;
+  repeated string related_events = 6;
+}
+
+// Geographic IP information
+message GeoIpInfoProto {
+  string country = 1;
+  string country_code = 2;
+  string region = 3;
+  string city = 4;
+  double latitude = 5;
+  double longitude = 6;
+  int32 asn = 7;
+  string organization = 8;
+}
+
+// Threat intelligence information
+message ThreatIntelInfoProto {
+  bool is_malicious = 1;
+  double threat_score = 2;
+  repeated string indicators = 3;
+  repeated string sources = 4;
+  int64 last_seen_ms = 5;
+  repeated string tags = 6;
+}
+
+// Asset information
+message AssetInfoProto {
+  string asset_id = 1;
+  string asset_type = 2;
+  string criticality = 3; // critical, high, medium, low
+  string business_unit = 4;
+  string location = 5;
+  repeated string tags = 6;
+}
+
+// User context information
+message UserContextProto {
+  bool is_privileged = 1;
+  string department = 2;
+  string manager = 3;
+  int64 last_login_ms = 4;
+  double risk_score = 5;
+  bool anomalous = 6;
+}
+
+// Compliance information
+message ComplianceInfoProto {
+  repeated string frameworks = 1;
+  repeated string controls = 2;
+  repeated string violations = 3;
+  repeated string tags = 4;
+}
+
+// Retention policy
+message RetentionPolicyProto {
+  string tier = 1; // hot, warm, cold, frozen
+  int32 days = 2;
+  bool compressed = 3;
+  bool encrypted = 4;
+}
+
+// Compression information
+message CompressionInfoProto {
+  string algorithm = 1; // zstd, gzip, snappy, lz4
+  int32 level = 2;
+  int64 original_size = 3;
+  int64 compressed_size = 4;
+}
+
+// Encryption information
+message EncryptionInfoProto {
+  string algorithm = 1;
+  string key_id = 2;
+  bool encrypted = 3;
+}
+
+// Windows Event Log specific structure
+message WindowsEventLogProto {
+  int32 event_id = 1;
+  int64 event_record_id = 2;
+  int32 level = 3;
+  int32 task = 4;
+  int32 opcode = 5;
+  repeated string keywords = 6;
+  string channel = 7;
+  ProviderInfoProto provider = 8;
+  string computer = 9;
+  SecurityInfoProto security = 10;
+  map<string, string> event_data = 11;
+  map<string, string> user_defined_data = 12;
+}
+
+// Windows Event Log provider information
+message ProviderInfoProto {
+  string name = 1;
+  string guid = 2;
+}
+
+// Windows Event Log security information
+message SecurityInfoProto {
+  string user_id = 1;
+  string user_sid = 2;
+}
+
+// Syslog specific structure
+message SyslogEventProto {
+  int32 facility = 1;
+  int32 severity = 2;
+  int32 version = 3;
+  int64 timestamp_ms = 4;
+  string hostname = 5;
+  string app_name = 6;
+  string proc_id = 7;
+  string msg_id = 8;
+  map<string, map<string, string>> structured_data = 9;
+  string message = 10;
+  bytes json_payload = 11;
+}
+
+// Performance metrics for serialization benchmarking
+message SerializationMetricsProto {
+  string format = 1; // protobuf, avro, json
+  int64 serialization_time_ns = 2;
+  int64 deserialization_time_ns = 3;
+  int64 serialized_size_bytes = 4;
+  int64 original_size_bytes = 5;
+  double compression_ratio = 6;
+  int64 throughput_ops_per_sec = 7;
+}

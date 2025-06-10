@@ -1,3 +1,43 @@
+# Cargo configuration for SecureWatch Agent
+# Optimizes build and test settings for cross-compilation and testing
+
+[build]
+# Use rustls by default for better cross-platform compatibility
+rustflags = [
+    # Enable additional security checks in debug builds
+    "-C", "overflow-checks=on",
+    # Improve stack traces in tests
+    "-C", "force-frame-pointers=yes",
+]
+
+[env]
+# Set environment variables for testing
+RUST_BACKTRACE = "1"
+RUST_LOG = "debug"
+
+# Test-specific environment variables
+SECUREWATCH_TEST_MODE = "true"
+SECUREWATCH_LOG_LEVEL = "debug"
+
+# Performance optimization for release builds
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+
+# Test-optimized profile
+[profile.test]
+opt-level = 1
+debug = true
+overflow-checks = true
+
+# Benchmark profile
+[profile.bench]
+opt-level = 3
+debug = false
+overflow-checks = false
+lto = "thin"
+
 # Cross-compilation configuration for SecureWatch Agent
 
 [target.x86_64-pc-windows-gnu]

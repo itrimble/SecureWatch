@@ -1,5 +1,10 @@
 import { DataSource, DataSourceConfig } from '../types/data-source.types';
 import { LogEvent } from '../types/log-event.types';
+import { CloudTrailClient, LookupEventsCommand, LookupEventsCommandInput } from '@aws-sdk/client-cloudtrail';
+import { CloudWatchLogsClient, StartQueryCommand, GetQueryResultsCommand } from '@aws-sdk/client-cloudwatch-logs';
+import { DefaultAzureCredential } from '@azure/identity';
+import { LogsQueryClient } from '@azure/monitor-query';
+import { Logging } from '@google-cloud/logging';
 
 export interface CloudTrailConfig {
   provider: 'aws' | 'azure' | 'gcp';
@@ -61,10 +66,52 @@ export class CloudTrailSource extends DataSource {
   private isCollecting = false;
   private lastCollectionTime?: Date;
   private cloudConfig: CloudTrailConfig;
+  
+  // Cloud SDK clients
+  private awsCloudTrailClient?: CloudTrailClient;
+  private awsCloudWatchLogsClient?: CloudWatchLogsClient;
+  private azureLogsClient?: LogsQueryClient;
+  private gcpLoggingClient?: Logging;
 
   constructor(config: DataSourceConfig) {
     super(config);
     this.cloudConfig = this.parseCloudConfig(config.collection.config);
+    this.initializeCloudClients();
+  }
+
+  private initializeCloudClients(): void {
+    const { provider, credentials } = this.cloudConfig;
+
+    switch (provider) {
+      case 'aws':
+        this.awsCloudTrailClient = new CloudTrailClient({
+          region: credentials.region,
+          credentials: {
+            accessKeyId: credentials.accessKeyId!,
+            secretAccessKey: credentials.secretAccessKey!
+          }
+        });
+        this.awsCloudWatchLogsClient = new CloudWatchLogsClient({
+          region: credentials.region,
+          credentials: {
+            accessKeyId: credentials.accessKeyId!,
+            secretAccessKey: credentials.secretAccessKey!
+          }
+        });
+        break;
+
+      case 'azure':
+        const azureCredential = new DefaultAzureCredential();
+        this.azureLogsClient = new LogsQueryClient(azureCredential);
+        break;
+
+      case 'gcp':
+        this.gcpLoggingClient = new Logging({
+          projectId: credentials.projectId,
+          keyFilename: credentials.keyFile
+        });
+        break;
+    }
   }
 
   async start(): Promise<void> {
@@ -231,160 +278,276 @@ export class CloudTrailSource extends DataSource {
   }
 
   private async collectAwsCloudTrail(): Promise<CloudEvent[]> {
-    // Mock AWS CloudTrail API implementation
-    const events: CloudEvent[] = [];
-    
-    // Generate mock CloudTrail events
-    const eventNames = [
-      'ConsoleLogin', 'AssumeRole', 'CreateUser', 'DeleteUser', 'PutBucketPolicy',
-      'CreateInstance', 'TerminateInstances', 'CreateRole', 'AttachUserPolicy'
-    ];
-    
-    const eventSources = [
-      'signin.amazonaws.com', 'sts.amazonaws.com', 'iam.amazonaws.com', 
-      's3.amazonaws.com', 'ec2.amazonaws.com'
-    ];
-    
-    const numEvents = Math.floor(Math.random() * 20) + 1;
-    
-    for (let i = 0; i < numEvents; i++) {
-      const eventName = eventNames[Math.floor(Math.random() * eventNames.length)];
-      const eventSource = eventSources[Math.floor(Math.random() * eventSources.length)];
-      
-      const event: CloudEvent = {
-        eventId: `aws-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        eventName,
-        eventSource,
-        eventTime: new Date(Date.now() - Math.random() * this.cloudConfig.polling.lookbackMs),
-        userName: `user-${Math.floor(Math.random() * 100)}`,
-        userIdentity: {
-          type: 'IAMUser',
-          principalId: `AIDACKCEVSQ6C2EXAMPLE`,
-          arn: `arn:aws:iam::123456789012:user/user-${Math.floor(Math.random() * 100)}`,
-          accountId: '123456789012',
-          userName: `user-${Math.floor(Math.random() * 100)}`
-        },
-        sourceIPAddress: this.generateRandomIP(),
-        userAgent: 'AWS Internal',
-        requestParameters: this.generateAwsRequestParameters(eventName),
-        responseElements: this.generateAwsResponseElements(eventName),
-        resources: [{
-          accountId: '123456789012',
-          type: this.getAwsResourceType(eventSource),
-          ARN: this.generateAwsArn(eventSource)
-        }],
-        rawEvent: {}
-      };
-      
-      // Add error information for some events
-      if (Math.random() < 0.1) {
-        event.errorCode = 'AccessDenied';
-        event.errorMessage = 'User is not authorized to perform this operation';
-      }
-      
-      event.rawEvent = { ...event };
-      events.push(event);
+    if (!this.awsCloudTrailClient) {
+      throw new Error('AWS CloudTrail client not initialized');
     }
-    
+
+    const events: CloudEvent[] = [];
+    const startTime = new Date(Date.now() - this.cloudConfig.polling.lookbackMs);
+    const endTime = new Date();
+
+    try {
+      const input: LookupEventsCommandInput = {
+        StartTime: startTime,
+        EndTime: endTime,
+        MaxItems: this.cloudConfig.polling.maxEvents
+      };
+
+      // Apply filtering if configured
+      if (this.cloudConfig.filtering) {
+        if (this.cloudConfig.filtering.eventNames?.length) {
+          input.LookupAttributes = [{
+            AttributeKey: 'EventName',
+            AttributeValue: this.cloudConfig.filtering.eventNames[0] // AWS API limitation: one filter at a time
+          }];
+        }
+        if (this.cloudConfig.filtering.userNames?.length) {
+          input.LookupAttributes = [{
+            AttributeKey: 'Username',
+            AttributeValue: this.cloudConfig.filtering.userNames[0]
+          }];
+        }
+      }
+
+      const command = new LookupEventsCommand(input);
+      const response = await this.awsCloudTrailClient.send(command);
+
+      if (response.Events) {
+        for (const awsEvent of response.Events) {
+          const cloudEvent: CloudEvent = {
+            eventId: awsEvent.EventId || `aws-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            eventName: awsEvent.EventName || 'UnknownEvent',
+            eventSource: awsEvent.EventSource || 'unknown.amazonaws.com',
+            eventTime: awsEvent.EventTime || new Date(),
+            userName: awsEvent.Username,
+            userIdentity: awsEvent.CloudTrailEvent ? 
+              JSON.parse(awsEvent.CloudTrailEvent).userIdentity || {} : {},
+            sourceIPAddress: awsEvent.CloudTrailEvent ? 
+              JSON.parse(awsEvent.CloudTrailEvent).sourceIPAddress : undefined,
+            userAgent: awsEvent.CloudTrailEvent ? 
+              JSON.parse(awsEvent.CloudTrailEvent).userAgent : undefined,
+            requestParameters: awsEvent.CloudTrailEvent ? 
+              JSON.parse(awsEvent.CloudTrailEvent).requestParameters || {} : {},
+            responseElements: awsEvent.CloudTrailEvent ? 
+              JSON.parse(awsEvent.CloudTrailEvent).responseElements || {} : {},
+            resources: awsEvent.Resources?.map(resource => ({
+              accountId: resource.ResourceName?.split(':')[4],
+              type: resource.ResourceType,
+              ARN: resource.ResourceName
+            })) || [],
+            errorCode: awsEvent.CloudTrailEvent ? 
+              JSON.parse(awsEvent.CloudTrailEvent).errorCode : undefined,
+            errorMessage: awsEvent.CloudTrailEvent ? 
+              JSON.parse(awsEvent.CloudTrailEvent).errorMessage : undefined,
+            rawEvent: awsEvent.CloudTrailEvent ? JSON.parse(awsEvent.CloudTrailEvent) : {}
+          };
+
+          events.push(cloudEvent);
+        }
+      }
+    } catch (error) {
+      console.error('Error collecting AWS CloudTrail events:', error);
+      throw new Error(`AWS CloudTrail collection failed: ${error.message}`);
+    }
+
     return events;
   }
 
   private async collectAzureActivityLogs(): Promise<CloudEvent[]> {
-    // Mock Azure Activity Logs implementation
-    const events: CloudEvent[] = [];
-    
-    const operationNames = [
-      'Microsoft.Authorization/roleAssignments/write',
-      'Microsoft.Compute/virtualMachines/write',
-      'Microsoft.Storage/storageAccounts/write',
-      'Microsoft.Resources/deployments/write',
-      'Microsoft.KeyVault/vaults/secrets/write'
-    ];
-    
-    const numEvents = Math.floor(Math.random() * 15) + 1;
-    
-    for (let i = 0; i < numEvents; i++) {
-      const operationName = operationNames[Math.floor(Math.random() * operationNames.length)];
-      
-      const event: CloudEvent = {
-        eventId: `azure-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        eventName: operationName,
-        eventSource: 'azure-activity',
-        eventTime: new Date(Date.now() - Math.random() * this.cloudConfig.polling.lookbackMs),
-        userName: `user${Math.floor(Math.random() * 100)}@contoso.com`,
-        userIdentity: {
-          claims: {
-            name: `user${Math.floor(Math.random() * 100)}@contoso.com`,
-            oid: `12345678-1234-1234-1234-123456789012`
-          }
-        },
-        sourceIPAddress: this.generateRandomIP(),
-        requestParameters: this.generateAzureRequestParameters(operationName),
-        resources: [{
-          type: this.getAzureResourceType(operationName),
-          ARN: this.generateAzureResourceId(operationName)
-        }],
-        rawEvent: {}
-      };
-      
-      if (Math.random() < 0.15) {
-        event.errorCode = 'Forbidden';
-        event.errorMessage = 'The client does not have authorization to perform action';
-      }
-      
-      event.rawEvent = { ...event };
-      events.push(event);
+    if (!this.azureLogsClient) {
+      throw new Error('Azure Logs client not initialized');
     }
-    
+
+    const events: CloudEvent[] = [];
+    const startTime = new Date(Date.now() - this.cloudConfig.polling.lookbackMs);
+    const endTime = new Date();
+
+    try {
+      // KQL query for Azure Activity Logs
+      let kqlQuery = `AzureActivity
+        | where TimeGenerated between(datetime('${startTime.toISOString()}') .. datetime('${endTime.toISOString()}'))
+        | limit ${this.cloudConfig.polling.maxEvents}`;
+
+      // Apply filtering if configured
+      if (this.cloudConfig.filtering) {
+        if (this.cloudConfig.filtering.eventNames?.length) {
+          const eventNames = this.cloudConfig.filtering.eventNames.map(name => `"${name}"`).join(', ');
+          kqlQuery += `\n| where OperationName in (${eventNames})`;
+        }
+        if (this.cloudConfig.filtering.userNames?.length) {
+          const userNames = this.cloudConfig.filtering.userNames.map(name => `"${name}"`).join(', ');
+          kqlQuery += `\n| where Caller in (${userNames})`;
+        }
+        if (this.cloudConfig.filtering.sourceIpAddresses?.length) {
+          const ips = this.cloudConfig.filtering.sourceIpAddresses.map(ip => `"${ip}"`).join(', ');
+          kqlQuery += `\n| where CallerIpAddress in (${ips})`;
+        }
+      }
+
+      kqlQuery += `\n| order by TimeGenerated desc`;
+
+      const response = await this.azureLogsClient.queryWorkspace(
+        this.cloudConfig.credentials.subscriptionId!,
+        kqlQuery,
+        { duration: 'PT1H' } // 1 hour timespan
+      );
+
+      if (response.tables && response.tables.length > 0) {
+        const table = response.tables[0];
+        const rows = table.rows;
+
+        for (const row of rows) {
+          // Map Azure Activity Log columns to CloudEvent
+          const rowData: any = {};
+          table.columns.forEach((column, index) => {
+            rowData[column.name] = row[index];
+          });
+
+          const cloudEvent: CloudEvent = {
+            eventId: rowData.CorrelationId || `azure-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            eventName: rowData.OperationName || 'UnknownOperation',
+            eventSource: 'azure-activity',
+            eventTime: new Date(rowData.TimeGenerated || new Date()),
+            userName: rowData.Caller,
+            userIdentity: {
+              claims: {
+                name: rowData.Caller,
+                oid: rowData.CallerId
+              },
+              authorization: rowData.Authorization
+            },
+            sourceIPAddress: rowData.CallerIpAddress,
+            requestParameters: {
+              resourceProvider: rowData.ResourceProvider,
+              resourceType: rowData.ResourceType,
+              operationVersion: rowData.OperationVersion,
+              subscriptionId: rowData.SubscriptionId,
+              resourceGroup: rowData.ResourceGroup
+            },
+            responseElements: {
+              status: rowData.ActivityStatus,
+              subStatus: rowData.ActivitySubstatus,
+              httpStatusCode: rowData.HTTPRequest
+            },
+            resources: [{
+              type: rowData.ResourceType,
+              ARN: rowData.ResourceId
+            }],
+            errorCode: rowData.ActivityStatus === 'Failed' ? 'ActivityFailed' : undefined,
+            errorMessage: rowData.ActivitySubstatus,
+            rawEvent: rowData
+          };
+
+          events.push(cloudEvent);
+        }
+      }
+    } catch (error) {
+      console.error('Error collecting Azure Activity Logs:', error);
+      throw new Error(`Azure Activity Logs collection failed: ${error.message}`);
+    }
+
     return events;
   }
 
   private async collectGcpAuditLogs(): Promise<CloudEvent[]> {
-    // Mock GCP Audit Logs implementation
-    const events: CloudEvent[] = [];
-    
-    const methodNames = [
-      'compute.instances.insert',
-      'compute.instances.delete',
-      'storage.buckets.create',
-      'iam.serviceAccounts.create',
-      'logging.logEntries.list'
-    ];
-    
-    const numEvents = Math.floor(Math.random() * 12) + 1;
-    
-    for (let i = 0; i < numEvents; i++) {
-      const methodName = methodNames[Math.floor(Math.random() * methodNames.length)];
-      
-      const event: CloudEvent = {
-        eventId: `gcp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        eventName: methodName,
-        eventSource: 'gcp-audit',
-        eventTime: new Date(Date.now() - Math.random() * this.cloudConfig.polling.lookbackMs),
-        userName: `user${Math.floor(Math.random() * 100)}@example.com`,
-        userIdentity: {
-          principalEmail: `user${Math.floor(Math.random() * 100)}@example.com`,
-          principalSubject: `${Math.floor(Math.random() * 1000000000000000000)}`
-        },
-        sourceIPAddress: this.generateRandomIP(),
-        requestParameters: this.generateGcpRequestParameters(methodName),
-        resources: [{
-          type: this.getGcpResourceType(methodName),
-          ARN: this.generateGcpResourceName(methodName)
-        }],
-        rawEvent: {}
-      };
-      
-      if (Math.random() < 0.12) {
-        event.errorCode = 'PERMISSION_DENIED';
-        event.errorMessage = 'The caller does not have permission';
-      }
-      
-      event.rawEvent = { ...event };
-      events.push(event);
+    if (!this.gcpLoggingClient) {
+      throw new Error('GCP Logging client not initialized');
     }
-    
+
+    const events: CloudEvent[] = [];
+    const startTime = new Date(Date.now() - this.cloudConfig.polling.lookbackMs);
+    const endTime = new Date();
+
+    try {
+      // Build filter for Cloud Audit Logs
+      let filter = `protoPayload.@type="type.googleapis.com/google.cloud.audit.AuditLog"
+        timestamp >= "${startTime.toISOString()}"
+        timestamp <= "${endTime.toISOString()}"`;
+
+      // Apply filtering if configured
+      if (this.cloudConfig.filtering) {
+        if (this.cloudConfig.filtering.eventNames?.length) {
+          const methodNames = this.cloudConfig.filtering.eventNames.map(name => `"${name}"`).join(' OR protoPayload.methodName=');
+          filter += `\n(protoPayload.methodName=${methodNames})`;
+        }
+        if (this.cloudConfig.filtering.userNames?.length) {
+          const userNames = this.cloudConfig.filtering.userNames.map(name => `"${name}"`).join(' OR protoPayload.authenticationInfo.principalEmail=');
+          filter += `\n(protoPayload.authenticationInfo.principalEmail=${userNames})`;
+        }
+        if (this.cloudConfig.filtering.sourceIpAddresses?.length) {
+          const ips = this.cloudConfig.filtering.sourceIpAddresses.map(ip => `"${ip}"`).join(' OR protoPayload.requestMetadata.callerIp=');
+          filter += `\n(protoPayload.requestMetadata.callerIp=${ips})`;
+        }
+      }
+
+      // Query logs using the Logging client
+      const [entries] = await this.gcpLoggingClient.getEntries({
+        filter,
+        pageSize: this.cloudConfig.polling.maxEvents,
+        orderBy: 'timestamp desc'
+      });
+
+      for (const entry of entries) {
+        const auditLog = entry.data as any;
+        const metadata = entry.metadata as any;
+
+        const cloudEvent: CloudEvent = {
+          eventId: metadata.insertId || `gcp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          eventName: auditLog.methodName || 'UnknownMethod',
+          eventSource: 'gcp-audit',
+          eventTime: new Date(metadata.timestamp || new Date()),
+          userName: auditLog.authenticationInfo?.principalEmail,
+          userIdentity: {
+            principalEmail: auditLog.authenticationInfo?.principalEmail,
+            principalSubject: auditLog.authenticationInfo?.principalSubject,
+            serviceAccount: auditLog.authenticationInfo?.serviceAccountKeyName
+          },
+          sourceIPAddress: auditLog.requestMetadata?.callerIp,
+          userAgent: auditLog.requestMetadata?.callerSuppliedUserAgent,
+          requestParameters: {
+            serviceName: auditLog.serviceName,
+            methodName: auditLog.methodName,
+            resourceName: auditLog.resourceName,
+            numResponseItems: auditLog.numResponseItems,
+            request: auditLog.request
+          },
+          responseElements: {
+            response: auditLog.response,
+            status: auditLog.status
+          },
+          resources: [{
+            type: this.extractGcpResourceType(auditLog.resourceName),
+            ARN: auditLog.resourceName
+          }],
+          errorCode: auditLog.status?.code ? `ERROR_${auditLog.status.code}` : undefined,
+          errorMessage: auditLog.status?.message,
+          rawEvent: {
+            auditLog,
+            metadata,
+            resource: entry.resource
+          }
+        };
+
+        events.push(cloudEvent);
+      }
+    } catch (error) {
+      console.error('Error collecting GCP Audit Logs:', error);
+      throw new Error(`GCP Audit Logs collection failed: ${error.message}`);
+    }
+
     return events;
+  }
+
+  private extractGcpResourceType(resourceName?: string): string {
+    if (!resourceName) return 'gcp_resource';
+    
+    if (resourceName.includes('/instances/')) return 'gce_instance';
+    if (resourceName.includes('/buckets/')) return 'gcs_bucket';
+    if (resourceName.includes('/serviceAccounts/')) return 'service_account';
+    if (resourceName.includes('/functions/')) return 'cloud_function';
+    if (resourceName.includes('/clusters/')) return 'gke_cluster';
+    
+    return 'gcp_resource';
   }
 
   private generateRandomIP(): string {
@@ -493,11 +656,45 @@ export class CloudTrailSource extends DataSource {
   }
 
   private async testCloudConnection(): Promise<boolean> {
-    // Mock connection test
     try {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      return Math.random() > 0.05; // 95% success rate
-    } catch {
+      switch (this.cloudConfig.provider) {
+        case 'aws':
+          if (!this.awsCloudTrailClient) return false;
+          // Test AWS connection with a simple describe call
+          const testCommand = new LookupEventsCommand({
+            MaxItems: 1,
+            StartTime: new Date(Date.now() - 60000), // Last minute
+            EndTime: new Date()
+          });
+          await this.awsCloudTrailClient.send(testCommand);
+          return true;
+
+        case 'azure':
+          if (!this.azureLogsClient) return false;
+          // Test Azure connection with a simple KQL query
+          const testQuery = 'AzureActivity | limit 1';
+          await this.azureLogsClient.queryWorkspace(
+            this.cloudConfig.credentials.subscriptionId!,
+            testQuery,
+            { duration: 'PT1M' }
+          );
+          return true;
+
+        case 'gcp':
+          if (!this.gcpLoggingClient) return false;
+          // Test GCP connection by listing entries
+          const testFilter = 'timestamp >= "' + new Date(Date.now() - 60000).toISOString() + '"';
+          await this.gcpLoggingClient.getEntries({
+            filter: testFilter,
+            pageSize: 1
+          });
+          return true;
+
+        default:
+          return false;
+      }
+    } catch (error) {
+      console.error(`Cloud connection test failed for ${this.cloudConfig.provider}:`, error.message);
       return false;
     }
   }

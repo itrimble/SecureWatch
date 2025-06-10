@@ -1,6 +1,6 @@
 # Task ID: 7
 # Title: Develop Threat Intelligence and Detection Engine
-# Status: completed
+# Status: pending
 # Dependencies: 3, 6
 # Priority: medium
 # Description: Create a comprehensive threat intelligence platform with multi-source integration, IOC management, and advanced detection capabilities including rule-based detection and behavioral analytics.

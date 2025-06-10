@@ -10,7 +10,9 @@ use crate::errors::{AgentError, Result};
 use crate::parsers::{ParsingEngine, ParsedEvent};
 use crate::resource_monitor::{ResourceMonitor, ResourceAlert};
 use crate::throttle::{AdaptiveThrottle, ThrottleEvent};
+use crate::resource_management::{ResourceManager, ResourceManagementConfig, ResourceManagementEvent};
 use crate::emergency_shutdown::{EmergencyShutdownCoordinator, ShutdownEvent, ShutdownState};
+use crate::security::{SecureCredentialManager, SecurityAuditEvent, CredentialRotationEvent};
 use crate::transport::SecureTransport;
 use crate::utils::AgentStats;
 use std::sync::Arc;
@@ -33,7 +35,9 @@ pub struct Agent {
     buffer: Option<EventBuffer>,
     resource_monitor: Option<ResourceMonitor>,
     throttle: Option<AdaptiveThrottle>,
+    resource_manager: Option<ResourceManager>,
     emergency_shutdown: Option<EmergencyShutdownCoordinator>,
+    security_manager: Option<SecureCredentialManager>,
     // management_server: Option<ManagementServer>, // Disabled for simplified build
     
     // Statistics and monitoring
@@ -66,7 +70,9 @@ impl Agent {
             buffer: None,
             resource_monitor: None,
             throttle: None,
+            resource_manager: None,
             emergency_shutdown: None,
+            security_manager: None,
             // management_server: None, // Disabled for simplified build
             stats,
             shutdown_sender: None,
@@ -151,10 +157,29 @@ impl Agent {
         self.throttle = Some(throttle);
         info!("🚦 Adaptive throttling initialized");
         
+        // Initialize comprehensive resource management (Task 17)
+        let resource_manager = ResourceManager::new(ResourceManagementConfig::default())?;
+        self.resource_manager = Some(resource_manager);
+        info!("🛠️ Comprehensive resource management initialized (Task 17 complete)");
+        
         // Initialize emergency shutdown coordinator
         let emergency_shutdown = EmergencyShutdownCoordinator::new(self.config.emergency_shutdown.clone())?;
         self.emergency_shutdown = Some(emergency_shutdown);
         info!("🚨 Emergency shutdown coordinator initialized");
+        
+        // Initialize security manager
+        let security_manager = SecureCredentialManager::new(self.config.security.clone()).await?;
+        
+        // Initialize with master password from environment
+        if let Ok(master_password) = std::env::var(&self.config.security.master_password_env) {
+            security_manager.initialize(&master_password).await?;
+            info!("🔐 Security manager initialized with master password");
+        } else {
+            warn!("⚠️ Master password not found in environment variable: {}", 
+                  self.config.security.master_password_env);
+            warn!("⚠️ Security manager initialized but not ready for use");
+        }
+        self.security_manager = Some(security_manager);
         
         // Initialize management server (disabled for simplified build)
         info!("🌐 Management server would be initialized here");
@@ -196,8 +221,14 @@ impl Agent {
         self.start_resource_monitoring(shutdown_sender.clone()).await?;
         self.start_adaptive_throttling(shutdown_sender.clone()).await?;
         
+        // Start comprehensive resource management (Task 17)
+        self.start_comprehensive_resource_management(shutdown_sender.clone()).await?;
+        
         // Start emergency shutdown monitoring
         self.start_emergency_shutdown_monitoring(shutdown_sender.clone()).await?;
+        
+        // Start security monitoring and credential rotation
+        self.start_security_monitoring(shutdown_sender.clone()).await?;
         
         info!("✅ All agent services started successfully");
         
@@ -436,6 +467,79 @@ impl Agent {
         Ok(())
     }
     
+    /// Start comprehensive resource management system (Task 17)
+    async fn start_comprehensive_resource_management(&self, shutdown_sender: tokio::sync::broadcast::Sender<()>) -> Result<()> {
+        if let (Some(resource_manager), Some(resource_monitor)) = (&self.resource_manager, &self.resource_monitor) {
+            // Get resource metrics broadcast receiver from resource monitor
+            let metrics_receiver = resource_monitor.subscribe_to_metrics();
+            let shutdown_receiver = shutdown_sender.subscribe();
+            
+            // Start comprehensive resource management
+            resource_manager.start(metrics_receiver, shutdown_receiver).await?;
+            
+            // Start resource management event handling
+            let mut rm_event_receiver = resource_manager.subscribe_to_events();
+            let agent_id = self.agent_id.clone();
+            
+            tokio::spawn(async move {
+                while let Ok(event) = rm_event_receiver.recv().await {
+                    match event.event_type {
+                        crate::resource_management::ResourceEventType::EmergencyModeActivated => {
+                            error!("🚨 [{}] EMERGENCY MODE ACTIVATED: {} (impact: {:.1}%)",
+                                   agent_id, event.description, event.impact.performance_impact);
+                        }
+                        crate::resource_management::ResourceEventType::MemoryLimitExceeded => {
+                            warn!("⚠️ [{}] Memory limit exceeded: {} (CPU: {:.1}%, Memory: {:.1}%)",
+                                  agent_id, event.description, 
+                                  event.metrics.cpu.current_usage, event.metrics.memory.usage_percentage);
+                        }
+                        crate::resource_management::ResourceEventType::CpuThrottlingActivated => {
+                            warn!("🔥 [{}] CPU throttling activated: {} (level: {})",
+                                  agent_id, event.description, event.metrics.cpu.throttle_level);
+                        }
+                        crate::resource_management::ResourceEventType::RateLimitTriggered => {
+                            info!("🚦 [{}] Rate limit triggered: {} (denied: {})",
+                                  agent_id, event.description, event.metrics.rate_limiting.denied_requests);
+                        }
+                        crate::resource_management::ResourceEventType::MemoryPressureDetected => {
+                            match event.metrics.pressure.pressure_level {
+                                crate::resource_management::MemoryPressureLevel::Critical => {
+                                    error!("🧠 [{}] CRITICAL memory pressure: {} (score: {:.1})",
+                                           agent_id, event.description, event.metrics.pressure.pressure_score);
+                                }
+                                crate::resource_management::MemoryPressureLevel::High => {
+                                    warn!("🧠 [{}] High memory pressure: {} (score: {:.1})",
+                                          agent_id, event.description, event.metrics.pressure.pressure_score);
+                                }
+                                _ => {
+                                    info!("🧠 [{}] Memory pressure: {} (level: {:?})",
+                                          agent_id, event.description, event.metrics.pressure.pressure_level);
+                                }
+                            }
+                        }
+                        crate::resource_management::ResourceEventType::OptimizationApplied => {
+                            info!("⚡ [{}] Resource optimization: {} (efficiency: {:.1}%, savings: {:.1}% CPU, {} bytes memory)",
+                                  agent_id, event.description, 
+                                  event.metrics.optimization.efficiency_score,
+                                  event.metrics.optimization.resource_savings.cpu_savings_percent,
+                                  event.metrics.optimization.resource_savings.memory_savings_bytes);
+                        }
+                        crate::resource_management::ResourceEventType::ResourceRecovery => {
+                            info!("✅ [{}] Resource recovery: {} (estimated time: {:?})",
+                                  agent_id, event.description, event.impact.recovery_time_estimate);
+                        }
+                    }
+                }
+            });
+            
+            info!("🛠️ Comprehensive resource management started with event handling (Task 17 complete)");
+        } else {
+            warn!("⚠️ Resource manager or resource monitor not initialized, skipping resource management");
+        }
+        
+        Ok(())
+    }
+    
     async fn start_emergency_shutdown_monitoring(&self, shutdown_sender: tokio::sync::broadcast::Sender<()>) -> Result<()> {
         if let (Some(emergency_shutdown), Some(resource_monitor)) = (&self.emergency_shutdown, &self.resource_monitor) {
             // Get alert and metrics receivers from resource monitor
@@ -543,6 +647,94 @@ impl Agent {
         }
     }
     
+    async fn start_security_monitoring(&self, shutdown_sender: tokio::sync::broadcast::Sender<()>) -> Result<()> {
+        if let Some(security_manager) = &self.security_manager {
+            // Start credential rotation monitoring
+            let rotation_shutdown_receiver = shutdown_sender.subscribe();
+            security_manager.start_rotation_monitoring(rotation_shutdown_receiver).await?;
+            
+            // Start security event monitoring
+            let mut rotation_event_receiver = security_manager.subscribe_to_rotation_events();
+            let mut audit_event_receiver = security_manager.subscribe_to_audit_events();
+            let agent_id = self.agent_id.clone();
+            let stats = self.stats.clone();
+            
+            tokio::spawn(async move {
+                let mut shutdown_receiver = shutdown_sender.subscribe();
+                
+                loop {
+                    tokio::select! {
+                        // Handle credential rotation events
+                        rotation_result = rotation_event_receiver.recv() => {
+                            if let Ok(event) = rotation_result {
+                                match event.event_type {
+                                    crate::security::RotationEventType::AutomaticRotation => {
+                                        info!("🔄 Automatic credential rotation: {}", event.credential_id);
+                                    }
+                                    crate::security::RotationEventType::ManualRotation => {
+                                        info!("🔄 Manual credential rotation: {}", event.credential_id);
+                                    }
+                                    crate::security::RotationEventType::EmergencyRotation => {
+                                        warn!("⚠️ Emergency credential rotation: {}", event.credential_id);
+                                    }
+                                    crate::security::RotationEventType::ExpirationWarning => {
+                                        warn!("⏰ Credential expiration warning: {}", event.credential_id);
+                                    }
+                                    _ => {
+                                        debug!("🔐 Security rotation event: {:?}", event.event_type);
+                                    }
+                                }
+                                
+                                if !event.success {
+                                    error!("❌ Credential rotation failed: {} - {}", event.credential_id, event.reason);
+                                }
+                            }
+                        }
+                        
+                        // Handle security audit events
+                        audit_result = audit_event_receiver.recv() => {
+                            if let Ok(event) = audit_result {
+                                match event.risk_level {
+                                    crate::security::RiskLevel::Critical => {
+                                        error!("🚨 CRITICAL security event: {:?} - {}", event.event_type, event.details);
+                                    }
+                                    crate::security::RiskLevel::High => {
+                                        warn!("⚠️ HIGH risk security event: {:?} - {}", event.event_type, event.details);
+                                    }
+                                    crate::security::RiskLevel::Medium => {
+                                        info!("🔒 Security event: {:?} - {}", event.event_type, event.details);
+                                    }
+                                    crate::security::RiskLevel::Low => {
+                                        debug!("🔐 Security audit: {:?} - {}", event.event_type, event.details);
+                                    }
+                                }
+                                
+                                // Update statistics for security events
+                                if !event.success && matches!(event.risk_level, crate::security::RiskLevel::High | crate::security::RiskLevel::Critical) {
+                                    if let Ok(mut stats_guard) = stats.try_write() {
+                                        stats_guard.errors += 1;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Handle shutdown
+                        _ = shutdown_receiver.recv() => {
+                            info!("🛑 Security monitoring shutting down for agent: {}", agent_id);
+                            break;
+                        }
+                    }
+                }
+            });
+            
+            info!("🔐 Security monitoring and credential rotation started");
+        } else {
+            warn!("⚠️ Security manager not initialized, skipping security monitoring");
+        }
+        
+        Ok(())
+    }
+
     pub fn get_agent_id(&self) -> &str {
         &self.agent_id
     }
@@ -584,6 +776,61 @@ impl Agent {
             emergency_shutdown.abort_shutdown().await
         } else {
             Err(AgentError::Configuration("Emergency shutdown not initialized".to_string()))
+        }
+    }
+    
+    pub async fn get_security_stats(&self) -> Option<crate::security::SecurityStats> {
+        if let Some(security_manager) = &self.security_manager {
+            Some(security_manager.get_stats().await)
+        } else {
+            None
+        }
+    }
+    
+    pub async fn store_credential(
+        &self,
+        id: String,
+        credential_type: crate::security::CredentialType,
+        value: &str,
+        metadata: Option<std::collections::HashMap<String, String>>,
+        manual_rotation_only: bool,
+    ) -> Result<()> {
+        if let Some(security_manager) = &self.security_manager {
+            security_manager.store_credential(id, credential_type, value, metadata, manual_rotation_only).await
+        } else {
+            Err(AgentError::Configuration("Security manager not initialized".to_string()))
+        }
+    }
+    
+    pub async fn get_credential(&self, id: &str) -> Result<String> {
+        if let Some(security_manager) = &self.security_manager {
+            security_manager.get_credential(id).await
+        } else {
+            Err(AgentError::Configuration("Security manager not initialized".to_string()))
+        }
+    }
+    
+    pub async fn rotate_credential(&self, id: &str, new_value: &str) -> Result<()> {
+        if let Some(security_manager) = &self.security_manager {
+            security_manager.rotate_credential(id, new_value).await
+        } else {
+            Err(AgentError::Configuration("Security manager not initialized".to_string()))
+        }
+    }
+    
+    pub async fn list_credentials(&self) -> Vec<(String, crate::security::CredentialType, std::collections::HashMap<String, String>)> {
+        if let Some(security_manager) = &self.security_manager {
+            security_manager.list_credentials().await
+        } else {
+            Vec::new()
+        }
+    }
+    
+    pub async fn delete_credential(&self, id: &str) -> Result<()> {
+        if let Some(security_manager) = &self.security_manager {
+            security_manager.delete_credential(id).await
+        } else {
+            Err(AgentError::Configuration("Security manager not initialized".to_string()))
         }
     }
 }

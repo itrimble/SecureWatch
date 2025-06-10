@@ -2,6 +2,7 @@ import { Router } from 'express';
 import passport from 'passport';
 import { AuthController } from '../controllers/auth.controller';
 import { MFAController } from '../controllers/mfa.controller';
+import { AuthService } from '../services/auth.service';
 import { authenticate, authorize } from '../middleware/rbac.middleware';
 import { rateLimiter } from '../middleware/rate-limiter.middleware';
 
@@ -79,6 +80,24 @@ router.get('/oauth/microsoft',
 
 router.get('/oauth/microsoft/callback',
   passport.authenticate('microsoft', { failureRedirect: '/auth/login' }),
+  async (req, res) => {
+    // Handle successful OAuth login
+    const user = req.user as any;
+    const tokens = await AuthService.generateTokensForUser(user);
+    
+    // Redirect to frontend with tokens
+    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${tokens.accessToken}`);
+  }
+);
+
+router.get('/oauth/okta',
+  passport.authenticate('okta', { 
+    scope: 'openid profile email' 
+  })
+);
+
+router.get('/oauth/okta/callback',
+  passport.authenticate('okta', { failureRedirect: '/auth/login' }),
   async (req, res) => {
     // Handle successful OAuth login
     const user = req.user as any;

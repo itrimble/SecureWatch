@@ -19,6 +19,8 @@ export { SplunkUFParser } from './SplunkUFParser';
 export { SquidProxyParser } from './SquidProxyParser';
 export { VMwareESXiParser } from './VMwareESXiParser';
 export { ZscalerCloudSecurityParser } from './ZscalerCloudSecurityParser';
+export { LEEFParser } from './LEEFParser';
+export { EnhancedJSONParser } from './EnhancedJSONParser';
 export { AzureActivityLogsParser } from './AzureActivityParsers';
 export { GoogleCloudAuditLogsParser } from './GoogleCloudAuditLogsParser';
 export { Microsoft365EntraIDParser } from './Microsoft365EntraIDParser';

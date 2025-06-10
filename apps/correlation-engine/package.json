@@ -5,8 +5,10 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.minimal.ts",
+    "dev:enhanced": "tsx watch src/index-enhanced.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "start:enhanced": "node dist/index-enhanced.js",
     "test": "jest",
     "lint": "eslint src --ext .ts,.tsx"
   },
@@ -22,7 +24,10 @@
     "lodash": "^4.17.21",
     "node-cron": "^3.0.3",
     "p-queue": "^7.4.1",
-    "axios": "^1.6.2"
+    "axios": "^1.6.2",
+    "cors": "^2.8.5",
+    "helmet": "^8.0.0",
+    "compression": "^1.7.4"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",
@@ -31,6 +36,8 @@
     "@types/uuid": "^9.0.7",
     "@types/lodash": "^4.14.202",
     "@types/node-cron": "^3.0.11",
+    "@types/cors": "^2.8.17",
+    "@types/compression": "^1.7.5",
     "typescript": "^5.3.2",
     "tsx": "^4.6.2",
     "@types/jest": "^29.5.10",

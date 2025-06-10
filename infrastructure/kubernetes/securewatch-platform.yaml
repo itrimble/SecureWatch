@@ -691,6 +691,545 @@ spec:
         periodSeconds: 120
 
 ---
+# Missing Services: correlation-engine, query-processor, mcp-marketplace, hec-service
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-correlation-engine
+  namespace: securewatch
+  labels:
+    app: securewatch-correlation-engine
+    component: correlation
+    tier: backend
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: securewatch-correlation-engine
+  template:
+    metadata:
+      labels:
+        app: securewatch-correlation-engine
+        component: correlation
+        tier: backend
+      annotations:
+        securewatch.io/horizontal-scaling: "enabled"
+        securewatch.io/min-replicas: "2"
+        securewatch.io/max-replicas: "30"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "7000"
+    spec:
+      serviceAccountName: securewatch-service-account
+      containers:
+      - name: correlation-engine
+        image: securewatch/correlation-engine:v1.0.0
+        ports:
+        - containerPort: 7000
+          name: http
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 2Gi
+          limits:
+            cpu: 4000m
+            memory: 8Gi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 7000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 7000
+          initialDelaySeconds: 45
+          periodSeconds: 15
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "7000"
+        - name: KAFKA_BROKERS
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: kafka_brokers
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: redis_host
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: db_host
+        - name: CORRELATION_RULES_PATH
+          value: "/app/rules"
+        volumeMounts:
+        - name: correlation-rules
+          mountPath: /app/rules
+      volumes:
+      - name: correlation-rules
+        configMap:
+          name: correlation-rules-config
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-query-processor
+  namespace: securewatch
+  labels:
+    app: securewatch-query-processor
+    component: query
+    tier: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: securewatch-query-processor
+  template:
+    metadata:
+      labels:
+        app: securewatch-query-processor
+        component: query
+        tier: backend
+      annotations:
+        securewatch.io/horizontal-scaling: "enabled"
+        securewatch.io/min-replicas: "2"
+        securewatch.io/max-replicas: "20"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      serviceAccountName: securewatch-service-account
+      containers:
+      - name: query-processor
+        image: securewatch/query-processor:v1.0.0
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 8001
+          name: websocket
+        resources:
+          requests:
+            cpu: 800m
+            memory: 1Gi
+          limits:
+            cpu: 3000m
+            memory: 4Gi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8000"
+        - name: WS_PORT
+          value: "8001"
+        - name: ELASTICSEARCH_HOST
+          value: "elasticsearch-cluster.securewatch.svc.cluster.local:9200"
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: redis_host
+        - name: QUERY_TIMEOUT
+          value: "30000"
+        - name: MAX_CONCURRENT_QUERIES
+          value: "100"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-mcp-marketplace
+  namespace: securewatch
+  labels:
+    app: securewatch-mcp-marketplace
+    component: marketplace
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: securewatch-mcp-marketplace
+  template:
+    metadata:
+      labels:
+        app: securewatch-mcp-marketplace
+        component: marketplace
+        tier: backend
+      annotations:
+        securewatch.io/horizontal-scaling: "enabled"
+        securewatch.io/min-replicas: "1"
+        securewatch.io/max-replicas: "10"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9000"
+    spec:
+      serviceAccountName: securewatch-service-account
+      containers:
+      - name: mcp-marketplace
+        image: securewatch/mcp-marketplace:v1.0.0
+        ports:
+        - containerPort: 9000
+          name: http
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "9000"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: db_host
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: securewatch-secrets
+              key: db_password
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: redis_host
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securewatch-hec-service
+  namespace: securewatch
+  labels:
+    app: securewatch-hec-service
+    component: hec
+    tier: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: securewatch-hec-service
+  template:
+    metadata:
+      labels:
+        app: securewatch-hec-service
+        component: hec
+        tier: backend
+      annotations:
+        securewatch.io/horizontal-scaling: "enabled"
+        securewatch.io/min-replicas: "2"
+        securewatch.io/max-replicas: "25"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8088"
+    spec:
+      serviceAccountName: securewatch-service-account
+      containers:
+      - name: hec-service
+        image: securewatch/hec-service:v1.0.0
+        ports:
+        - containerPort: 8088
+          name: hec
+        - containerPort: 8089
+          name: hec-ssl
+        resources:
+          requests:
+            cpu: 400m
+            memory: 512Mi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+        readinessProbe:
+          httpGet:
+            path: /services/collector/health
+            port: 8088
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /services/collector/health
+            port: 8088
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: HEC_PORT
+          value: "8088"
+        - name: HEC_SSL_PORT
+          value: "8089"
+        - name: KAFKA_BROKERS
+          valueFrom:
+            configMapKeyRef:
+              name: securewatch-config
+              key: kafka_brokers
+        - name: TOKEN_VALIDATION
+          value: "true"
+        - name: MAX_CONTENT_LENGTH
+          value: "100MB"
+        - name: BATCH_SIZE
+          value: "1000"
+        volumeMounts:
+        - name: hec-certs
+          mountPath: /app/certs
+          readOnly: true
+      volumes:
+      - name: hec-certs
+        secret:
+          secretName: hec-tls-certs
+
+---
+# Services for missing components
+apiVersion: v1
+kind: Service
+metadata:
+  name: securewatch-correlation-engine
+  namespace: securewatch
+  labels:
+    app: securewatch-correlation-engine
+spec:
+  selector:
+    app: securewatch-correlation-engine
+  ports:
+  - port: 7000
+    targetPort: 7000
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: securewatch-query-processor
+  namespace: securewatch
+  labels:
+    app: securewatch-query-processor
+spec:
+  selector:
+    app: securewatch-query-processor
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  - name: websocket
+    port: 8001
+    targetPort: 8001
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: securewatch-mcp-marketplace
+  namespace: securewatch
+  labels:
+    app: securewatch-mcp-marketplace
+spec:
+  selector:
+    app: securewatch-mcp-marketplace
+  ports:
+  - port: 9000
+    targetPort: 9000
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: securewatch-hec-service
+  namespace: securewatch
+  labels:
+    app: securewatch-hec-service
+spec:
+  selector:
+    app: securewatch-hec-service
+  ports:
+  - name: hec
+    port: 8088
+    targetPort: 8088
+  - name: hec-ssl
+    port: 8089
+    targetPort: 8089
+  type: LoadBalancer
+
+---
+# Additional HPAs for new services
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: securewatch-correlation-engine-hpa
+  namespace: securewatch
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: securewatch-correlation-engine
+  minReplicas: 2
+  maxReplicas: 30
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 65
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 75
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: securewatch-query-processor-hpa
+  namespace: securewatch
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: securewatch-query-processor
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Network Policies for Security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: securewatch-network-policy
+  namespace: securewatch
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: securewatch
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: securewatch
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 9200
+
+---
+# Pod Disruption Budgets
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: securewatch-api-gateway-pdb
+  namespace: securewatch
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: securewatch-api-gateway
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: securewatch-log-ingestion-pdb
+  namespace: securewatch
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app: securewatch-log-ingestion
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: securewatch-correlation-engine-pdb
+  namespace: securewatch
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: securewatch-correlation-engine
+
+---
+# Resource Quotas
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: securewatch-resource-quota
+  namespace: securewatch
+spec:
+  hard:
+    requests.cpu: "50"
+    requests.memory: 100Gi
+    limits.cpu: "200"
+    limits.memory: 400Gi
+    persistentvolumeclaims: "10"
+    services: "20"
+    pods: "100"
+
+---
 # Persistent Volume Claims
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -703,4 +1242,18 @@ spec:
   resources:
     requests:
       storage: 50Gi
+  storageClassName: fast-ssd
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: correlation-rules-pvc
+  namespace: securewatch
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
   storageClassName: fast-ssd

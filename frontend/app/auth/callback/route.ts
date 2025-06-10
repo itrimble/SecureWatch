@@ -1,21 +1,51 @@
-import { createClient } from '@/lib/supabase/client'
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
+  const token = searchParams.get('token')
+  const error = searchParams.get('error')
+  const next = searchParams.get('next') ?? '/dashboard'
 
-  if (code) {
-    const supabase = createClient()
-    if (supabase) {
-      const { error } = await supabase.auth.exchangeCodeForSession(code)
-      if (!error) {
-        return NextResponse.redirect(`${origin}${next}`)
+  // Handle OAuth error
+  if (error) {
+    return NextResponse.redirect(`${origin}/auth?error=${encodeURIComponent(error)}`)
+  }
+
+  // Handle successful OAuth login
+  if (token) {
+    try {
+      // Set the token as an HTTP-only cookie
+      const response = NextResponse.redirect(`${origin}${next}`)
+      
+      // Set secure HTTP-only cookie
+      response.cookies.set('auth-token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        path: '/',
+      })
+
+      // Also set user info if available
+      const userInfo = searchParams.get('user')
+      if (userInfo) {
+        response.cookies.set('user-info', userInfo, {
+          httpOnly: false, // Allow client-side access for user info
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+          path: '/',
+        })
       }
+
+      return response
+    } catch (error) {
+      console.error('OAuth callback error:', error)
+      return NextResponse.redirect(`${origin}/auth?error=callback_failed`)
     }
   }
 
-  // Return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  // No token provided - redirect to login
+  return NextResponse.redirect(`${origin}/auth?error=no_token`)
 }

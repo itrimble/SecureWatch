@@ -611,3 +611,65 @@ events:
         
       exitCode: 0
 ...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "aws-lc/CMakeLists.txt:292 (try_compile)"
+      - "aws-lc/CMakeLists.txt:514 (check_compiler)"
+    directories:
+      source: "/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/aws-lc/CMakeFiles/CMakeTmp"
+      binary: "/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/aws-lc/CMakeFiles/CMakeTmp"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: "x86_64"
+    buildResult:
+      variable: "RESULT"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/aws-lc/CMakeFiles/CMakeTmp'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_546bd/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_546bd.dir/build.make CMakeFiles/cmTC_546bd.dir/build
+        Building C object CMakeFiles/cmTC_546bd.dir/stdalign_check.c.obj
+        /usr/local/bin/x86_64-w64-mingw32-gcc   -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes    -Werror -o CMakeFiles/cmTC_546bd.dir/stdalign_check.c.obj -c /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/aws-lc/tests/compiler_features_tests/stdalign_check.c
+        Linking C executable cmTC_546bd.exe
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_546bd.dir/link.txt --verbose=1
+        /usr/local/bin/cmake -E rm -f CMakeFiles/cmTC_546bd.dir/objects.a
+        /usr/local/bin/x86_64-w64-mingw32-ar qc CMakeFiles/cmTC_546bd.dir/objects.a @CMakeFiles/cmTC_546bd.dir/objects1.rsp
+        /usr/local/bin/x86_64-w64-mingw32-gcc  -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes  -Wl,--whole-archive CMakeFiles/cmTC_546bd.dir/objects.a -Wl,--no-whole-archive -o cmTC_546bd.exe -Wl,--out-implib,libcmTC_546bd.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles/cmTC_546bd.dir/linkLibs.rsp
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "aws-lc/CMakeLists.txt:292 (try_compile)"
+      - "aws-lc/CMakeLists.txt:515 (check_compiler)"
+    directories:
+      source: "/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/aws-lc/CMakeFiles/CMakeTmp"
+      binary: "/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/aws-lc/CMakeFiles/CMakeTmp"
+    cmakeVariables:
+      CMAKE_C_FLAGS: " -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: "x86_64"
+    buildResult:
+      variable: "RESULT"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/ian/Scripts/SecureWatch/agent-rust/target/x86_64-pc-windows-gnu/release/build/aws-lc-sys-b3651b6bd0e4e463/out/build/aws-lc/CMakeFiles/CMakeTmp'
+        
+        Run Build Command(s): /usr/local/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_2fa6b/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_2fa6b.dir/build.make CMakeFiles/cmTC_2fa6b.dir/build
+        Building C object CMakeFiles/cmTC_2fa6b.dir/builtin_swap_check.c.obj
+        /usr/local/bin/x86_64-w64-mingw32-gcc   -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes    -Werror -o CMakeFiles/cmTC_2fa6b.dir/builtin_swap_check.c.obj -c /Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0/aws-lc/tests/compiler_features_tests/builtin_swap_check.c
+        Linking C executable cmTC_2fa6b.exe
+        /usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_2fa6b.dir/link.txt --verbose=1
+        /usr/local/bin/cmake -E rm -f CMakeFiles/cmTC_2fa6b.dir/objects.a
+        /usr/local/bin/x86_64-w64-mingw32-ar qc CMakeFiles/cmTC_2fa6b.dir/objects.a @CMakeFiles/cmTC_2fa6b.dir/objects1.rsp
+        /usr/local/bin/x86_64-w64-mingw32-gcc  -ffile-prefix-map=/Users/ian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.29.0= -ffunction-sections -fdata-sections -m64 -Wredundant-decls -Wextra -Wunused -Wcomment -Wchar-subscripts -Wuninitialized -Wshadow -Wwrite-strings -Wformat-security -Wunused-result -Wno-overlength-strings -Wno-cast-function-type  -Wall -fvisibility=hidden -fno-common -Wno-c11-extensions -Wvla -Wtype-limits -Wno-unused-parameter -Werror -Wformat=2 -Wsign-compare -Wmissing-field-initializers -Wwrite-strings -Wno-free-nonheap-object -Wmissing-braces -Wimplicit-fallthrough -Wmissing-prototypes -Wold-style-definition -Wstrict-prototypes  -Wl,--whole-archive CMakeFiles/cmTC_2fa6b.dir/objects.a -Wl,--no-whole-archive -o cmTC_2fa6b.exe -Wl,--out-implib,libcmTC_2fa6b.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles/cmTC_2fa6b.dir/linkLibs.rsp
+        
+      exitCode: 0
+...

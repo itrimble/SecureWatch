@@ -11,6 +11,7 @@ pub struct AgentStats {
     pub events_dropped: u64,
     pub bytes_processed: u64,
     pub bytes_sent: u64,
+    pub errors: u64,
     #[serde(skip)]
     pub start_time: Instant,
     #[serde(skip)]
@@ -26,6 +27,7 @@ impl AgentStats {
             events_dropped: 0,
             bytes_processed: 0,
             bytes_sent: 0,
+            errors: 0,
             start_time: Instant::now(),
             last_activity: None,
         }

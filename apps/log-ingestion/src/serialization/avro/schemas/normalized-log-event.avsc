@@ -1,0 +1,385 @@
+{
+  "type": "record",
+  "name": "NormalizedLogEvent",
+  "namespace": "com.securewatch.logevent.avro",
+  "doc": "Normalized log event with schema evolution support for SecureWatch SIEM",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "doc": "Unique identifier for the log event"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "Event timestamp in milliseconds since epoch"
+    },
+    {
+      "name": "source",
+      "type": {
+        "type": "enum",
+        "name": "LogSource",
+        "symbols": [
+          "UNKNOWN",
+          "WINDOWS_EVENT_LOG",
+          "SYSLOG", 
+          "AWS_CLOUDTRAIL",
+          "AZURE_ACTIVITY",
+          "GCP_LOGGING",
+          "OFFICE365",
+          "FIREWALL",
+          "IDS_IPS",
+          "ENDPOINT",
+          "APPLICATION",
+          "CSV",
+          "XML",
+          "JSON",
+          "CUSTOM"
+        ]
+      },
+      "doc": "Source system that generated the log event"
+    },
+    {
+      "name": "severity",
+      "type": {
+        "type": "enum",
+        "name": "LogSeverity",
+        "symbols": [
+          "UNKNOWN",
+          "CRITICAL",
+          "HIGH",
+          "MEDIUM", 
+          "LOW",
+          "INFO",
+          "DEBUG"
+        ]
+      },
+      "doc": "Severity level of the log event"
+    },
+    {
+      "name": "category",
+      "type": {
+        "type": "enum",
+        "name": "LogCategory",
+        "symbols": [
+          "UNKNOWN",
+          "AUTHENTICATION",
+          "AUTHORIZATION",
+          "SYSTEM",
+          "APPLICATION",
+          "SECURITY",
+          "NETWORK",
+          "FILE",
+          "PROCESS",
+          "REGISTRY",
+          "AUDIT",
+          "THREAT",
+          "COMPLIANCE"
+        ]
+      },
+      "doc": "Category classification of the log event"
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "doc": "Human-readable message describing the event"
+    },
+    {
+      "name": "fields",
+      "type": {
+        "type": "map",
+        "values": ["null", "string", "long", "double", "boolean"]
+      },
+      "doc": "Dynamic fields extracted from the log event",
+      "default": {}
+    },
+    {
+      "name": "tags",
+      "type": {
+        "type": "array",
+        "items": "string"
+      },
+      "doc": "Tags applied to the log event for categorization",
+      "default": []
+    },
+    {
+      "name": "host",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "HostInfo",
+          "fields": [
+            {
+              "name": "hostname",
+              "type": "string",
+              "doc": "Hostname of the source system"
+            },
+            {
+              "name": "ip",
+              "type": {
+                "type": "array",
+                "items": "string"
+              },
+              "doc": "IP addresses of the host",
+              "default": []
+            },
+            {
+              "name": "mac",
+              "type": {
+                "type": "array", 
+                "items": "string"
+              },
+              "doc": "MAC addresses of the host",
+              "default": []
+            },
+            {
+              "name": "os",
+              "type": [
+                "null",
+                {
+                  "type": "record",
+                  "name": "OSInfo",
+                  "fields": [
+                    {"name": "name", "type": "string"},
+                    {"name": "version", "type": "string"},
+                    {"name": "architecture", "type": "string"}
+                  ]
+                }
+              ],
+              "default": null
+            },
+            {
+              "name": "domain",
+              "type": ["null", "string"],
+              "default": null
+            },
+            {
+              "name": "fqdn",
+              "type": ["null", "string"],
+              "default": null
+            }
+          ]
+        }
+      ],
+      "doc": "Information about the host that generated the event",
+      "default": null
+    },
+    {
+      "name": "process",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "ProcessInfo",
+          "fields": [
+            {"name": "pid", "type": "int"},
+            {"name": "name", "type": "string"},
+            {"name": "path", "type": ["null", "string"], "default": null},
+            {"name": "commandLine", "type": ["null", "string"], "default": null},
+            {"name": "parentPid", "type": ["null", "int"], "default": null},
+            {"name": "parentName", "type": ["null", "string"], "default": null},
+            {"name": "user", "type": ["null", "string"], "default": null},
+            {"name": "startTime", "type": ["null", "long"], "logicalType": "timestamp-millis", "default": null},
+            {
+              "name": "hash",
+              "type": [
+                "null",
+                {
+                  "type": "record",
+                  "name": "HashInfo",
+                  "fields": [
+                    {"name": "md5", "type": ["null", "string"], "default": null},
+                    {"name": "sha1", "type": ["null", "string"], "default": null},
+                    {"name": "sha256", "type": ["null", "string"], "default": null}
+                  ]
+                }
+              ],
+              "default": null
+            }
+          ]
+        }
+      ],
+      "doc": "Information about the process that generated the event",
+      "default": null
+    },
+    {
+      "name": "user",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "UserInfo", 
+          "fields": [
+            {"name": "username", "type": "string"},
+            {"name": "userId", "type": ["null", "string"], "default": null},
+            {"name": "domain", "type": ["null", "string"], "default": null},
+            {"name": "email", "type": ["null", "string"], "default": null},
+            {"name": "groups", "type": {"type": "array", "items": "string"}, "default": []},
+            {"name": "privileges", "type": {"type": "array", "items": "string"}, "default": []}
+          ]
+        }
+      ],
+      "doc": "Information about the user associated with the event",
+      "default": null
+    },
+    {
+      "name": "network",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "NetworkInfo",
+          "fields": [
+            {"name": "protocol", "type": ["null", "string"], "default": null},
+            {"name": "sourceIp", "type": ["null", "string"], "default": null},
+            {"name": "sourcePort", "type": ["null", "int"], "default": null},
+            {"name": "destinationIp", "type": ["null", "string"], "default": null},
+            {"name": "destinationPort", "type": ["null", "int"], "default": null},
+            {
+              "name": "direction",
+              "type": ["null", {"type": "enum", "name": "NetworkDirection", "symbols": ["INBOUND", "OUTBOUND", "INTERNAL"]}],
+              "default": null
+            },
+            {"name": "bytesIn", "type": ["null", "long"], "default": null},
+            {"name": "bytesOut", "type": ["null", "long"], "default": null},
+            {"name": "packetsIn", "type": ["null", "long"], "default": null},
+            {"name": "packetsOut", "type": ["null", "long"], "default": null}
+          ]
+        }
+      ],
+      "doc": "Network-related information for the event",
+      "default": null
+    },
+    {
+      "name": "file",
+      "type": [
+        "null", 
+        {
+          "type": "record",
+          "name": "FileInfo",
+          "fields": [
+            {"name": "path", "type": "string"},
+            {"name": "name", "type": "string"},
+            {"name": "extension", "type": ["null", "string"], "default": null},
+            {"name": "size", "type": ["null", "long"], "default": null},
+            {"name": "hash", "type": ["null", "HashInfo"], "default": null},
+            {"name": "permissions", "type": ["null", "string"], "default": null},
+            {"name": "owner", "type": ["null", "string"], "default": null},
+            {"name": "createdAt", "type": ["null", "long"], "logicalType": "timestamp-millis", "default": null},
+            {"name": "modifiedAt", "type": ["null", "long"], "logicalType": "timestamp-millis", "default": null},
+            {"name": "accessedAt", "type": ["null", "long"], "logicalType": "timestamp-millis", "default": null}
+          ]
+        }
+      ],
+      "doc": "File-related information for the event",
+      "default": null
+    },
+    {
+      "name": "registry",
+      "type": [
+        "null",
+        {
+          "type": "record", 
+          "name": "RegistryInfo",
+          "fields": [
+            {"name": "key", "type": "string"},
+            {"name": "value", "type": ["null", "string"], "default": null},
+            {
+              "name": "operation",
+              "type": ["null", {"type": "enum", "name": "RegistryOperation", "symbols": ["CREATE", "MODIFY", "DELETE", "READ"]}],
+              "default": null
+            },
+            {"name": "oldValue", "type": ["null", "string"], "default": null},
+            {"name": "dataType", "type": ["null", "string"], "default": null}
+          ]
+        }
+      ],
+      "doc": "Windows registry-related information",
+      "default": null
+    },
+    {
+      "name": "metadata",
+      "type": {
+        "type": "record",
+        "name": "LogMetadata",
+        "fields": [
+          {"name": "ingestionId", "type": "string"},
+          {"name": "ingestionTime", "type": "long", "logicalType": "timestamp-millis"},
+          {"name": "collector", "type": "string"},
+          {"name": "collectorVersion", "type": "string"},
+          {"name": "organizationId", "type": "string"},
+          {"name": "tenantId", "type": ["null", "string"], "default": null},
+          {"name": "dataCenter", "type": ["null", "string"], "default": null},
+          {"name": "environment", "type": ["null", "string"], "default": null},
+          {
+            "name": "retention",
+            "type": {
+              "type": "record",
+              "name": "RetentionPolicy",
+              "fields": [
+                {
+                  "name": "tier",
+                  "type": {"type": "enum", "name": "StorageTier", "symbols": ["HOT", "WARM", "COLD", "FROZEN"]}
+                },
+                {"name": "days", "type": "int"},
+                {"name": "compressed", "type": "boolean"},
+                {"name": "encrypted", "type": "boolean"}
+              ]
+            }
+          },
+          {
+            "name": "compression",
+            "type": [
+              "null",
+              {
+                "type": "record",
+                "name": "CompressionInfo", 
+                "fields": [
+                  {
+                    "name": "algorithm",
+                    "type": {"type": "enum", "name": "CompressionAlgorithm", "symbols": ["ZSTD", "GZIP", "SNAPPY", "LZ4"]}
+                  },
+                  {"name": "level", "type": ["null", "int"], "default": null},
+                  {"name": "originalSize", "type": "long"},
+                  {"name": "compressedSize", "type": "long"}
+                ]
+              }
+            ],
+            "default": null
+          },
+          {
+            "name": "encryption",
+            "type": [
+              "null",
+              {
+                "type": "record",
+                "name": "EncryptionInfo",
+                "fields": [
+                  {"name": "algorithm", "type": "string"},
+                  {"name": "keyId", "type": "string"}, 
+                  {"name": "encrypted", "type": "boolean"}
+                ]
+              }
+            ],
+            "default": null
+          }
+        ]
+      },
+      "doc": "Metadata about the log event ingestion and processing"
+    },
+    {
+      "name": "rawEvent",
+      "type": ["null", "string"],
+      "doc": "Original raw log event data",
+      "default": null
+    },
+    {
+      "name": "schemaVersion",
+      "type": "string",
+      "doc": "Schema version for evolution tracking",
+      "default": "1.0.0"
+    }
+  ]
+}

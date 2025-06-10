@@ -1,0 +1,114 @@
+{
+  "metadata": {
+    "created": "2025-06-10T04:56:00.000Z",
+    "lastUpdated": "2025-06-10T05:00:30.951Z",
+    "version": "1.0.0",
+    "description": "Error tracking system for SecureWatch project - tracks unresolved issues for future troubleshooting",
+    "maintainer": "Claude Code Assistant"
+  },
+  "statistics": {
+    "totalErrors": 1,
+    "unresolvedErrors": 0,
+    "resolvedErrors": 1,
+    "criticalErrors": 0,
+    "highPriorityErrors": 0,
+    "mediumPriorityErrors": 0,
+    "lowPriorityErrors": 0
+  },
+  "errors": [
+    {
+      "id": "8d7dbcda",
+      "title": "Demo error for testing",
+      "description": "This is a test error to demonstrate the system",
+      "category": "testing",
+      "priority": "low",
+      "status": "resolved",
+      "dateReported": "2025-06-10T05:00:20.669Z",
+      "dateResolved": "2025-06-10T05:00:30.950Z",
+      "reportedBy": "Claude Code Assistant",
+      "assignedTo": null,
+      "environment": "development",
+      "affectedComponents": [],
+      "stackTrace": "",
+      "reproductionSteps": [],
+      "expectedBehavior": "",
+      "actualBehavior": "",
+      "workaround": "This is just a demo",
+      "relatedIssues": [],
+      "tags": [],
+      "notes": [
+        {
+          "timestamp": "2025-06-10T05:00:30.951Z",
+          "author": "Claude Code Assistant",
+          "content": "Resolution: Demo completed successfully"
+        }
+      ]
+    }
+  ],
+  "categories": {
+    "build": "Build and compilation errors",
+    "runtime": "Runtime execution errors",
+    "dependency": "Package and dependency issues",
+    "configuration": "Configuration and setup errors",
+    "network": "Network and connectivity issues",
+    "database": "Database connection and query errors",
+    "authentication": "Auth and permission errors",
+    "ui": "Frontend and UI rendering issues",
+    "performance": "Performance and optimization issues",
+    "testing": "Test failures and testing issues",
+    "deployment": "Deployment and infrastructure errors",
+    "integration": "MCP and external service integration errors"
+  },
+  "priorities": {
+    "critical": "System breaking, blocks all development",
+    "high": "Major feature broken, significant impact",
+    "medium": "Minor feature issues, workaround available",
+    "low": "Cosmetic or nice-to-have fixes"
+  },
+  "template": {
+    "id": "unique-error-id",
+    "title": "Brief error description",
+    "description": "Detailed error description and context",
+    "category": "One of the categories above",
+    "priority": "critical|high|medium|low",
+    "status": "open|investigating|resolved|deferred",
+    "dateReported": "ISO timestamp",
+    "dateResolved": "ISO timestamp or null",
+    "reportedBy": "Who reported the error",
+    "assignedTo": "Who is working on it",
+    "environment": "development|staging|production",
+    "affectedComponents": [
+      "list",
+      "of",
+      "affected",
+      "components"
+    ],
+    "stackTrace": "Full stack trace if available",
+    "reproductionSteps": [
+      "step 1",
+      "step 2",
+      "step 3"
+    ],
+    "expectedBehavior": "What should happen",
+    "actualBehavior": "What actually happens",
+    "workaround": "Temporary solution if available",
+    "relatedIssues": [
+      "list",
+      "of",
+      "related",
+      "error",
+      "ids"
+    ],
+    "tags": [
+      "tag1",
+      "tag2"
+    ],
+    "notes": [
+      {
+        "timestamp": "ISO timestamp",
+        "author": "Note author",
+        "content": "Investigation notes, updates, etc."
+      }
+    ]
+  }
+}

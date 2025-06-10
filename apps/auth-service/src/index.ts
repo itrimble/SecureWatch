@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import passport from 'passport';
 import { createGoogleStrategy } from './services/oauth/google.strategy';
 import { createMicrosoftStrategy } from './services/oauth/microsoft.strategy';
+import { createOktaStrategy } from './services/oauth/okta.strategy';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import roleRoutes from './routes/role.routes';
@@ -47,6 +48,7 @@ app.use(passport.initialize());
 // Configure OAuth strategies
 passport.use('google', createGoogleStrategy());
 passport.use('microsoft', createMicrosoftStrategy());
+passport.use('okta', createOktaStrategy());
 
 // Health check endpoint
 app.get('/health', (req, res) => {

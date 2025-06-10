@@ -1,0 +1,462 @@
+# Configuration files for monitoring stack
+# Prometheus, Grafana, and AlertManager configurations
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'securewatch-production'
+        environment: 'production'
+
+    rule_files:
+    - "securewatch_alerts.yml"
+
+    alerting:
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - alertmanager:9093
+
+    scrape_configs:
+    # Prometheus itself
+    - job_name: 'prometheus'
+      static_configs:
+      - targets: ['localhost:9090']
+      scrape_interval: 30s
+
+    # Kubernetes API server
+    - job_name: 'kubernetes-apiservers'
+      kubernetes_sd_configs:
+      - role: endpoints
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+
+    # Kubernetes nodes
+    - job_name: 'kubernetes-nodes'
+      kubernetes_sd_configs:
+      - role: node
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+
+    # Kubernetes pods
+    - job_name: 'kubernetes-pods'
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+    # SecureWatch services
+    - job_name: 'securewatch-api-gateway'
+      kubernetes_sd_configs:
+      - role: service
+        namespaces:
+          names:
+          - securewatch
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: securewatch-api-gateway
+      - source_labels: [__meta_kubernetes_service_port_name]
+        action: keep
+        regex: metrics
+      scrape_interval: 15s
+
+    - job_name: 'securewatch-auth-service'
+      static_configs:
+      - targets: ['securewatch-auth-service.securewatch.svc.cluster.local:3000']
+      metrics_path: '/metrics'
+      scrape_interval: 30s
+
+    - job_name: 'securewatch-log-ingestion'
+      static_configs:
+      - targets: ['securewatch-log-ingestion.securewatch.svc.cluster.local:4000']
+      metrics_path: '/metrics'
+      scrape_interval: 15s
+
+    - job_name: 'securewatch-search-api'
+      static_configs:
+      - targets: ['securewatch-search-api.securewatch.svc.cluster.local:5000']
+      metrics_path: '/metrics'
+      scrape_interval: 30s
+
+    - job_name: 'securewatch-analytics-engine'
+      static_configs:
+      - targets: ['securewatch-analytics-engine.securewatch.svc.cluster.local:6000']
+      metrics_path: '/metrics'
+      scrape_interval: 30s
+
+    - job_name: 'securewatch-correlation-engine'
+      static_configs:
+      - targets: ['securewatch-correlation-engine.securewatch.svc.cluster.local:7000']
+      metrics_path: '/metrics'
+      scrape_interval: 15s
+
+    - job_name: 'securewatch-query-processor'
+      static_configs:
+      - targets: ['securewatch-query-processor.securewatch.svc.cluster.local:8000']
+      metrics_path: '/metrics'
+      scrape_interval: 30s
+
+    - job_name: 'securewatch-mcp-marketplace'
+      static_configs:
+      - targets: ['securewatch-mcp-marketplace.securewatch.svc.cluster.local:9000']
+      metrics_path: '/metrics'
+      scrape_interval: 60s
+
+    - job_name: 'securewatch-hec-service'
+      static_configs:
+      - targets: ['securewatch-hec-service.securewatch.svc.cluster.local:8088']
+      metrics_path: '/metrics'
+      scrape_interval: 30s
+
+  securewatch_alerts.yml: |
+    groups:
+    - name: securewatch.alerts
+      rules:
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High CPU usage detected on {{ $labels.instance }}"
+          description: "CPU usage has been above 80% for more than 5 minutes on {{ $labels.instance }}"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High memory usage detected on {{ $labels.instance }}"
+          description: "Memory usage has been above 85% for more than 5 minutes on {{ $labels.instance }}"
+
+      # Service Down
+      - alert: ServiceDown
+        expr: up{job=~"securewatch-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "SecureWatch service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute"
+
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "High error rate detected for {{ $labels.job }}"
+          description: "Error rate has been above 10% for more than 5 minutes"
+
+      # Log Ingestion Volume Alert
+      - alert: HighLogIngestionVolume
+        expr: rate(logs_ingested_total[5m]) > 10000
+        for: 2m
+        labels:
+          severity: warning
+          service: log-ingestion
+        annotations:
+          summary: "High log ingestion volume detected"
+          description: "Log ingestion rate has exceeded 10,000 logs/second for more than 2 minutes"
+
+      # Correlation Engine Alert Volume
+      - alert: HighSecurityAlertVolume
+        expr: rate(security_alerts_total[5m]) > 100
+        for: 1m
+        labels:
+          severity: critical
+          service: correlation-engine
+        annotations:
+          summary: "High security alert volume detected"
+          description: "Security alert rate has exceeded 100 alerts/second for more than 1 minute"
+
+      # Database Connection Pool
+      - alert: DatabaseConnectionPoolHigh
+        expr: db_connections_active / db_connections_max > 0.8
+        for: 3m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Database connection pool usage is high"
+          description: "Database connection pool usage has been above 80% for more than 3 minutes"
+
+      # Elasticsearch Cluster Health
+      - alert: ElasticsearchClusterUnhealthy
+        expr: elasticsearch_cluster_health_status != 0
+        for: 1m
+        labels:
+          severity: critical
+          service: elasticsearch
+        annotations:
+          summary: "Elasticsearch cluster health is degraded"
+          description: "Elasticsearch cluster status is not green"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+  labels:
+    app: alertmanager
+    component: config
+data:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'localhost:587'
+      smtp_from: 'alerts@securewatch.example.com'
+      smtp_auth_username: 'alerts@securewatch.example.com'
+      smtp_auth_password: 'smtp_password'
+
+    route:
+      group_by: ['alertname', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'web.hook'
+      routes:
+      - match:
+          severity: critical
+        receiver: 'critical-alerts'
+        group_wait: 5s
+        repeat_interval: 30m
+      - match:
+          service: security
+        receiver: 'security-team'
+        group_wait: 5s
+        repeat_interval: 15m
+
+    receivers:
+    - name: 'web.hook'
+      webhook_configs:
+      - url: 'http://securewatch-api-gateway.securewatch.svc.cluster.local:8080/webhooks/alerts'
+        send_resolved: true
+        http_config:
+          bearer_token: 'webhook_bearer_token'
+
+    - name: 'critical-alerts'
+      email_configs:
+      - to: 'sre-team@securewatch.example.com'
+        subject: '[CRITICAL] SecureWatch Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Severity: {{ .Labels.severity }}
+          {{ end }}
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#securewatch-alerts'
+        title: 'Critical SecureWatch Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+    - name: 'security-team'
+      email_configs:
+      - to: 'security-team@securewatch.example.com'
+        subject: '[SECURITY] SecureWatch Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Security Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt }}
+          {{ end }}
+
+    inhibit_rules:
+    - source_match:
+        severity: 'critical'
+      target_match:
+        severity: 'warning'
+      equal: ['alertname', 'service']
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: datasources
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://prometheus.monitoring.svc.cluster.local:9090
+      isDefault: true
+      editable: true
+
+    - name: Jaeger
+      type: jaeger
+      access: proxy
+      url: http://jaeger.monitoring.svc.cluster.local:16686
+      editable: true
+
+    - name: Elasticsearch
+      type: elasticsearch
+      access: proxy
+      url: https://elasticsearch-cluster.securewatch.svc.cluster.local:9200
+      database: "securewatch-*"
+      basicAuth: true
+      basicAuthUser: grafana
+      secureJsonData:
+        basicAuthPassword: "${ELASTICSEARCH_PASSWORD}"
+      jsonData:
+        interval: Daily
+        timeField: "@timestamp"
+        esVersion: "8.0.0"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: dashboards
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: 'SecureWatch'
+      type: file
+      disableDeletion: false
+      updateIntervalSeconds: 30
+      allowUiUpdates: true
+      options:
+        path: /etc/grafana/provisioning/dashboards
+
+  securewatch-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "SecureWatch Platform Overview",
+        "tags": ["securewatch", "overview"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Service Health Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=~\"securewatch-.*\"}",
+                "legendFormat": "{{ job }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Request Rate (RPS)",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total[5m])) by (service)",
+                "legendFormat": "{{ service }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Error Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) by (service)",
+                "legendFormat": "{{ service }} errors"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Response Time P95",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service))",
+                "legendFormat": "{{ service }} P95"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "30s"
+      }
+    }
+
+---
+# Secrets for monitoring services
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-secrets
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: secrets
+type: Opaque
+data:
+  admin_password: "Z3JhZmFuYV9hZG1pbl9wYXNzd29yZA=="  # grafana_admin_password
+  db_password: "Z3JhZmFuYV9kYl9wYXNzd29yZA=="  # grafana_db_password

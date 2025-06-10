@@ -1,0 +1,765 @@
+# Advanced Configuration for Observability Stack
+# OpenTelemetry, Loki, Tempo, Mimir, Vector, and Promtail configurations
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: observability
+  labels:
+    app: otel-collector
+    component: config
+data:
+  otelcol.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: 'otel-collector'
+            scrape_interval: 30s
+            static_configs:
+            - targets: ['0.0.0.0:8888']
+          - job_name: 'securewatch-services'
+            kubernetes_sd_configs:
+            - role: service
+              namespaces:
+                names:
+                - securewatch
+            relabel_configs:
+            - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+              action: keep
+              regex: true
+      
+      k8s_events:
+        auth_type: serviceAccount
+        namespaces: [securewatch, monitoring, observability]
+      
+      k8s_cluster:
+        auth_type: serviceAccount
+        node_conditions_to_report: [Ready, MemoryPressure, DiskPressure, PIDPressure]
+        allocatable_types_to_report: [cpu, memory, storage]
+      
+      filelog:
+        include:
+        - /var/log/pods/*/*/*.log
+        exclude:
+        - /var/log/pods/*/otc-container/*.log
+        start_at: end
+        include_file_path: true
+        include_file_name: false
+        operators:
+        - type: router
+          id: get-format
+          routes:
+          - output: parser-docker
+            expr: 'body matches "^\\{"'
+          - output: parser-crio
+            expr: 'body matches "^[^ ]+ "'
+          - output: parser-containerd
+            expr: 'true'
+        
+        - type: regex_parser
+          id: parser-crio
+          regex: '^(?P<time>[^ ]+) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$'
+          output: extract_metadata_from_filepath
+          timestamp:
+            parse_from: attributes.time
+            layout_type: gotime
+            layout: '2006-01-02T15:04:05.999999999Z07:00'
+        
+        - type: json_parser
+          id: parser-docker
+          output: extract_metadata_from_filepath
+          timestamp:
+            parse_from: attributes.time
+            layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+        
+        - type: regex_parser
+          id: parser-containerd
+          regex: '^(?P<time>[^ ]+) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$'
+          output: extract_metadata_from_filepath
+          timestamp:
+            parse_from: attributes.time
+            layout_type: gotime
+            layout: '2006-01-02T15:04:05.999999999Z07:00'
+        
+        - type: regex_parser
+          id: extract_metadata_from_filepath
+          regex: '^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]{36})\/(?P<container_name>[^\._]+)\/(?P<restart_count>\d+)\.log$'
+          parse_from: attributes["log.file.path"]
+        
+        - type: move
+          from: attributes.log
+          to: body
+        
+        - type: move
+          from: attributes.stream
+          to: attributes["log.iostream"]
+        
+        - type: move
+          from: attributes.container_name
+          to: resource["k8s.container.name"]
+        
+        - type: move
+          from: attributes.namespace
+          to: resource["k8s.namespace.name"]
+        
+        - type: move
+          from: attributes.pod_name
+          to: resource["k8s.pod.name"]
+        
+        - type: move
+          from: attributes.restart_count
+          to: resource["k8s.container.restart_count"]
+        
+        - type: move
+          from: attributes.uid
+          to: resource["k8s.pod.uid"]
+
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1000
+        send_batch_max_size: 1500
+      
+      memory_limiter:
+        limit_mib: 3072
+        spike_limit_mib: 512
+        check_interval: 5s
+      
+      resource:
+        attributes:
+        - key: cluster.name
+          value: securewatch-production
+          action: upsert
+        - key: environment
+          value: production
+          action: upsert
+      
+      k8sattributes:
+        auth_type: serviceAccount
+        passthrough: false
+        extract:
+          metadata:
+          - k8s.pod.name
+          - k8s.pod.uid
+          - k8s.deployment.name
+          - k8s.node.name
+          - k8s.namespace.name
+          - k8s.pod.start_time
+          - k8s.replicaset.name
+          - k8s.replicaset.uid
+          - k8s.daemonset.name
+          - k8s.daemonset.uid
+          - k8s.job.name
+          - k8s.job.uid
+          - k8s.cronjob.name
+          - k8s.statefulset.name
+          - k8s.statefulset.uid
+          - k8s.container.name
+          - k8s.container.image.name
+          - k8s.container.image.tag
+          labels:
+          - tag_name: app
+            key: app
+            from: pod
+          - tag_name: component
+            key: component
+            from: pod
+          - tag_name: version
+            key: version
+            from: pod
+        pod_association:
+        - sources:
+          - from: resource_attribute
+            name: k8s.pod.ip
+        - sources:
+          - from: resource_attribute
+            name: k8s.pod.uid
+        - sources:
+          - from: connection
+
+    exporters:
+      prometheusremotewrite:
+        endpoint: "http://mimir.observability.svc.cluster.local:8080/api/v1/push"
+        tls:
+          insecure: true
+        headers:
+          X-Scope-OrgID: "securewatch"
+      
+      loki:
+        endpoint: "http://loki.observability.svc.cluster.local:3100/loki/api/v1/push"
+        headers:
+          X-Scope-OrgID: "securewatch"
+      
+      otlp/tempo:
+        endpoint: http://tempo.observability.svc.cluster.local:4317
+        tls:
+          insecure: true
+        headers:
+          X-Scope-OrgID: "securewatch"
+      
+      logging:
+        loglevel: info
+        sampling_initial: 5
+        sampling_thereafter: 200
+
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      
+      pprof:
+        endpoint: 0.0.0.0:1777
+      
+      zpages:
+        endpoint: 0.0.0.0:55679
+
+    service:
+      extensions: [health_check, pprof, zpages]
+      pipelines:
+        metrics:
+          receivers: [otlp, prometheus, k8s_cluster]
+          processors: [memory_limiter, resource, k8sattributes, batch]
+          exporters: [prometheusremotewrite]
+        
+        logs:
+          receivers: [otlp, filelog, k8s_events]
+          processors: [memory_limiter, resource, k8sattributes, batch]
+          exporters: [loki]
+        
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, k8sattributes, batch]
+          exporters: [otlp/tempo]
+      
+      telemetry:
+        logs:
+          level: "info"
+        metrics:
+          address: 0.0.0.0:8888
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-config
+  namespace: observability
+  labels:
+    app: loki
+    component: config
+data:
+  config.yaml: |
+    auth_enabled: true
+    
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9095
+      log_level: info
+    
+    common:
+      path_prefix: /loki
+      storage:
+        filesystem:
+          chunks_directory: /loki/chunks
+          rules_directory: /loki/rules
+      replication_factor: 1
+      ring:
+        instance_addr: 127.0.0.1
+        kvstore:
+          store: inmemory
+    
+    query_range:
+      results_cache:
+        cache:
+          embedded_cache:
+            enabled: true
+            max_size_mb: 100
+    
+    schema_config:
+      configs:
+        - from: 2020-10-24
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+    
+    ruler:
+      alertmanager_url: http://alertmanager.monitoring.svc.cluster.local:9093
+      storage:
+        type: local
+        local:
+          directory: /loki/rules
+      rule_path: /loki/rules
+      ring:
+        kvstore:
+          store: inmemory
+      enable_api: true
+    
+    analytics:
+      reporting_enabled: false
+    
+    limits_config:
+      enforce_metric_name: false
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+      ingestion_rate_mb: 16
+      ingestion_burst_size_mb: 32
+      max_streams_per_user: 10000
+      max_line_size: 256000
+      retention_period: 744h  # 31 days
+    
+    chunk_store_config:
+      max_look_back_period: 0s
+    
+    table_manager:
+      retention_deletes_enabled: true
+      retention_period: 744h
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-config
+  namespace: observability
+  labels:
+    app: tempo
+    component: config
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: 3200
+      log_level: info
+    
+    query_frontend:
+      search:
+        duration_slo: 5s
+        throughput_bytes_slo: 1.073741824e+09
+      trace_by_id:
+        duration_slo: 5s
+    
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+        jaeger:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:14250
+            thrift_http:
+              endpoint: 0.0.0.0:14268
+        zipkin:
+          endpoint: 0.0.0.0:9411
+    
+    ingester:
+      max_block_duration: 5m
+      max_block_bytes: 1_000_000
+      complete_block_timeout: 1m
+    
+    storage:
+      trace:
+        backend: local
+        wal:
+          path: /var/tempo/wal
+        local:
+          path: /var/tempo/blocks
+        pool:
+          max_workers: 100
+          queue_depth: 10000
+    
+    compactor:
+      compaction:
+        block_retention: 1h
+    
+    metrics_generator:
+      registry:
+        external_labels:
+          source: tempo
+          cluster: securewatch-production
+      storage:
+        path: /var/tempo/generator/wal
+        remote_write:
+          - url: http://mimir.observability.svc.cluster.local:8080/api/v1/push
+            send_exemplars: true
+            headers:
+              X-Scope-OrgID: securewatch
+    
+    overrides:
+      defaults:
+        metrics_generator:
+          processors: [service-graphs, span-metrics]
+          generate_native_histograms: true
+        max_traces_per_user: 5000000
+        max_search_bytes_per_trace: 5000
+        ingestion_rate_strategy: global
+        ingestion_rate_limit_bytes: 15000000
+        ingestion_burst_size_bytes: 20000000
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mimir-config
+  namespace: observability
+  labels:
+    app: mimir
+    component: config
+data:
+  mimir.yaml: |
+    multitenancy_enabled: true
+    
+    server:
+      http_listen_port: 8080
+      grpc_listen_port: 9095
+      log_level: info
+    
+    distributor:
+      pool:
+        health_check_ingesters: true
+      ring:
+        kvstore:
+          store: inmemory
+    
+    ingester:
+      ring:
+        kvstore:
+          store: inmemory
+        replication_factor: 3
+        tokens_file_path: /data/tokens
+        zone_awareness_enabled: false
+    
+    blocks_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/blocks
+      bucket_store:
+        sync_dir: /data/tsdb-sync
+      tsdb:
+        dir: /data/tsdb
+        retention_period: 15d
+        block_ranges_period:
+          - 2h
+          - 12h
+          - 24h
+        ship_interval: 1m
+    
+    compactor:
+      data_dir: /data/compactor
+      sharding_ring:
+        kvstore:
+          store: inmemory
+    
+    ruler:
+      rule_path: /data/ruler
+      ring:
+        kvstore:
+          store: inmemory
+      alertmanager_url: http://alertmanager.monitoring.svc.cluster.local:9093
+    
+    store_gateway:
+      sharding_ring:
+        kvstore:
+          store: inmemory
+    
+    query_scheduler:
+      service_discovery_mode: ring
+    
+    frontend:
+      scheduler_address: ""
+      max_outstanding_per_tenant: 100
+      compress_responses: true
+      log_queries_longer_than: 10s
+    
+    limits:
+      max_global_series_per_user: 1500000
+      max_global_series_per_metric: 20000
+      ingestion_rate: 10000
+      ingestion_burst_size: 200000
+      max_samples_per_query: 1000000
+      max_series_per_query: 100000
+      max_query_parallelism: 32
+      max_query_lookback: 7d
+      compactor_blocks_retention_period: 15d
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: observability
+  labels:
+    app: promtail
+    component: config
+data:
+  config.yml: |
+    server:
+      http_listen_port: 3101
+      grpc_listen_port: 0
+    
+    positions:
+      filename: /run/promtail/positions.yaml
+    
+    clients:
+      - url: http://loki.observability.svc.cluster.local:3100/loki/api/v1/push
+        tenant_id: securewatch
+    
+    scrape_configs:
+    - job_name: kubernetes-pods
+      kubernetes_sd_configs:
+        - role: pod
+      pipeline_stages:
+        - cri: {}
+      relabel_configs:
+        - source_labels:
+            - __meta_kubernetes_pod_controller_name
+          regex: ([0-9a-z-.]+?)(-[0-9a-f]{8,10})?
+          action: replace
+          target_label: __tmp_controller_name
+        - source_labels:
+            - __meta_kubernetes_pod_label_app_kubernetes_io_name
+            - __meta_kubernetes_pod_label_app
+            - __tmp_controller_name
+            - __meta_kubernetes_pod_name
+          regex: ^;*([^;]+)(;.*)?$
+          action: replace
+          target_label: app
+        - source_labels:
+            - __meta_kubernetes_pod_label_app_kubernetes_io_instance
+            - __meta_kubernetes_pod_label_release
+          regex: ^;*([^;]+)(;.*)?$
+          action: replace
+          target_label: instance
+        - source_labels:
+            - __meta_kubernetes_pod_label_app_kubernetes_io_component
+            - __meta_kubernetes_pod_label_component
+          regex: ^;*([^;]+)(;.*)?$
+          action: replace
+          target_label: component
+        - action: replace
+          source_labels:
+          - __meta_kubernetes_pod_node_name
+          target_label: node_name
+        - action: replace
+          source_labels:
+          - __meta_kubernetes_namespace
+          target_label: namespace
+        - action: replace
+          replacement: $1
+          separator: /
+          source_labels:
+          - namespace
+          - app
+          target_label: job
+        - action: replace
+          source_labels:
+          - __meta_kubernetes_pod_name
+          target_label: pod
+        - action: replace
+          source_labels:
+          - __meta_kubernetes_pod_container_name
+          target_label: container
+        - action: replace
+          replacement: /var/log/pods/*$1/*.log
+          separator: /
+          source_labels:
+          - __meta_kubernetes_pod_uid
+          - __meta_kubernetes_pod_container_name
+          target_label: __path__
+        - action: replace
+          regex: true/(.*)
+          replacement: /var/log/pods/*$1/*.log
+          separator: /
+          source_labels:
+          - __meta_kubernetes_pod_annotationpresent_kubernetes_io_config_hash
+          - __meta_kubernetes_pod_annotation_kubernetes_io_config_hash
+          - __meta_kubernetes_pod_container_name
+          target_label: __path__
+    
+    - job_name: kubernetes-pods-app
+      kubernetes_sd_configs:
+        - role: pod
+      pipeline_stages:
+        - cri: {}
+        - multiline:
+            firstline: '^\d{4}-\d{2}-\d{2} \d{1,2}:\d{2}:\d{2}'
+            max_wait_time: 3s
+        - regex:
+            expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{1,2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
+        - timestamp:
+            source: timestamp
+            format: '2006-01-02 15:04:05'
+        - labels:
+            level:
+      relabel_configs:
+        - source_labels:
+            - __meta_kubernetes_pod_label_name
+          action: keep
+          regex: promtail
+        - source_labels:
+            - __meta_kubernetes_pod_annotation_promtail_io_ignore
+          action: drop
+          regex: true
+        - source_labels:
+            - __meta_kubernetes_pod_label_app_kubernetes_io_name
+          action: keep
+          regex: promtail
+        - source_labels:
+            - __meta_kubernetes_pod_container_name
+          action: replace
+          target_label: container
+        - source_labels:
+            - __meta_kubernetes_pod_name
+          action: replace
+          target_label: pod
+        - source_labels:
+            - __meta_kubernetes_namespace
+          action: replace
+          target_label: namespace
+        - replacement: /var/log/pods/*$1/*.log
+          separator: /
+          source_labels:
+            - __meta_kubernetes_pod_uid
+            - __meta_kubernetes_pod_container_name
+          target_label: __path__
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vector-config
+  namespace: observability
+  labels:
+    app: vector
+    component: config
+data:
+  vector.yaml: |
+    api:
+      enabled: true
+      address: 0.0.0.0:8686
+    
+    sources:
+      kubernetes_logs:
+        type: kubernetes_logs
+        auto_partial_merge: true
+        glob_minimum_cooldown_ms: 15000
+        max_read_bytes: 2048
+        max_line_bytes: 32768
+        fingerprint_lines: 1
+        include_paths_glob_patterns:
+          - "/var/log/pods/securewatch*/**/*.log"
+          - "/var/log/pods/monitoring*/**/*.log"
+          - "/var/log/pods/observability*/**/*.log"
+        exclude_paths_glob_patterns:
+          - "/var/log/pods/*/vector*/**/*.log"
+      
+      host_metrics:
+        type: host_metrics
+        filesystem:
+          devices:
+            excludes: [binfmt_misc]
+          filesystems:
+            excludes: [binfmt_misc]
+          mountpoints:
+            excludes: ["*/proc/sys/fs/binfmt_misc"]
+        network:
+          devices:
+            excludes: [lo]
+    
+    transforms:
+      kubernetes_transform:
+        type: remap
+        inputs: ["kubernetes_logs"]
+        source: |
+          # Parse container log format
+          . = parse_regex!(.message, r'^(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\s+(?P<level>\w+)\s+(?P<message>.*)')
+          
+          # Extract service information
+          .service = .kubernetes.pod_labels.app || .kubernetes.pod_labels."app.kubernetes.io/name" || "unknown"
+          .component = .kubernetes.pod_labels.component || "unknown"
+          
+          # Add security-specific fields for SIEM
+          if match(.message, r'(?i)(error|exception|fail|alert|security|unauthorized|forbidden|attack)') {
+            .security_event = true
+            .log_type = "security"
+          } else {
+            .security_event = false
+            .log_type = "application"
+          }
+          
+          # Extract IP addresses
+          .source_ip = parse_regex(.message, r'(?P<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')?.ip
+          
+          # Parse structured JSON logs
+          if match(.message, r'^{.*}$') {
+            parsed, err = parse_json(.message)
+            if err == null {
+              . = merge(., parsed)
+            }
+          }
+      
+      metrics_transform:
+        type: remap
+        inputs: ["host_metrics"]
+        source: |
+          .tags.cluster = "securewatch-production"
+          .tags.environment = "production"
+          .tags.node = "${NODE_NAME}"
+    
+    sinks:
+      loki_sink:
+        type: loki
+        inputs: ["kubernetes_transform"]
+        endpoint: http://loki.observability.svc.cluster.local:3100
+        labels:
+          namespace: "{{ kubernetes.pod_namespace }}"
+          pod: "{{ kubernetes.pod_name }}"
+          container: "{{ kubernetes.container_name }}"
+          service: "{{ service }}"
+          component: "{{ component }}"
+          log_type: "{{ log_type }}"
+          security_event: "{{ security_event }}"
+          level: "{{ level }}"
+        remove_label_fields: true
+        compression: gzip
+        tenant_id: securewatch
+      
+      prometheus_sink:
+        type: prometheus_remote_write
+        inputs: ["metrics_transform"]
+        endpoint: http://mimir.observability.svc.cluster.local:8080/api/v1/push
+        headers:
+          X-Scope-OrgID: securewatch
+      
+      securewatch_webhook:
+        type: http
+        inputs: ["kubernetes_transform"]
+        uri: http://securewatch-api-gateway.securewatch.svc.cluster.local:8080/api/v1/logs/ingest
+        method: post
+        compression: gzip
+        headers:
+          Content-Type: application/json
+          Authorization: Bearer {{ SECRET_VECTOR_API_TOKEN }}
+        batch:
+          max_events: 100
+          timeout_secs: 10
+        request:
+          retry_attempts: 3
+          retry_max_duration_secs: 60
+          timeout_secs: 30
+        encoding:
+          codec: json
+        healthcheck:
+          enabled: true
+          uri: http://securewatch-api-gateway.securewatch.svc.cluster.local:8080/health

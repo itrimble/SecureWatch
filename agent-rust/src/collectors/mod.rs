@@ -2,6 +2,9 @@
 
 use crate::errors::CollectorError;
 use crate::parsers::ParsedEvent;
+
+#[cfg(test)]
+mod tests;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

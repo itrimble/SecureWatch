@@ -1,10 +1,14 @@
 // Configuration structures for SecureWatch Agent
 
 use crate::errors::ConfigError;
+use crate::validation::{ValidationConfig, ValidationRiskLevel};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use regex::Regex;
 use jsonschema::{JSONSchema, ValidationError as JsonSchemaError};
+
+#[cfg(test)]
+mod tests;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConfig {
@@ -17,6 +21,7 @@ pub struct AgentConfig {
     pub resource_monitor: crate::resource_monitor::ResourceMonitorConfig,
     pub throttle: crate::throttle::ThrottleConfig,
     pub emergency_shutdown: crate::emergency_shutdown::EmergencyShutdownConfig,
+    pub security: crate::security::SecurityConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,6 +39,8 @@ pub struct TransportConfig {
     pub api_key: String,
     pub tls_verify: bool,
     pub compression: bool,
+    pub compression_threshold: Option<usize>,
+    pub compression_level: Option<i32>,
     pub batch_size: usize,
     pub batch_timeout: u64,
     pub retry_attempts: usize,
@@ -45,6 +52,25 @@ pub struct TransportConfig {
     pub client_key_password: Option<String>,
     pub ca_cert_path: Option<String>,
     pub cert_expiry_warning_days: u32,
+    
+    // Circuit breaker configuration for external service resilience
+    pub circuit_breaker_failure_threshold: Option<u32>,
+    pub circuit_breaker_recovery_timeout: Option<std::time::Duration>,
+    pub circuit_breaker_success_threshold: Option<u32>,
+    pub circuit_breaker_max_open_duration: Option<std::time::Duration>,
+    pub circuit_breaker_sliding_window_size: Option<usize>,
+    pub circuit_breaker_failure_rate_threshold: Option<f64>,
+    pub circuit_breaker_minimum_requests: Option<u32>,
+    
+    // Connection pooling and keep-alive configuration
+    pub pool_max_idle_per_host: Option<usize>,
+    pub pool_idle_timeout: Option<std::time::Duration>,
+    pub keep_alive_timeout: Option<std::time::Duration>,
+    pub keep_alive_while_idle: Option<bool>,
+    pub pool_max_idle_per_host_timeout: Option<std::time::Duration>,
+    pub http2_keep_alive_interval: Option<std::time::Duration>,
+    pub http2_keep_alive_timeout: Option<std::time::Duration>,
+    pub http2_keep_alive_while_idle: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -184,6 +210,8 @@ impl Default for AgentConfig {
                 api_key: "your-api-key".to_string(),
                 tls_verify: true,
                 compression: true,
+                compression_threshold: Some(1024), // Compress data larger than 1KB
+                compression_level: Some(3), // Balanced compression level for zstd
                 batch_size: 100,
                 batch_timeout: 5,
                 retry_attempts: 3,
@@ -195,6 +223,25 @@ impl Default for AgentConfig {
                 client_key_password: None,
                 ca_cert_path: None,
                 cert_expiry_warning_days: 30,
+                
+                // Circuit breaker configuration with reasonable defaults
+                circuit_breaker_failure_threshold: Some(5),
+                circuit_breaker_recovery_timeout: Some(std::time::Duration::from_secs(30)),
+                circuit_breaker_success_threshold: Some(3),
+                circuit_breaker_max_open_duration: Some(std::time::Duration::from_secs(300)),
+                circuit_breaker_sliding_window_size: Some(100),
+                circuit_breaker_failure_rate_threshold: Some(0.5),
+                circuit_breaker_minimum_requests: Some(10),
+                
+                // Connection pooling and keep-alive configuration with production defaults
+                pool_max_idle_per_host: Some(32), // Maximum idle connections per host
+                pool_idle_timeout: Some(std::time::Duration::from_secs(90)), // Idle timeout
+                keep_alive_timeout: Some(std::time::Duration::from_secs(90)), // Keep-alive timeout
+                keep_alive_while_idle: Some(true), // Send keep-alive while idle
+                pool_max_idle_per_host_timeout: Some(std::time::Duration::from_secs(300)), // Max idle timeout
+                http2_keep_alive_interval: Some(std::time::Duration::from_secs(30)), // HTTP/2 ping interval
+                http2_keep_alive_timeout: Some(std::time::Duration::from_secs(10)), // HTTP/2 ping timeout
+                http2_keep_alive_while_idle: Some(true), // HTTP/2 keep-alive while idle
             },
             collectors: CollectorsConfig {
                 syslog: Some(SyslogCollectorConfig {
@@ -270,6 +317,7 @@ impl Default for AgentConfig {
             resource_monitor: crate::resource_monitor::ResourceMonitorConfig::default(),
             throttle: crate::throttle::ThrottleConfig::default(),
             emergency_shutdown: crate::emergency_shutdown::EmergencyShutdownConfig::default(),
+            security: crate::security::SecurityConfig::default(),
         }
     }
 }
@@ -304,7 +352,7 @@ impl AgentConfig {
             "title": "SecureWatch Agent Configuration",
             "description": "Complete configuration schema for SecureWatch Agent with validation rules",
             "type": "object",
-            "required": ["agent", "transport", "collectors", "buffer", "parsers", "management"],
+            "required": ["agent", "transport", "collectors", "buffer", "parsers", "management", "security"],
             "properties": {
                 "agent": {
                     "type": "object",
@@ -568,6 +616,67 @@ impl AgentConfig {
                             "minLength": 16,
                             "maxLength": 128,
                             "description": "Authentication token for management API"
+                        }
+                    }
+                },
+                "security": {
+                    "type": "object",
+                    "required": ["credential_store_path", "master_password_env", "rotation_interval_seconds", "max_credential_age_seconds", "auto_rotation_enabled", "backup_on_rotation", "backup_retention_count", "audit_logging_enabled", "audit_log_path", "pbkdf2_iterations", "validate_on_startup"],
+                    "properties": {
+                        "credential_store_path": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Path to encrypted credential store"
+                        },
+                        "master_password_env": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Environment variable name for master password"
+                        },
+                        "rotation_interval_seconds": {
+                            "type": "integer",
+                            "minimum": 3600,
+                            "maximum": 2592000,
+                            "description": "Credential rotation interval in seconds (1 hour to 30 days)"
+                        },
+                        "max_credential_age_seconds": {
+                            "type": "integer",
+                            "minimum": 86400,
+                            "maximum": 31536000,
+                            "description": "Maximum credential age in seconds (1 day to 1 year)"
+                        },
+                        "auto_rotation_enabled": {
+                            "type": "boolean",
+                            "description": "Enable automatic credential rotation"
+                        },
+                        "backup_on_rotation": {
+                            "type": "boolean",
+                            "description": "Create backup before rotation"
+                        },
+                        "backup_retention_count": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100,
+                            "description": "Number of credential backups to retain"
+                        },
+                        "audit_logging_enabled": {
+                            "type": "boolean",
+                            "description": "Enable security audit logging"
+                        },
+                        "audit_log_path": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Path to security audit log file"
+                        },
+                        "pbkdf2_iterations": {
+                            "type": "integer",
+                            "minimum": 10000,
+                            "maximum": 1000000,
+                            "description": "PBKDF2 iterations for key derivation (10k to 1M)"
+                        },
+                        "validate_on_startup": {
+                            "type": "boolean",
+                            "description": "Validate all credentials on startup"
                         }
                     }
                 }
@@ -834,6 +943,99 @@ impl AgentConfig {
                     return Err("Management auth token must not use common default values".to_string());
                 }
             }
+        }
+        
+        Ok(())
+    }
+    
+    /// Enhanced validation with input security checks
+    pub async fn validate_with_security(&self) -> Result<(), ConfigError> {
+        // First run the schema validation
+        self.validate_with_schema()?;
+        
+        // Then run security-focused validation on sensitive fields
+        let validation_config = ValidationConfig {
+            strict_mode: true,
+            auto_sanitize: false,  // Don't auto-sanitize config values
+            block_suspicious_patterns: true,
+            log_violations: true,
+            ..Default::default()
+        };
+        
+        let mut config_validator = crate::validation::ConfigurationValidator::new(validation_config)
+            .map_err(|e| ConfigError::Validation(format!("Failed to initialize config validator: {}", e)))?;
+        
+        let mut security_errors = Vec::new();
+        
+        // Validate transport configuration
+        let server_url_result = config_validator.validate_config_string(&self.transport.server_url, "server_url").await;
+        if !server_url_result.is_valid || matches!(server_url_result.risk_level, ValidationRiskLevel::High | ValidationRiskLevel::Critical) {
+            security_errors.push(format!("Server URL validation failed: {:?}", server_url_result.violations));
+        }
+        
+        let api_key_result = config_validator.validate_config_string(&self.transport.api_key, "api_key").await;
+        if !api_key_result.is_valid || matches!(api_key_result.risk_level, ValidationRiskLevel::High | ValidationRiskLevel::Critical) {
+            security_errors.push(format!("API key validation failed: {:?}", api_key_result.violations));
+        }
+        
+        // Validate management token if present
+        if let Some(auth_token) = &self.management.auth_token {
+            let token_result = config_validator.validate_config_string(auth_token, "management_auth_token").await;
+            if !token_result.is_valid || matches!(token_result.risk_level, ValidationRiskLevel::High | ValidationRiskLevel::Critical) {
+                security_errors.push(format!("Management auth token validation failed: {:?}", token_result.violations));
+            }
+        }
+        
+        // Validate file paths for security
+        let buffer_path_result = config_validator.validate_config_string(&self.buffer.persistence_path, "buffer_persistence_path").await;
+        if !buffer_path_result.is_valid || matches!(buffer_path_result.risk_level, ValidationRiskLevel::High | ValidationRiskLevel::Critical) {
+            security_errors.push(format!("Buffer persistence path validation failed: {:?}", buffer_path_result.violations));
+        }
+        
+        // Validate certificate paths if present
+        if let Some(cert_path) = &self.transport.client_cert_path {
+            let cert_result = config_validator.validate_config_string(cert_path, "client_cert_path").await;
+            if !cert_result.is_valid || matches!(cert_result.risk_level, ValidationRiskLevel::High | ValidationRiskLevel::Critical) {
+                security_errors.push(format!("Client certificate path validation failed: {:?}", cert_result.violations));
+            }
+        }
+        
+        if let Some(key_path) = &self.transport.client_key_path {
+            let key_result = config_validator.validate_config_string(key_path, "client_key_path").await;
+            if !key_result.is_valid || matches!(key_result.risk_level, ValidationRiskLevel::High | ValidationRiskLevel::Critical) {
+                security_errors.push(format!("Client key path validation failed: {:?}", key_result.violations));
+            }
+        }
+        
+        // Validate security configuration
+        let store_path_result = config_validator.validate_config_string(&self.security.credential_store_path, "credential_store_path").await;
+        if !store_path_result.is_valid || matches!(store_path_result.risk_level, ValidationRiskLevel::High | ValidationRiskLevel::Critical) {
+            security_errors.push(format!("Credential store path validation failed: {:?}", store_path_result.violations));
+        }
+        
+        let audit_path_result = config_validator.validate_config_string(&self.security.audit_log_path, "audit_log_path").await;
+        if !audit_path_result.is_valid || matches!(audit_path_result.risk_level, ValidationRiskLevel::High | ValidationRiskLevel::Critical) {
+            security_errors.push(format!("Audit log path validation failed: {:?}", audit_path_result.violations));
+        }
+        
+        // Validate parser regex patterns for security
+        for (idx, parser) in self.parsers.parsers.iter().enumerate() {
+            let pattern_result = config_validator.validate_config_string(&parser.regex_pattern, &format!("parser_pattern_{}", idx)).await;
+            if !pattern_result.is_valid || matches!(pattern_result.risk_level, ValidationRiskLevel::High | ValidationRiskLevel::Critical) {
+                security_errors.push(format!("Parser {} regex pattern validation failed: {:?}", parser.name, pattern_result.violations));
+            }
+            
+            let name_result = config_validator.validate_config_string(&parser.name, &format!("parser_name_{}", idx)).await;
+            if !name_result.is_valid || matches!(name_result.risk_level, ValidationRiskLevel::High | ValidationRiskLevel::Critical) {
+                security_errors.push(format!("Parser {} name validation failed: {:?}", parser.name, name_result.violations));
+            }
+        }
+        
+        if !security_errors.is_empty() {
+            return Err(ConfigError::SchemaValidationFailed {
+                error_count: security_errors.len(),
+                errors: security_errors,
+            });
         }
         
         Ok(())

@@ -58,7 +58,12 @@ export declare class CloudTrailSource extends DataSource {
     private isCollecting;
     private lastCollectionTime?;
     private cloudConfig;
+    private awsCloudTrailClient?;
+    private awsCloudWatchLogsClient?;
+    private azureLogsClient?;
+    private gcpLoggingClient?;
     constructor(config: DataSourceConfig);
+    private initializeCloudClients;
     start(): Promise<void>;
     stop(): Promise<void>;
     restart(): Promise<void>;
@@ -72,6 +77,7 @@ export declare class CloudTrailSource extends DataSource {
     private collectAwsCloudTrail;
     private collectAzureActivityLogs;
     private collectGcpAuditLogs;
+    private extractGcpResourceType;
     private generateRandomIP;
     private generateAwsRequestParameters;
     private generateAwsResponseElements;

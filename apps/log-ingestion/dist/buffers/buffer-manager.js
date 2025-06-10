@@ -1,4 +1,9 @@
+import { CircularBuffer } from './circular-buffer';
 import { DiskBuffer } from './disk-buffer';
+import { CircuitBreaker } from './circuit-breaker';
+import { BackpressureMonitor } from './backpressure-monitor';
+import { AdaptiveBatchManager } from './adaptive-batch-manager';
+import { FlowControlManager } from './flow-control-manager';
 import logger from '../utils/logger';
 export class BufferManager {
     config;
@@ -7,11 +12,20 @@ export class BufferManager {
     metrics;
     spillToDisk = false;
     isRecovering = false;
+    circuitBreaker;
+    backpressureMonitor;
+    adaptiveBatchManager;
+    flowControlManager;
     constructor(config, metrics) {
         this.config = config;
         this.metrics = metrics;
         this.memoryBuffer = new CircularBuffer(config.memoryBufferSize);
         this.diskBuffer = new DiskBuffer(config.diskBufferPath, config.diskBufferSize, config.compressionEnabled);
+        // Initialize advanced buffering components
+        this.circuitBreaker = new CircuitBreaker(config.circuitBreaker, metrics);
+        this.backpressureMonitor = new BackpressureMonitor(config.backpressure, metrics);
+        this.adaptiveBatchManager = new AdaptiveBatchManager(config.adaptiveBatch, metrics, this.backpressureMonitor);
+        this.flowControlManager = new FlowControlManager(config.flowControl, metrics, this.backpressureMonitor);
     }
     async initialize() {
         await this.diskBuffer.initialize();
@@ -25,7 +39,17 @@ export class BufferManager {
     async addEvent(event) {
         await this.addEvents([event]);
     }
-    async addEvents(events) {
+    async addEvents(events, priority = 3) {
+        // Check flow control first
+        const flowPermission = await this.flowControlManager.requestPermission(events.length, priority);
+        if (!flowPermission) {
+            logger.debug(`Flow control rejected ${events.length} events`, { priority });
+            this.metrics.incrementCounter('buffer.flow_control_rejected', {}, events.length);
+            return;
+        }
+        // Update backpressure monitor with current queue depth
+        const currentDepth = await this.getTotalSize();
+        this.backpressureMonitor.updateQueueDepth(currentDepth);
         const memoryUsage = this.memoryBuffer.getUsagePercentage();
         // Check if we need to spill to disk
         if (memoryUsage >= this.config.highWaterMark && !this.spillToDisk) {
@@ -39,25 +63,40 @@ export class BufferManager {
             logger.info('Memory buffer low water mark reached, stopped spilling to disk');
             this.metrics.incrementCounter('buffer.spill_to_disk_stopped');
         }
-        // Process events
+        // Process events with circuit breaker protection
+        const startTime = Date.now();
+        let successCount = 0;
         for (const event of events) {
-            if (this.spillToDisk || this.isRecovering) {
-                // Write to disk when memory is full or recovering
-                try {
-                    await this.diskBuffer.write(event);
-                    this.metrics.incrementCounter('buffer.disk_writes');
-                }
-                catch (error) {
-                    logger.error('Failed to write event to disk buffer', error);
-                    this.metrics.incrementCounter('buffer.disk_write_errors');
-                    // Try memory buffer as fallback
+            try {
+                await this.circuitBreaker.execute(async () => {
+                    if (this.spillToDisk || this.isRecovering) {
+                        // Write to disk when memory is full or recovering
+                        await this.diskBuffer.write(event);
+                        this.metrics.incrementCounter('buffer.disk_writes');
+                    }
+                    else {
+                        // Normal operation - use memory buffer
+                        this.addToMemoryBuffer(event);
+                    }
+                });
+                successCount++;
+            }
+            catch (error) {
+                logger.error('Failed to add event to buffer', error);
+                this.metrics.incrementCounter('buffer.add_event_errors');
+                // Try fallback to memory buffer if disk failed
+                if (this.spillToDisk || this.isRecovering) {
                     this.addToMemoryBuffer(event);
                 }
             }
-            else {
-                // Normal operation - use memory buffer
-                this.addToMemoryBuffer(event);
-            }
+        }
+        // Record processing metrics for backpressure monitoring
+        const processingTime = Date.now() - startTime;
+        this.backpressureMonitor.recordRequest(processingTime, successCount === events.length);
+        // Update adaptive batch manager
+        if (events.length > 0) {
+            const throughput = (successCount / processingTime) * 1000; // events per second
+            this.adaptiveBatchManager.recordBatchProcessing(events.length, processingTime, throughput);
         }
         // Update metrics
         this.updateMetrics();
@@ -72,7 +111,9 @@ export class BufferManager {
             this.metrics.incrementCounter('buffer.memory_writes');
         }
     }
-    async getBatch(size) {
+    async getBatch(requestedSize) {
+        // Use adaptive batch size if no specific size requested
+        const size = requestedSize || this.adaptiveBatchManager.getBatchSize();
         const batch = [];
         // First, try to get events from memory buffer
         while (batch.length < size && !this.memoryBuffer.isEmpty()) {
@@ -152,77 +193,42 @@ export class BufferManager {
             logger.error('Failed to get disk buffer size', error);
         });
     }
+    // Enhanced methods for backpressure and flow control management
+    getBackpressureMetrics() {
+        return this.backpressureMonitor.getMetrics();
+    }
+    getFlowControlMetrics() {
+        return this.flowControlManager.getMetrics();
+    }
+    getAdaptiveBatchMetrics() {
+        return this.adaptiveBatchManager.getMetrics();
+    }
+    getCircuitBreakerStats() {
+        return this.circuitBreaker.getStats();
+    }
+    adjustFlowControlRate(newRate) {
+        this.flowControlManager.adjustRateLimit(newRate);
+    }
+    adjustBatchSize(newSize) {
+        this.adaptiveBatchManager.setBatchSize(newSize);
+    }
+    resetCircuitBreaker() {
+        this.circuitBreaker.reset();
+    }
+    isBackpressureActive() {
+        return this.backpressureMonitor.isActive();
+    }
+    isCircuitBreakerOpen() {
+        return this.circuitBreaker.isOpen();
+    }
     async close() {
+        // Close advanced components first
+        this.circuitBreaker.destroy();
+        this.backpressureMonitor.destroy();
+        this.adaptiveBatchManager.destroy();
+        this.flowControlManager.destroy();
+        // Close disk buffer
         await this.diskBuffer.close();
-    }
-}
-// Circular buffer implementation for memory buffering
-class CircularBuffer {
-    buffer;
-    capacity;
-    head = 0;
-    tail = 0;
-    size = 0;
-    constructor(capacity) {
-        this.capacity = capacity;
-        this.buffer = new Array(capacity);
-    }
-    add(item) {
-        let dropped;
-        if (this.size === this.capacity) {
-            // Buffer is full, drop oldest item
-            dropped = this.buffer[this.head];
-            this.head = (this.head + 1) % this.capacity;
-        }
-        else {
-            this.size++;
-        }
-        this.buffer[this.tail] = item;
-        this.tail = (this.tail + 1) % this.capacity;
-        return dropped;
-    }
-    addFront(item) {
-        // Add to front of buffer (for re-queuing)
-        this.head = (this.head - 1 + this.capacity) % this.capacity;
-        this.buffer[this.head] = item;
-        if (this.size < this.capacity) {
-            this.size++;
-        }
-        else {
-            // Move tail back if buffer was full
-            this.tail = (this.tail - 1 + this.capacity) % this.capacity;
-        }
-    }
-    get() {
-        if (this.size === 0) {
-            return undefined;
-        }
-        const item = this.buffer[this.head];
-        this.buffer[this.head] = undefined;
-        this.head = (this.head + 1) % this.capacity;
-        this.size--;
-        return item;
-    }
-    peek() {
-        if (this.size === 0) {
-            return undefined;
-        }
-        return this.buffer[this.head];
-    }
-    isEmpty() {
-        return this.size === 0;
-    }
-    getSize() {
-        return this.size;
-    }
-    getUsagePercentage() {
-        return (this.size / this.capacity) * 100;
-    }
-    clear() {
-        this.buffer = new Array(this.capacity);
-        this.head = 0;
-        this.tail = 0;
-        this.size = 0;
     }
 }
 //# sourceMappingURL=buffer-manager.js.map

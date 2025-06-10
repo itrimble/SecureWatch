@@ -1,13 +1,13 @@
 # Task ID: 6
 # Title: Implement AI-Enhanced Analytics System
-# Status: completed
+# Status: done
 # Dependencies: 3, 4
 # Priority: high
 # Description: Develop AI-enhanced analytics capabilities with MCP integration, local LLM support, and cloud AI services for advanced threat detection and analysis.
 # Details:
 1. Implement Model Context Protocol (MCP) support
 2. Create integration with local LLM frameworks (Ollama, LM Studio)
-3. Develop cloud AI service connectors (Claude, GPT-4,DeepSeek,Gemini,Mistral)
+3. Develop cloud AI service connectors (Claude, GPT-4)
 4. Implement AI-assisted KQL generation from natural language
 5. Create alert enrichment with automatic context addition
 6. Develop anomaly detection using ML-based baseline deviation

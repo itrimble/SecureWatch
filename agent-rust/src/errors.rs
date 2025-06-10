@@ -73,6 +73,15 @@ pub enum AgentError {
         severity: ErrorSeverity,
         requires_shutdown: bool,
     },
+
+    #[error("Configuration error: {0}")]
+    Configuration(String),
+
+    #[error("Serialization error: {0}")]
+    Serialization(String),
+
+    #[error("Agent unhealthy: {0}")]
+    AgentUnhealthy(String),
 }
 
 /// Configuration-related errors with detailed context
@@ -521,6 +530,42 @@ pub enum SecurityError {
         resource: String,
         details: Vec<(String, String)>,
     },
+
+    #[error("Master key not initialized")]
+    MasterKeyNotInitialized,
+
+    #[error("Failed to generate salt")]
+    SaltGenerationFailed,
+
+    #[error("Failed to generate nonce")]
+    NonceGenerationFailed,
+
+    #[error("System time error")]
+    SystemTimeError,
+
+    #[error("Credential not found: {0}")]
+    CredentialNotFound(String),
+
+    #[error("Credential expired: {0}")]
+    CredentialExpired(String),
+
+    #[error("Invalid nonce")]
+    InvalidNonce,
+
+    #[error("Encryption failed")]
+    EncryptionFailed,
+
+    #[error("Decryption failed")]
+    DecryptionFailed,
+
+    #[error("Invalid UTF-8 in decrypted credential")]
+    InvalidUtf8,
+
+    #[error("Failed to create encryption key")]
+    KeyCreationFailed,
+
+    #[error("{0} credentials failed validation")]
+    ValidationFailed(u32),
 }
 
 /// Error severity levels for prioritization and alerting
@@ -575,6 +620,9 @@ impl AgentError {
             AgentError::ShutdownTimeout { .. } => ErrorCategory::Runtime,
             AgentError::InitializationFailed { .. } => ErrorCategory::System,
             AgentError::CriticalError { .. } => ErrorCategory::System,
+            AgentError::Configuration(_) => ErrorCategory::Configuration,
+            AgentError::Serialization(_) => ErrorCategory::Data,
+            AgentError::AgentUnhealthy(_) => ErrorCategory::System,
         }
     }
     
@@ -620,6 +668,11 @@ impl AgentError {
             severity,
             requires_shutdown: matches!(severity, ErrorSeverity::Critical),
         }
+    }
+
+    /// Create an agent unhealthy error
+    pub fn agent_unhealthy(reason: &str) -> Self {
+        AgentError::AgentUnhealthy(reason.to_string())
     }
 }
 
@@ -733,6 +786,36 @@ impl TransportError {
             operation: "serialize".to_string(),
             original_size: None,
             source: Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, msg)),
+        }
+    }
+    
+    /// Create a compression error for zstd compression operations
+    pub fn compression_error(msg: &str) -> Self {
+        TransportError::CompressionError {
+            algorithm: "zstd".to_string(),
+            operation: "compress".to_string(),
+            original_size: None,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, msg)),
+        }
+    }
+    
+    /// Create a validation failed error for input security violations
+    pub fn validation_failed(msg: &str) -> Self {
+        TransportError::RequestFailed {
+            method: "VALIDATION".to_string(),
+            url: "input_validation".to_string(),
+            status_code: None,
+            source: Box::new(std::io::Error::new(std::io::ErrorKind::InvalidInput, msg)),
+        }
+    }
+    
+    /// Create a configuration invalid error
+    pub fn configuration_invalid(msg: &str) -> Self {
+        TransportError::ConnectionFailed {
+            endpoint: "configuration".to_string(),
+            attempts: 0,
+            last_error: msg.to_string(),
+            retry_after: None,
         }
     }
 }

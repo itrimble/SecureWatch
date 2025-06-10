@@ -1,0 +1,529 @@
+# Production Security Policies for SecureWatch Platform
+# Comprehensive security hardening including Pod Security Standards, Network Policies, and Admission Control
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: securewatch-security
+  labels:
+    name: securewatch-security
+    environment: production
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Pod Security Policy (if PSP is enabled) or Pod Security Standards
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: securewatch-restricted-psp
+  namespace: securewatch
+  labels:
+    app: securewatch
+    component: security
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  runAsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  seLinux:
+    rule: 'RunAsAny'
+  seccompProfile:
+    type: 'RuntimeDefault'
+  fsGroup:
+    rule: 'RunAsAny'
+
+---
+# Network Policy for strict ingress/egress control
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: securewatch-default-deny-all
+  namespace: securewatch
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: securewatch-api-gateway-policy
+  namespace: securewatch
+spec:
+  podSelector:
+    matchLabels:
+      app: securewatch-api-gateway
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          component: auth
+    ports:
+    - protocol: TCP
+      port: 3000
+  - to:
+    - podSelector:
+        matchLabels:
+          component: search
+    ports:
+    - protocol: TCP
+      port: 5000
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: securewatch-backend-services-policy
+  namespace: securewatch
+spec:
+  podSelector:
+    matchLabels:
+      tier: backend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: securewatch-api-gateway
+  - from:
+    - podSelector:
+        matchLabels:
+          tier: backend
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          tier: backend
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 5432  # PostgreSQL
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 6379  # Redis
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 9092  # Kafka
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 9200  # Elasticsearch
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+
+---
+# Security Context Constraints for enhanced pod security
+apiVersion: v1
+kind: SecurityContextConstraints
+metadata:
+  name: securewatch-scc
+  labels:
+    app: securewatch
+    component: security
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowPrivilegeEscalation: false
+allowPrivilegedContainer: false
+allowedCapabilities: null
+defaultAddCapabilities: null
+requiredDropCapabilities:
+- KILL
+- MKNOD
+- SETUID
+- SETGID
+fsGroup:
+  type: RunAsAny
+readOnlyRootFilesystem: false
+runAsUser:
+  type: MustRunAsNonRoot
+seLinuxContext:
+  type: MustRunAs
+supplementalGroups:
+  type: RunAsAny
+volumes:
+- configMap
+- downwardAPI
+- emptyDir
+- persistentVolumeClaim
+- projected
+- secret
+users:
+- system:serviceaccount:securewatch:securewatch-service-account
+
+---
+# Admission Controller - ValidatingAdmissionWebhook for custom security policies
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: securewatch-security-validator
+  labels:
+    app: securewatch
+    component: security
+webhooks:
+- name: security.securewatch.io
+  clientConfig:
+    service:
+      name: securewatch-admission-controller
+      namespace: securewatch-security
+      path: "/validate"
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["apps"]
+    apiVersions: ["v1"]
+    resources: ["deployments"]
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: [""]
+    apiVersions: ["v1"]
+    resources: ["pods"]
+  namespaceSelector:
+    matchLabels:
+      name: securewatch
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
+
+---
+# Resource Limits and Quotas for security isolation
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: securewatch-limit-range
+  namespace: securewatch
+spec:
+  limits:
+  - default:
+      cpu: "1000m"
+      memory: "2Gi"
+      ephemeral-storage: "5Gi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+      ephemeral-storage: "1Gi"
+    max:
+      cpu: "8000m"
+      memory: "16Gi"
+      ephemeral-storage: "20Gi"
+    min:
+      cpu: "50m"
+      memory: "64Mi"
+      ephemeral-storage: "500Mi"
+    type: Container
+  - max:
+      cpu: "32000m"
+      memory: "64Gi"
+      ephemeral-storage: "100Gi"
+    type: Pod
+
+---
+# Service Mesh Integration (Istio) for mTLS and advanced traffic management
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: securewatch-mtls
+  namespace: securewatch
+spec:
+  mtls:
+    mode: STRICT
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: securewatch-authz-policy
+  namespace: securewatch
+spec:
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/securewatch/sa/securewatch-service-account"]
+  - to:
+    - operation:
+        methods: ["GET", "POST"]
+    when:
+    - key: source.namespace
+      values: ["securewatch"]
+
+---
+# Certificate Management for automated TLS rotation
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: securewatch-tls-cert
+  namespace: securewatch
+spec:
+  secretName: securewatch-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+  - securewatch.example.com
+  - api.securewatch.example.com
+  - admin.securewatch.example.com
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: securewatch-ca-cert
+  namespace: securewatch
+spec:
+  secretName: securewatch-ca-tls
+  issuerRef:
+    name: securewatch-ca-issuer
+    kind: Issuer
+  commonName: SecureWatch Internal CA
+  isCA: true
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+
+---
+# Custom Resource Definitions for security monitoring
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: securityincidents.security.securewatch.io
+spec:
+  group: security.securewatch.io
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              severity:
+                type: string
+                enum: ["low", "medium", "high", "critical"]
+              description:
+                type: string
+              affectedPods:
+                type: array
+                items:
+                  type: string
+              mitigationActions:
+                type: array
+                items:
+                  type: string
+          status:
+            type: object
+            properties:
+              phase:
+                type: string
+                enum: ["investigating", "mitigating", "resolved"]
+              lastUpdateTime:
+                type: string
+                format: date-time
+  scope: Namespaced
+  names:
+    plural: securityincidents
+    singular: securityincident
+    kind: SecurityIncident
+
+---
+# RBAC for security operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: securewatch-security-operator
+rules:
+- apiGroups: ["security.securewatch.io"]
+  resources: ["securityincidents"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: securewatch-security-operator-binding
+subjects:
+- kind: ServiceAccount
+  name: securewatch-security-operator
+  namespace: securewatch-security
+roleRef:
+  kind: ClusterRole
+  name: securewatch-security-operator
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Security monitoring service account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: securewatch-security-operator
+  namespace: securewatch-security
+  labels:
+    app: securewatch
+    component: security-operator
+
+---
+# Image Security Policy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: image-security-policy
+  namespace: securewatch-security
+data:
+  policy.yaml: |
+    imageSecurityPolicy:
+      allowedRegistries:
+        - "securewatch/"
+        - "docker.io/library/"
+        - "gcr.io/distroless/"
+        - "quay.io/prometheus/"
+        - "docker.elastic.co/"
+      blockedImages:
+        - "*:latest"
+        - "*:master"
+        - "*:dev"
+      vulnerabilityThreshold: "HIGH"
+      requireSignedImages: true
+      allowPrivilegedContainers: false
+      requireNonRootUser: true
+      allowedCapabilities: []
+      requiredDropCapabilities:
+        - "ALL"
+
+---
+# Runtime Security Monitoring
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: securewatch-runtime-security
+  namespace: securewatch-security
+  labels:
+    app: securewatch-runtime-security
+    component: security-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: securewatch-runtime-security
+  template:
+    metadata:
+      labels:
+        app: securewatch-runtime-security
+        component: security-monitoring
+    spec:
+      serviceAccountName: securewatch-security-operator
+      hostPID: true
+      hostNetwork: true
+      containers:
+      - name: runtime-monitor
+        image: securewatch/runtime-security:v1.0.0
+        securityContext:
+          privileged: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: var-run
+          mountPath: /host/var/run
+          readOnly: true
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: var-run
+        hostPath:
+          path: /var/run
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists

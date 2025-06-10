@@ -25,11 +25,12 @@ export interface User {
 
 export interface TokenPayload {
   userId: string;
-  sessionId: string;
-  organizationId: string;
-  permissions: string[];
-  roles: string[];
-  type: 'access';
+  email?: string;
+  organizationId?: string;
+  permissions?: string[];
+  roles?: string[];
+  type?: 'access';
+  jti?: string;
   iat?: number;
   exp?: number;
   iss?: string;
@@ -38,10 +39,12 @@ export interface TokenPayload {
 
 export interface RefreshTokenPayload {
   userId: string;
-  sessionId: string;
-  organizationId: string;
-  type: 'refresh';
+  organizationId?: string;
+  type?: 'refresh';
   deviceInfo?: any;
+  ipAddress?: string;
+  userAgent?: string;
+  jti?: string;
   iat?: number;
   exp?: number;
   iss?: string;
@@ -177,6 +180,7 @@ export interface MFASetupResponse {
   secret: string;
   qrCode: string;
   backupCodes: string[];
+  method: string;
 }
 
 export interface AuthResponse {
@@ -186,4 +190,45 @@ export interface AuthResponse {
   expiresIn: number;
   requiresMFA?: boolean;
   mfaMethods?: string[];
+}
+
+export interface AuthResult {
+  accessToken?: string;
+  refreshToken?: string;
+  expiresIn?: number;
+  user?: {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    avatarUrl?: string;
+    organizationId?: string;
+  };
+  requiresMFA?: boolean;
+  mfaMethods?: string[];
+  tempToken?: string;
+}
+
+export interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface AuthContext {
+  ipAddress?: string;
+  userAgent?: string;
+  deviceInfo?: any;
+}
+
+export interface OAuthProfile {
+  provider: string;
+  providerId: string;
+  email: string;
+  emailVerified?: boolean;
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
+  avatarUrl?: string;
+  rawProfile?: any;
 }

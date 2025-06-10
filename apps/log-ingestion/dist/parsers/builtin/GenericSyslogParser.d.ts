@@ -14,6 +14,7 @@ export declare class GenericSyslogParser implements LogParser {
     validate(rawLog: string): boolean;
     parse(rawLog: string): ParsedEvent | null;
     normalize(event: ParsedEvent): NormalizedEvent;
+    private recursivelyParseJSON;
     private parseSyslogMessage;
     private parseTimestamp;
     private parseRFC3164Timestamp;

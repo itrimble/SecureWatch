@@ -145,4 +145,43 @@ export class AuditService {
       success: row.success
     }));
   }
+
+  // Static methods for compatibility with existing middleware
+  static async logAuthEvent(eventData: {
+    userId?: string;
+    organizationId?: string;
+    eventType: string;
+    eventStatus: string;
+    ipAddress?: string;
+    userAgent?: string;
+    errorMessage?: string;
+    metadata?: Record<string, any>;
+    resourceType?: string;
+    resourceId?: string;
+  }): Promise<void> {
+    try {
+      // For now, just log to console - in production this would use DatabaseService
+      console.log('Auth Event:', {
+        timestamp: new Date().toISOString(),
+        ...eventData
+      });
+    } catch (error) {
+      console.error('Failed to log auth event:', error);
+    }
+  }
+
+  static async logEvent(eventData: {
+    userId?: string;
+    organizationId?: string;
+    eventType: string;
+    eventStatus: string;
+    ipAddress?: string;
+    userAgent?: string;
+    errorMessage?: string;
+    metadata?: Record<string, any>;
+    resourceType?: string;
+    resourceId?: string;
+  }): Promise<void> {
+    await this.logAuthEvent(eventData);
+  }
 }

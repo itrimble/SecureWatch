@@ -12,6 +12,7 @@ import { QueryExecutorService } from './services/QueryExecutor';
 import { WebSocketService } from './services/WebSocketService';
 import { QueryWorker } from './workers/QueryWorker';
 import { jobsRouter, initializeJobRoutes } from './routes/jobs';
+import { createPerformanceRoutes } from './routes/performance';
 import { logger } from './utils/logger';
 
 const app = express();
@@ -82,6 +83,7 @@ async function startServer() {
 
     // API Routes
     app.use('/api/jobs', jobsRouter);
+    app.use('/api/performance', createPerformanceRoutes(queryExecutor));
 
     // Health check endpoint
     app.get('/health', async (_req, res) => {
@@ -125,14 +127,27 @@ async function startServer() {
         version: '1.0.0',
         description: 'Async job processing service for long-running SIEM queries',
         endpoints: {
-          'POST /api/jobs/submit': 'Submit a new query job',
-          'GET /api/jobs/:jobId': 'Get job status and details',
-          'GET /api/jobs/user/:userId': 'Get jobs for a user',
-          'POST /api/jobs/:jobId/cancel': 'Cancel a job',
-          'POST /api/jobs/validate': 'Validate query without submitting',
-          'GET /api/jobs/:jobId/result': 'Get job results',
-          'GET /api/jobs/admin/stats': 'Get queue statistics',
-          'GET /health': 'Service health check',
+          jobs: {
+            'POST /api/jobs/submit': 'Submit a new query job',
+            'GET /api/jobs/:jobId': 'Get job status and details',
+            'GET /api/jobs/user/:userId': 'Get jobs for a user',
+            'POST /api/jobs/:jobId/cancel': 'Cancel a job',
+            'POST /api/jobs/validate': 'Validate query without submitting',
+            'GET /api/jobs/:jobId/result': 'Get job results',
+            'GET /api/jobs/admin/stats': 'Get queue statistics',
+          },
+          performance: {
+            'GET /api/performance/stats': 'Get comprehensive performance statistics',
+            'GET /api/performance/metrics': 'Get metrics in Prometheus format',
+            'GET /api/performance/health': 'Health check with performance indicators',
+            'GET /api/performance/slow-queries': 'Get list of slow queries',
+            'POST /api/performance/cache/warm': 'Warm up cache with common queries',
+            'DELETE /api/performance/cache': 'Clear query cache',
+            'POST /api/performance/thresholds': 'Update performance thresholds',
+          },
+          system: {
+            'GET /health': 'Service health check',
+          },
         },
         websocket: {
           url: `ws://localhost:${wsPort}`,
