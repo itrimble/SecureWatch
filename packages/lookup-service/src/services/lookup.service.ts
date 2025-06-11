@@ -91,7 +91,6 @@ export class LookupService {
     const tableName = `lookup_${query.tableName.toLowerCase().replace(/[^a-z0-9_]/g, '_')}`;
     
     let sql: string;
-    let params: any[];
 
     if (query.returnFields && query.returnFields.length > 0) {
       const fields = query.returnFields.map(f => `"${f}"`).join(', ');
