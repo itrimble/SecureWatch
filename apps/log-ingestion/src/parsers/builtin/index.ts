@@ -17,6 +17,14 @@ export { KubernetesAuditParser } from './KubernetesAuditParser';
 export { DockerParser } from './DockerParser';
 export { MySQLMariaDBParser } from './MySQLMariaDBParser';
 
+// Task 25.1.1 - Additional Open Source Tools Parsers
+export { FreeRADIUSParser } from './FreeRADIUSParser';
+export { JenkinsParser } from './JenkinsParser';
+
+// Task 25.1.2 - Prometheus and HAProxy Parsers
+export { PrometheusParser } from './PrometheusParser';
+export { HAProxyParser } from './HAProxyParser';
+
 // New Enterprise Parsers
 export { CheckPointFirewallParser } from './CheckPointFirewallParser';
 export { CrowdStrikeFalconEDRParser } from './CrowdStrikeFalconEDRParser';

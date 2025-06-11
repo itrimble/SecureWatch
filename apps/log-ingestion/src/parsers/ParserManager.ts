@@ -374,6 +374,14 @@ export class ParserManager {
         './builtin/MySQLMariaDBParser'
       );
 
+      // Task 25.1.1 - Additional Open Source Tools Parsers
+      const { FreeRADIUSParser } = await import('./builtin/FreeRADIUSParser');
+      const { JenkinsParser } = await import('./builtin/JenkinsParser');
+
+      // Task 25.1.2 - Prometheus and HAProxy Parsers
+      const { PrometheusParser } = await import('./builtin/PrometheusParser');
+      const { HAProxyParser } = await import('./builtin/HAProxyParser');
+
       const { GenericSyslogParser } = await import(
         './builtin/GenericSyslogParser'
       );
@@ -396,6 +404,14 @@ export class ParserManager {
       await this.registerParser(new KubernetesAuditParser());
       await this.registerParser(new DockerParser());
       await this.registerParser(new MySQLMariaDBParser());
+
+      // Register Task 25.1.1 parsers
+      await this.registerParser(new FreeRADIUSParser());
+      await this.registerParser(new JenkinsParser());
+
+      // Register Task 25.1.2 parsers
+      await this.registerParser(new PrometheusParser());
+      await this.registerParser(new HAProxyParser());
 
       await this.registerParser(new GenericSyslogParser()); // Lowest priority fallback
 
