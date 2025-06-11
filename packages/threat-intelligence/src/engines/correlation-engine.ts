@@ -144,7 +144,7 @@ export class CorrelationEngine extends EventEmitter {
     if (!matchedCondition) return null;
 
     // Get or create correlation windows for this rule
-    let windows = this.state.activeWindows.get(rule.id) || [];
+    const windows = this.state.activeWindows.get(rule.id) || [];
 
     // Find applicable windows based on correlation fields
     const applicableWindows = this.findApplicableWindows(event, rule, windows);

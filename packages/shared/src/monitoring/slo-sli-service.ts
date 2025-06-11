@@ -218,7 +218,7 @@ export class SLOSLIService extends EventEmitter {
     if (measurements.length === 0) return 100;
 
     let goodCount = 0;
-    let totalCount = measurements.length;
+    const totalCount = measurements.length;
 
     switch (slo.sliType) {
       case SLIType.AVAILABILITY:

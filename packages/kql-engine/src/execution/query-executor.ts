@@ -72,7 +72,7 @@ export class QueryExecutor {
 
       // Add time range filter if specified
       let finalSql = sql;
-      let finalParameters = [...parameters];
+      const finalParameters = [...parameters];
 
       if (context.timeRange) {
         finalSql += ` AND timestamp BETWEEN $${parameters.length + 1} AND $${parameters.length + 2}`;
@@ -149,7 +149,7 @@ export class QueryExecutor {
       const { sql, parameters } = sqlGenerator.generateSQL(optimizedQuery);
 
       let explainSql = `EXPLAIN (FORMAT JSON, ANALYZE false, BUFFERS false) ${sql}`;
-      let finalParameters = [...parameters];
+      const finalParameters = [...parameters];
 
       if (context.timeRange) {
         explainSql = explainSql.replace(sql, sql + ` AND timestamp BETWEEN $${parameters.length + 1} AND $${parameters.length + 2}`);

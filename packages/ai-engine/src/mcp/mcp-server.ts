@@ -412,4 +412,6 @@ export class MCPClient extends EventEmitter {
   }
 }
 
-export default { MCPServer, MCPClient };
+const mcpModule = { MCPServer, MCPClient };
+
+export default mcpModule;

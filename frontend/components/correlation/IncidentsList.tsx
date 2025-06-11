@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +50,7 @@ export function IncidentsList() {
   const [loading, setLoading] = useState(true);
 
   // Mock data for development
-  const mockIncidents: Incident[] = [
+  const mockIncidents: Incident[] = useMemo(() => [
     {
       id: 'INC-001',
       title: 'Multiple Failed Login Attempts from 192.168.1.100',
@@ -124,7 +124,7 @@ export function IncidentsList() {
       affectedAssets: ['LAPTOP-USER-42'],
       tags: ['malware', 'trojan', 'quarantined']
     }
-  ];
+  ], []);
 
   useEffect(() => {
     // Simulate API call
@@ -133,7 +133,7 @@ export function IncidentsList() {
       setFilteredIncidents(mockIncidents);
       setLoading(false);
     }, 1000);
-  }, []);
+  }, [mockIncidents]);
 
   useEffect(() => {
     let filtered = incidents;

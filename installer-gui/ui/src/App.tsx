@@ -230,11 +230,11 @@ function App() {
                 </p>
                 <br />
                 <p>
-                  This End User License Agreement ("Agreement") is a legal agreement between you 
+                  This End User License Agreement (&quot;Agreement&quot;) is a legal agreement between you 
                   (either an individual or a single entity) and SecureWatch for the SecureWatch Agent 
                   software product identified above, which includes computer software and may include 
-                  associated media, printed materials, and "online" or electronic documentation 
-                  ("Software Product").
+                  associated media, printed materials, and &quot;online&quot; or electronic documentation 
+                  (&quot;Software Product&quot;).
                 </p>
                 <br />
                 <p>
@@ -264,7 +264,7 @@ function App() {
                   <strong>DISCLAIMER OF WARRANTY</strong>
                 </p>
                 <p>
-                  THE SOFTWARE PRODUCT IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. 
+                  THE SOFTWARE PRODUCT IS PROVIDED &quot;AS IS&quot; WITHOUT WARRANTY OF ANY KIND. 
                   SECUREWATCH DISCLAIMS ALL WARRANTIES, EITHER EXPRESS OR IMPLIED.
                 </p>
                 <br />

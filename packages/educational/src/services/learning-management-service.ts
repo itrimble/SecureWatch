@@ -305,8 +305,8 @@ export class LearningManagementService extends EventEmitter {
     // Insert modules if provided
     if (validatedPath.modules && validatedPath.modules.length > 0) {
       for (let i = 0; i < validatedPath.modules.length; i++) {
-        const module = validatedPath.modules[i];
-        await this.addModuleToPath(validatedPath.id, module, i + 1);
+        const learningModule = validatedPath.modules[i];
+        await this.addModuleToPath(validatedPath.id, learningModule, i + 1);
       }
     }
 
@@ -583,7 +583,7 @@ export class LearningManagementService extends EventEmitter {
     const modules: LearningModule[] = [];
 
     for (const row of rows) {
-      const module: LearningModule = {
+      const learningModule: LearningModule = {
         id: row.id,
         title: row.title,
         description: row.description,
@@ -605,7 +605,7 @@ export class LearningManagementService extends EventEmitter {
         }
       };
 
-      modules.push(module);
+      modules.push(learningModule);
     }
 
     return modules;
@@ -615,7 +615,7 @@ export class LearningManagementService extends EventEmitter {
     const row = await this.db('learning_modules').where('id', moduleId).first();
     if (!row) return null;
 
-    const module: LearningModule = {
+    const learningModule: LearningModule = {
       id: row.id,
       title: row.title,
       description: row.description,
@@ -637,7 +637,7 @@ export class LearningManagementService extends EventEmitter {
       }
     };
 
-    return module;
+    return learningModule;
   }
 
   // Lesson Management

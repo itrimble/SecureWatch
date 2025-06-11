@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +50,7 @@ export function RulesList({ onEditRule }: RulesListProps) {
   const [loading, setLoading] = useState(true);
 
   // Mock data for development
-  const mockRules: Rule[] = [
+  const mockRules: Rule[] = useMemo(() => [
     {
       id: '1',
       name: 'Multiple Failed Logins',
@@ -99,7 +99,7 @@ export function RulesList({ onEditRule }: RulesListProps) {
       createdAt: '2024-01-08',
       category: 'Access Control'
     }
-  ];
+  ], []);
 
   useEffect(() => {
     // Simulate API call
@@ -108,7 +108,7 @@ export function RulesList({ onEditRule }: RulesListProps) {
       setFilteredRules(mockRules);
       setLoading(false);
     }, 1000);
-  }, []);
+  }, [mockRules]);
 
   useEffect(() => {
     let filtered = rules;

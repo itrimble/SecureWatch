@@ -304,7 +304,7 @@ export class KQLLexer {
 
   private scanTimespanSuffix(): string | null {
     const suffixes = ['d', 'h', 'm', 's', 'ms', 'microsecond', 'nanosecond'];
-    let match = '';
+    const match = '';
     
     for (const suffix of suffixes) {
       if (this.matchString(suffix)) {

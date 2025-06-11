@@ -334,7 +334,7 @@ export class AlertClusteringService {
    */
   private hierarchicalClustering(alerts: Alert[], similarityMatrix: number[][]): AlertCluster[] {
     const n = alerts.length;
-    let clusters: number[][] = alerts.map((_, i) => [i]); // Start with each alert as its own cluster
+    const clusters: number[][] = alerts.map((_, i) => [i]); // Start with each alert as its own cluster
     
     while (clusters.length > 1) {
       let maxSimilarity = -1;

@@ -17,10 +17,29 @@ const eslintConfig = [
       '**/build/**',
       '**/.next/**',
       '**/coverage/**',
-      '**/.turbo/**'
+      '**/.turbo/**',
+      '**/agent_venv/**',
+      '**/target/**',
+      '**/*.py',
+      '**/*.rs',
+      '**/*.sql',
+      '**/*.md',
+      '**/*.yml',
+      '**/*.yaml',
+      '**/*.toml',
+      '**/*.sh',
+      'Archives/**',
+      'infrastructure/**'
     ]
   },
   ...compat.extends("next/core-web-vitals"),
+  {
+    settings: {
+      next: {
+        rootDir: ["./frontend/"]
+      }
+    }
+  },
   {
     rules: {
       "prefer-const": "error"

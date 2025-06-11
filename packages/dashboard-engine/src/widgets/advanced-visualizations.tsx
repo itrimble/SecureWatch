@@ -626,8 +626,10 @@ function calculateCorrelation(x: number[], y: number[]): number {
   return numerator / denominator;
 }
 
-export default {
+const advancedVisualizations = {
   TimeSeriesWidget,
   CorrelationMatrixWidget,
   HeatMapWidget
 };
+
+export default advancedVisualizations;

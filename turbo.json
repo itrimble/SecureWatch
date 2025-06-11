@@ -1,8 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
+  "globalEnv": ["DATABASE_URL", "NODE_ENV"],
   "remoteCache": {
     "enabled": true
   },
+  "concurrency": "28",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

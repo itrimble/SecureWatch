@@ -60,10 +60,10 @@ services:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "securewatch_dev", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
     deploy:
       resources:
         limits:
@@ -374,6 +374,190 @@ services:
       - securewatch_network
     volumes:
       - /tmp:/tmp # For log files
+
+  # Auth Service - Enhanced with proper dependencies
+  auth-service:
+    build:
+      context: ./apps/auth-service
+      dockerfile: Dockerfile
+    container_name: securewatch_auth_service
+    environment:
+      - NODE_ENV=development
+      - PORT=4006
+      - AUTH_SERVICE_PORT=4006
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=securewatch
+      - DB_USER=securewatch
+      - DB_PASSWORD=securewatch_dev
+      - REDIS_URL=redis://:securewatch_dev@redis:6379
+      - JWT_ACCESS_SECRET=your-super-secret-jwt-access-key-min-32-chars
+      - JWT_REFRESH_SECRET=your-super-secret-jwt-refresh-key-min-32-chars
+      - MFA_ENCRYPTION_KEY=your-super-secret-mfa-encryption-key-32-chars
+      - LOG_LEVEL=info
+    ports:
+      - "4006:4006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4006/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    restart: unless-stopped
+    networks:
+      - securewatch_network
+
+  # Search API - Enhanced with proper dependencies
+  search-api:
+    build:
+      context: ./apps/search-api
+      dockerfile: Dockerfile
+    container_name: securewatch_search_api
+    environment:
+      - NODE_ENV=development
+      - PORT=4004
+      - SEARCH_API_PORT=4004
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=securewatch
+      - DB_USER=securewatch
+      - DB_PASSWORD=securewatch_dev
+      - OPENSEARCH_HOST=opensearch
+      - OPENSEARCH_PORT=9200
+      - REDIS_URL=redis://:securewatch_dev@redis:6379
+      - LOG_LEVEL=info
+    ports:
+      - "4004:4004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4004/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    restart: unless-stopped
+    networks:
+      - securewatch_network
+
+  # Log Ingestion Service - Enhanced with proper dependencies
+  log-ingestion:
+    build:
+      context: ./apps/log-ingestion
+      dockerfile: Dockerfile
+    container_name: securewatch_log_ingestion
+    environment:
+      - NODE_ENV=development
+      - PORT=4002
+      - LOG_INGESTION_PORT=4002
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=securewatch
+      - DB_USER=securewatch
+      - DB_PASSWORD=securewatch_dev
+      - KAFKA_BROKER=kafka:29092
+      - REDIS_URL=redis://:securewatch_dev@redis:6379
+      - OPENSEARCH_HOST=opensearch
+      - OPENSEARCH_PORT=9200
+      - LOG_LEVEL=info
+    ports:
+      - "4002:4002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4002/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    restart: unless-stopped
+    networks:
+      - securewatch_network
+
+  # Query Processor - Enhanced with proper dependencies
+  query-processor:
+    build:
+      context: ./apps/query-processor
+      dockerfile: Dockerfile
+    container_name: securewatch_query_processor
+    environment:
+      - NODE_ENV=development
+      - PORT=4008
+      - QUERY_PROCESSOR_PORT=4008
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=securewatch
+      - DB_USER=securewatch
+      - DB_PASSWORD=securewatch_dev
+      - REDIS_URL=redis://:securewatch_dev@redis:6379
+      - LOG_LEVEL=info
+      - MAX_CONCURRENT_JOBS=10
+      - JOB_TIMEOUT=300
+    ports:
+      - "4008:4008"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4008/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    restart: unless-stopped
+    networks:
+      - securewatch_network
 
 networks:
   securewatch_network:

@@ -189,7 +189,7 @@ export class RuleEvaluator {
     const sequenceKey = `sequence:${rule.id}:${event.source}`;
     const currentSequence = await this.redis.get(sequenceKey);
     
-    let sequenceState = currentSequence ? JSON.parse(currentSequence) : {
+    const sequenceState = currentSequence ? JSON.parse(currentSequence) : {
       currentIndex: 0,
       startTime: null,
       matchedEvents: []

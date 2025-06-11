@@ -90,7 +90,7 @@ export default function DashboardContent() {
     debugLog("DashboardContent", "Component Mounted")
     // Example of logging data
     debugLog("DashboardContent", "Initial metrics loaded", { count: metrics.length })
-  }, []) // Empty dependency array means this runs once on mount
+  }, [metrics.length]) // Include metrics.length dependency
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {

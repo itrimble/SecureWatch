@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -67,7 +67,7 @@ export function PatternAnalysis() {
   const [timeRange, setTimeRange] = useState('7d');
 
   // Mock data for development
-  const mockPatterns: AttackPattern[] = [
+  const mockPatterns: AttackPattern[] = useMemo(() => [
     {
       id: '1',
       name: 'Credential Dumping Chain',
@@ -133,9 +133,9 @@ export function PatternAnalysis() {
       affectedAssets: ['WS-USER-03', 'PROXY-01'],
       mitreId: 'T1071.001'
     }
-  ];
+  ], []);
 
-  const mockTrends: TrendData[] = [
+  const mockTrends: TrendData[] = useMemo(() => [
     { date: '2024-01-14', attacks: 12, detections: 10, false_positives: 2 },
     { date: '2024-01-15', attacks: 18, detections: 15, false_positives: 3 },
     { date: '2024-01-16', attacks: 8, detections: 7, false_positives: 1 },
@@ -143,16 +143,16 @@ export function PatternAnalysis() {
     { date: '2024-01-18', attacks: 15, detections: 13, false_positives: 2 },
     { date: '2024-01-19', attacks: 31, detections: 27, false_positives: 4 },
     { date: '2024-01-20', attacks: 19, detections: 17, false_positives: 2 }
-  ];
+  ], []);
 
-  const mockTactics: TacticData[] = [
+  const mockTactics: TacticData[] = useMemo(() => [
     { name: 'Initial Access', count: 8, color: '#ff6b6b' },
     { name: 'Credential Access', count: 15, color: '#4ecdc4' },
     { name: 'Lateral Movement', count: 12, color: '#45b7d1' },
     { name: 'Persistence', count: 10, color: '#96ceb4' },
     { name: 'Exfiltration', count: 6, color: '#feca57' },
     { name: 'Command & Control', count: 14, color: '#ff9ff3' }
-  ];
+  ], []);
 
   useEffect(() => {
     // Simulate API call
@@ -162,7 +162,7 @@ export function PatternAnalysis() {
       setTactics(mockTactics);
       setLoading(false);
     }, 1000);
-  }, [timeRange]);
+  }, [timeRange, mockPatterns, mockTrends, mockTactics]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {

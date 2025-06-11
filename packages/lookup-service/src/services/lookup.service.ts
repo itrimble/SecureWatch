@@ -100,7 +100,7 @@ export class LookupService {
       sql = `SELECT * FROM ${tableName} WHERE "${query.keyField}" = $1 LIMIT 1`;
     }
     
-    params = [query.keyValue];
+    const params = [query.keyValue];
 
     try {
       const result = await this.db.query(sql, params);

@@ -106,7 +106,7 @@ export class CacheManager {
       cacheEntry.lastAccessed = new Date();
       
       // Decompress if needed
-      let result = cacheEntry.result;
+      const result = cacheEntry.result;
       if (this.config.enableCompression && cacheEntry.size > this.config.compressionThreshold) {
         const compressed = Buffer.from(result.data, 'base64');
         const decompressed = await gunzipAsync(compressed);

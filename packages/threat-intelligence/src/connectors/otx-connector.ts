@@ -274,7 +274,7 @@ export class OTXConnector extends BaseThreatIntelConnector {
       queryParams.modified_since = params.since.toISOString();
     }
 
-    let endpoint = '/api/v1/pulses/subscribed';
+    const endpoint = '/api/v1/pulses/subscribed';
     
     // If we want pulses with adversaries, we might need to use a different endpoint
     // or filter the results

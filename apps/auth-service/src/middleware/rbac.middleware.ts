@@ -427,7 +427,7 @@ export const authenticateApiKey = async (
   }
 };
 
-export default {
+const rbacMiddleware = {
   authenticate,
   authorize,
   requireRole,
@@ -435,3 +435,5 @@ export default {
   requireOrgAccess,
   authenticateApiKey,
 };
+
+export default rbacMiddleware;

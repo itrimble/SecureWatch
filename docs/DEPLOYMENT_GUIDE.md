@@ -959,6 +959,399 @@ The extended schema supports comprehensive enterprise security use cases:
 
 ---
 
+## 🚀 System Performance Tuning
+
+### Overview
+
+SecureWatch performance is highly dependent on proper system configuration and resource allocation. This section provides comprehensive guidance for optimizing system performance across different architectures and deployment scenarios.
+
+**📋 Reference:** For detailed performance optimization strategies, see [PERFORMANCE_OPTIMIZATION_GUIDE.md](PERFORMANCE_OPTIMIZATION_GUIDE.md).
+
+### Architecture-Specific Performance Configuration
+
+#### Apple Silicon (M1/M2/M3/M4) Systems
+Optimal configuration for ARM64 Darwin systems:
+
+```bash
+# Recommended system tuning for Apple Silicon
+# File: /etc/sysctl.conf (requires sudo)
+kern.maxfilesperproc=65536
+kern.maxfiles=200000
+net.inet.tcp.msl=1000
+net.inet.tcp.delayed_ack=0
+
+# Turbo concurrency optimization
+# CPU cores × 1.5 for optimal performance
+jq '.concurrency = 15' turbo.json > turbo.json.tmp && mv turbo.json.tmp turbo.json
+
+# Memory allocation (16GB+ systems)
+export NODE_OPTIONS="--max-old-space-size=8192"
+export UV_THREADPOOL_SIZE=16
+```
+
+#### Intel/AMD x86_64 Systems
+Configuration for traditional x86 architecture:
+
+```bash
+# System tuning for x86_64
+# File: /etc/sysctl.conf
+vm.swappiness=10
+vm.dirty_ratio=15
+vm.dirty_background_ratio=5
+net.core.rmem_max=16777216
+net.core.wmem_max=16777216
+
+# Turbo concurrency (CPU cores × 1.2-1.4)
+jq '.concurrency = 14' turbo.json > turbo.json.tmp && mv turbo.json.tmp turbo.json
+
+# Memory allocation
+export NODE_OPTIONS="--max-old-space-size=6144"
+export UV_THREADPOOL_SIZE=12
+```
+
+#### Container Resource Limits
+Docker resource configuration by architecture:
+
+```yaml
+# docker-compose.performance.yml
+version: '3.8'
+
+services:
+  frontend:
+    deploy:
+      resources:
+        limits:
+          # ARM64 systems
+          cpus: '8.0'
+          memory: 4G
+        reservations:
+          cpus: '2.0'
+          memory: 1G
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=3072
+      - UV_THREADPOOL_SIZE=8
+
+  analytics-engine:
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+```
+
+### Build Performance Optimization
+
+#### Automatic Concurrency Detection
+Create a script to automatically optimize build performance:
+
+```bash
+# scripts/optimize-build-performance.sh
+#!/bin/bash
+
+set -euo pipefail
+
+detect_optimal_settings() {
+  local arch=$(uname -m)
+  local os=$(uname -s)
+  local cpu_cores=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+  local memory_gb=$(free -g 2>/dev/null | awk 'NR==2{print $2}' || echo 8)
+  
+  case "${arch}-${os}" in
+    arm64-Darwin)
+      echo "concurrency=$((cpu_cores * 3 / 2))"
+      echo "node_memory=8192"
+      echo "uv_threadpool=$((cpu_cores + 4))"
+      ;;
+    x86_64-Linux|x86_64-Darwin)
+      echo "concurrency=$((cpu_cores * 13 / 10))"
+      echo "node_memory=6144"
+      echo "uv_threadpool=$((cpu_cores))"
+      ;;
+    *)
+      echo "concurrency=$cpu_cores"
+      echo "node_memory=4096"
+      echo "uv_threadpool=4"
+      ;;
+  esac
+}
+
+# Apply optimizations
+eval $(detect_optimal_settings)
+
+# Update turbo.json
+jq ".concurrency = $concurrency" turbo.json > turbo.json.tmp && mv turbo.json.tmp turbo.json
+
+# Update package.json scripts
+npm pkg set scripts.build="NODE_OPTIONS=--max-old-space-size=$node_memory turbo build"
+npm pkg set scripts.dev="UV_THREADPOOL_SIZE=$uv_threadpool turbo dev"
+
+echo "✅ Build performance optimized for $(uname -m)-$(uname -s)"
+echo "   Concurrency: $concurrency"
+echo "   Node Memory: ${node_memory}MB"
+echo "   UV Thread Pool: $uv_threadpool"
+```
+
+#### Performance Monitoring During Builds
+
+```bash
+# Monitor resource usage during builds
+monitor_build_performance() {
+  echo "Starting build performance monitoring..."
+  
+  # Start monitoring in background
+  (while true; do
+    timestamp=$(date '+%H:%M:%S')
+    cpu_usage=$(top -l 1 | awk '/CPU usage/ {print $3}' | sed 's/%//')
+    memory_pressure=$(memory_pressure)
+    echo "$timestamp - CPU: ${cpu_usage}% - Memory Pressure: $memory_pressure"
+    sleep 2
+  done) &
+  
+  monitor_pid=$!
+  
+  # Run build
+  time pnpm run build
+  
+  # Stop monitoring
+  kill $monitor_pid 2>/dev/null || true
+}
+```
+
+### Database Performance Tuning
+
+#### PostgreSQL/TimescaleDB Configuration
+Optimize database performance for SIEM workloads:
+
+```bash
+# Apply database performance tuning
+cat > docker-compose.override.yml << 'EOF'
+version: '3.8'
+
+services:
+  postgres:
+    command: >
+      postgres
+      -c shared_preload_libraries=timescaledb
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+      -c random_page_cost=1.1
+      -c temp_file_limit=2GB
+      -c log_min_duration_statement=1000
+      -c log_checkpoints=on
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_lock_waits=on
+    environment:
+      - POSTGRES_SHARED_PRELOAD_LIBRARIES=timescaledb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/database/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+EOF
+```
+
+#### Continuous Aggregates Optimization
+Configure optimal refresh policies:
+
+```sql
+-- Optimize continuous aggregate refresh for performance
+-- Execute via: docker exec -i securewatch_postgres psql -U securewatch -d securewatch
+
+-- High-frequency aggregates (critical dashboards)
+SELECT add_continuous_aggregate_policy('realtime_security_events',
+  start_offset => INTERVAL '1 hour',
+  end_offset => INTERVAL '5 minutes',
+  schedule_interval => INTERVAL '1 minute');
+
+-- Medium-frequency aggregates (trending)
+SELECT add_continuous_aggregate_policy('hourly_security_metrics',
+  start_offset => INTERVAL '4 hours',
+  end_offset => INTERVAL '1 hour',
+  schedule_interval => INTERVAL '5 minutes');
+
+-- Low-frequency aggregates (reporting)
+SELECT add_continuous_aggregate_policy('daily_security_summary',
+  start_offset => INTERVAL '2 days',
+  end_offset => INTERVAL '1 day',
+  schedule_interval => INTERVAL '1 hour');
+```
+
+### Redis Performance Configuration
+
+```bash
+# Redis performance tuning
+cat > redis.conf << 'EOF'
+# Memory optimization
+maxmemory 1gb
+maxmemory-policy allkeys-lru
+
+# Persistence optimization for caching
+save ""
+appendonly no
+
+# Network optimization
+tcp-keepalive 60
+timeout 300
+
+# Performance settings
+hash-max-ziplist-entries 512
+hash-max-ziplist-value 64
+list-max-ziplist-size -2
+set-max-intset-entries 512
+zset-max-ziplist-entries 128
+zset-max-ziplist-value 64
+EOF
+```
+
+### Network Performance Optimization
+
+#### Production Network Configuration
+
+```bash
+# Network performance tuning (Linux)
+cat > /etc/sysctl.d/99-securewatch.conf << 'EOF'
+# Network performance
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.core.rmem_default = 262144
+net.core.wmem_default = 262144
+net.core.netdev_max_backlog = 5000
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.ipv4.tcp_congestion_control = bbr
+
+# Connection handling
+net.ipv4.tcp_max_syn_backlog = 8192
+net.core.somaxconn = 8192
+net.ipv4.tcp_tw_reuse = 1
+EOF
+
+sysctl -p /etc/sysctl.d/99-securewatch.conf
+```
+
+### Monitoring and Alerting
+
+#### Performance Metrics Collection
+
+```bash
+# Create performance monitoring script
+cat > scripts/performance-monitor.sh << 'EOF'
+#!/bin/bash
+
+collect_metrics() {
+  timestamp=$(date -Iseconds)
+  
+  # System metrics
+  cpu_usage=$(top -l 1 | awk '/CPU usage/ {print $3}' | sed 's/%//')
+  memory_usage=$(vm_stat | awk '/Pages active/ {print $3}' | sed 's/\.//')
+  disk_usage=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
+  
+  # Service health
+  frontend_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/api/health)
+  db_connections=$(docker exec securewatch_postgres psql -U securewatch -d securewatch -t -c "SELECT count(*) FROM pg_stat_activity;")
+  
+  # Performance metrics
+  build_time=$(time pnpm run build 2>&1 | grep real | awk '{print $2}')
+  
+  echo "$timestamp,CPU:$cpu_usage,Memory:$memory_usage,Disk:$disk_usage,Frontend:$frontend_status,DB:$db_connections,Build:$build_time"
+}
+
+# Log metrics every 5 minutes
+while true; do
+  collect_metrics >> performance-metrics.log
+  sleep 300
+done
+EOF
+
+chmod +x scripts/performance-monitor.sh
+```
+
+### Performance Validation
+
+#### Automated Performance Testing
+
+```bash
+# Performance validation script
+cat > scripts/validate-performance.sh << 'EOF'
+#!/bin/bash
+
+set -euo pipefail
+
+echo "🚀 SecureWatch Performance Validation"
+echo "======================================"
+
+# Test build performance
+echo "📦 Testing build performance..."
+build_start=$(date +%s)
+pnpm run build > /dev/null 2>&1
+build_end=$(date +%s)
+build_time=$((build_end - build_start))
+
+if [ $build_time -lt 120 ]; then
+  echo "✅ Build time: ${build_time}s (Target: <120s)"
+else
+  echo "⚠️  Build time: ${build_time}s (Target: <120s) - Consider optimization"
+fi
+
+# Test service startup
+echo "🔧 Testing service startup..."
+./start-services.sh > /dev/null 2>&1 &
+startup_pid=$!
+
+sleep 30
+
+# Test service health
+echo "🏥 Testing service health..."
+services=(
+  "http://localhost:4000/api/health:Frontend"
+  "http://localhost:4002/health:Log Ingestion"
+  "http://localhost:4004/health:Search API"
+  "http://localhost:4008/health:Query Processor"
+  "http://localhost:4009/health:Analytics Engine"
+)
+
+for service in "${services[@]}"; do
+  IFS=':' read -r url name <<< "$service"
+  if curl -s -f "$url" > /dev/null; then
+    echo "✅ $name: Healthy"
+  else
+    echo "❌ $name: Unhealthy"
+  fi
+done
+
+# Test database performance
+echo "💾 Testing database performance..."
+query_start=$(date +%s.%N)
+docker exec securewatch_postgres psql -U securewatch -d securewatch -c "SELECT COUNT(*) FROM logs;" > /dev/null
+query_end=$(date +%s.%N)
+query_time=$(echo "$query_end - $query_start" | bc)
+
+if (( $(echo "$query_time < 1.0" | bc -l) )); then
+  echo "✅ Database query time: ${query_time}s (Target: <1s)"
+else
+  echo "⚠️  Database query time: ${query_time}s (Target: <1s)"
+fi
+
+# Cleanup
+kill $startup_pid 2>/dev/null || true
+./stop-services.sh > /dev/null 2>&1
+
+echo ""
+echo "🎯 Performance validation complete!"
+EOF
+
+chmod +x scripts/validate-performance.sh
+```
+
+**📋 Cross-Reference:** For detailed concurrency optimization and monitoring strategies, see the [Cross-Architecture Concurrency Optimization](PERFORMANCE_OPTIMIZATION_GUIDE.md#cross-architecture-concurrency-optimization) section in the Performance Optimization Guide.
+
+---
+
 ## 🏭 Production Deployment
 
 ### Docker Compose Production Setup
@@ -977,10 +1370,19 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://securewatch:${DB_PASSWORD}@postgres:5432/securewatch
+      - NODE_OPTIONS=--max-old-space-size=4096
     depends_on:
       - postgres
       - redis
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 512M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
@@ -998,6 +1400,12 @@ services:
       - DB_HOST=postgres
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
+      - NODE_OPTIONS=--max-old-space-size=2048
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
     depends_on:
       - postgres
       - redis

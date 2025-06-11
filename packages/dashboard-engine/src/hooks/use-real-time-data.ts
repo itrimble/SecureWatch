@@ -256,8 +256,7 @@ export function useMultipleRealTimeData(
       hookResult.lastUpdated,
       hookResult.isConnected,
       hookResult.retryCount,
-      widgetId,
-      updateWidgetState
+      widgetId
     ]);
   });
 

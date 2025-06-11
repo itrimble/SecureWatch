@@ -1038,7 +1038,7 @@ export function InteractiveFieldExtractor() {
     if (customRegex && sampleLog) {
       testRegex();
     }
-  }, [customRegex, sampleLog, fieldName, fieldType]);
+  }, [customRegex, sampleLog, fieldName, fieldType, testRegex]);
 
   return (
     <div className="space-y-6">

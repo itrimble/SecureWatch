@@ -17,6 +17,8 @@ frontend/out/
 # Production
 /build
 /dist
+packages/*/dist/
+apps/*/dist/
 
 # Misc
 .DS_Store
@@ -89,3 +91,7 @@ tasks/
 agent-rust/target/
 **/target/
 **/.xwin-cache/ 
+
+# Frontend screenshots and temp files
+frontend/screenshots/
+temp/

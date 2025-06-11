@@ -1,4 +1,5 @@
 // Educational System Main Entry Point
+import { EducationalManager } from './services/educational-manager';
 export { EducationalManager } from './services/educational-manager';
 
 // Core Services

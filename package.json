@@ -29,6 +29,10 @@
     "evtx:parse": "python3 scripts/evtx_parser_enhanced.py",
     "evtx:test": "python3 scripts/test_enhanced_evtx_pipeline.py",
     "evtx:samples": "python3 scripts/test_enhanced_evtx_pipeline.py --samples-path /Users/ian/Downloads/EVTX-ATTACK-SAMPLES-master",
+    "optimize:concurrency": "node scripts/optimize-concurrency.js",
+    "performance:monitor": "bash scripts/performance-monitor.sh",
+    "performance:validate": "bash scripts/validate-performance.sh",
+    "build:optimized": "npm run optimize:concurrency && NODE_OPTIONS=--max-old-space-size=8192 turbo build",
     "prepare": "husky"
   },
   "lint-staged": {

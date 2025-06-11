@@ -197,7 +197,7 @@ export const RealTimeDashboard: React.FC<RealTimeDashboardProps> = ({
           <div className="offline-content">
             <span className="offline-icon">🔴</span>
             <span className="offline-text">
-              You're offline. Dashboard updates are paused.
+              You&apos;re offline. Dashboard updates are paused.
             </span>
             {lastDisconnected && (
               <span className="offline-time">

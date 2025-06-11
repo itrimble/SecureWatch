@@ -65,22 +65,8 @@ interface RecentAlert {
   status: 'new' | 'investigating' | 'resolved';
 }
 
-function CorrelationDashboard() {
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    totalEvents: 0,
-    correlatedEvents: 0,
-    activeRules: 0,
-    triggeredAlerts: 0,
-    processingRate: 0,
-    accuracy: 0
-  });
-  const [eventData, setEventData] = useState<EventData[]>([]);
-  const [ruleStatuses, setRuleStatuses] = useState<RuleStatus[]>([]);
-  const [recentAlerts, setRecentAlerts] = useState<RecentAlert[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Mock data
-  const mockMetrics: DashboardMetrics = {
+// Mock data
+const mockMetrics: DashboardMetrics = {
     totalEvents: 1247892,
     correlatedEvents: 12483,
     activeRules: 24,
@@ -183,6 +169,20 @@ function CorrelationDashboard() {
       status: 'resolved'
     }
   ];
+
+function CorrelationDashboard() {
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    totalEvents: 0,
+    correlatedEvents: 0,
+    activeRules: 0,
+    triggeredAlerts: 0,
+    processingRate: 0,
+    accuracy: 0
+  });
+  const [eventData, setEventData] = useState<EventData[]>([]);
+  const [ruleStatuses, setRuleStatuses] = useState<RuleStatus[]>([]);
+  const [recentAlerts, setRecentAlerts] = useState<RecentAlert[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Simulate API calls

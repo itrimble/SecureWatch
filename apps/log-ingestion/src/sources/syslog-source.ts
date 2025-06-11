@@ -254,7 +254,7 @@ export class SyslogSource extends DataSource {
         buffer = Buffer.concat([buffer, data]);
         
         // Process complete messages (assuming newline delimiter)
-        let messages = buffer.toString(this.syslogConfig.parsing.encoding).split('\n');
+        const messages = buffer.toString(this.syslogConfig.parsing.encoding).split('\n');
         buffer = Buffer.from(messages.pop() || '', this.syslogConfig.parsing.encoding);
 
         for (const message of messages) {

@@ -312,7 +312,7 @@ export class ParserValidator {
 
   private async runBasicTests(parser: LogParser, errors: string[], warnings: string[]): Promise<{ fieldsExtracted: number; totalFields: number }> {
     let fieldsExtracted = 0;
-    let totalFields = 20; // Expected number of common fields
+    const totalFields = 20; // Expected number of common fields
 
     try {
       const sampleLog = this.getSampleLogForFormat(parser.format);

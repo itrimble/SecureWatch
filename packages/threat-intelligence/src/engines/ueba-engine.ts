@@ -651,7 +651,7 @@ export class UEBAEngine extends EventEmitter {
     entityType?: EntityType,
     limit: number = 10
   ): Promise<Array<{ entityId: string; entityType: string; riskScore: number }>> {
-    let query = this.db('user_profiles')
+    const query = this.db('user_profiles')
       .select('user_id as entityId', this.db.raw("'user' as entityType"), 'risk_score as riskScore')
       .orderBy('risk_score', 'desc')
       .limit(limit);

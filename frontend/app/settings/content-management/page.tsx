@@ -3,7 +3,7 @@
 // Content Management UI - Manage community-sourced detection rules
 // Provides interface for importing, enabling/disabling, and monitoring community rules
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -89,7 +89,7 @@ export default function ContentManagementPage() {
     loadSources();
     loadStatistics();
     loadRules();
-  }, []);
+  }, [loadRules]);
 
   // Load available rule sources
   const loadSources = async () => {
@@ -119,7 +119,7 @@ export default function ContentManagementPage() {
   };
 
   // Load community rules with filters
-  const loadRules = async () => {
+  const loadRules = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -144,7 +144,7 @@ export default function ContentManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [itemsPerPage, currentPage, searchQuery, selectedSource, selectedLevel, selectedCategory]);
 
   // Trigger import from specific source
   const importFromSource = async (sourceName: string, forceUpdate: boolean = false) => {
@@ -255,7 +255,7 @@ export default function ContentManagementPage() {
   // Reload rules when filters change
   useEffect(() => {
     loadRules();
-  }, [searchQuery, selectedSource, selectedLevel, selectedCategory, currentPage]);
+  }, [searchQuery, selectedSource, selectedLevel, selectedCategory, currentPage, loadRules]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">

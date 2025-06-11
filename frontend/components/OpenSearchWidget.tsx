@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { AlertCircle, ExternalLink, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
@@ -86,13 +86,13 @@ export function OpenSearchWidget({
   };
 
   // Refresh visualization
-  const refresh = () => {
+  const refresh = useCallback(() => {
     if (iframeRef.current && sanitizedUrl) {
       setIsLoading(true);
       setLastRefresh(Date.now());
       iframeRef.current.src = `${sanitizedUrl}&_t=${Date.now()}`;
     }
-  };
+  }, [sanitizedUrl]);
 
   // Auto-refresh
   useEffect(() => {
@@ -100,7 +100,7 @@ export function OpenSearchWidget({
       const interval = setInterval(refresh, refreshInterval * 1000);
       return () => clearInterval(interval);
     }
-  }, [refreshInterval, sanitizedUrl]);
+  }, [refreshInterval, sanitizedUrl, refresh]);
 
   // Toggle fullscreen
   const toggleFullscreen = () => {

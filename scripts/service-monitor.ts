@@ -178,7 +178,7 @@ class ServiceMonitor {
   async checkStartupHealth(): Promise<boolean> {
     logger.info('🔍 Checking service startup health...');
     
-    let allHealthy = true;
+    const allHealthy = true;
     const maxRetries = 10;
     const retryDelay = 5000; // 5 seconds
 

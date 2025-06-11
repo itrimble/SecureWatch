@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -351,9 +351,9 @@ export default function ExplorerPage() {
       // Load recent logs on initial page load
       loadRecentLogs();
     }
-  }, [searchParams]);
+  }, [searchParams, handleSearch, loadRecentLogs]);
 
-  const handleSearch = async (query?: string) => {
+  const handleSearch = useCallback(async (query?: string) => {
     const searchQuery = query || kqlQuery;
     if (!searchQuery.trim()) {
       // If no query, load recent logs
@@ -447,9 +447,9 @@ export default function ExplorerPage() {
         setIsSearching(false);
       }
     }
-  };
+  }, [kqlQuery, loadRecentLogs, queryHistory, isMountedRef]);
 
-  const loadRecentLogs = async () => {
+  const loadRecentLogs = useCallback(async () => {
     try {
       // Load recent logs from the backend API
       const response = await fetch('/api/logs?limit=100');
@@ -477,7 +477,7 @@ export default function ExplorerPage() {
       console.error('Failed to load recent logs:', error);
       // Keep mock data as final fallback
     }
-  };
+  }, []);
 
   const handleStopSearch = () => {
     setIsSearching(false);

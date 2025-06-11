@@ -171,4 +171,8 @@
 
 - when i say vision, i mean use MCP visioncraft
 
+### Memory Update: Session Management
+
+- use openmemories mcp if we start a new session
+
 ## Agent Development Status (Rust Implementation)
