@@ -12,14 +12,15 @@ export class Logger {
           winston.format.timestamp(),
           winston.format.errors({ stack: true }),
           winston.format.json(),
-          winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
-            const logEntry = {
+          winston.format.printf((info: any) => {
+            const { timestamp, level, message, stack, ...meta } = info;
+            const logEntry: Record<string, any> = {
               timestamp,
               level,
               message,
               service: 'spark-batch-processor',
               ...(stack && { stack }),
-              ...meta,
+              ...(typeof meta === 'object' && meta !== null ? meta : {}),
             };
             return JSON.stringify(logEntry);
           })

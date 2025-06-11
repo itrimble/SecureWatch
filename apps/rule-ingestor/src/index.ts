@@ -38,7 +38,7 @@ async function initializeServices() {
       database: process.env.DB_NAME || 'securewatch',
       username: process.env.DB_USER || 'securewatch',
       password: process.env.DB_PASSWORD || 'securewatch',
-      ssl: process.env.DB_SSL === 'true'
+      ssl: process.env.DB_SSL === 'true',
     });
     await dbService.initialize();
 
@@ -70,7 +70,7 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     service: 'rule-ingestor',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
   });
 });
 
@@ -78,13 +78,13 @@ app.get('/health', (req, res) => {
 app.get('/api/sources', (req, res) => {
   res.json({
     status: 'success',
-    sources: config.repositories.sources.map(source => ({
+    sources: config.repositories.sources.map((source) => ({
       name: source.name,
       type: source.type,
       description: source.description,
       url: source.url,
-      enabled: source.enabled
-    }))
+      enabled: source.enabled,
+    })),
   });
 });
 
@@ -96,36 +96,40 @@ app.post('/api/import/:source', async (req, res) => {
 
     logger.info(`Manual import triggered for source: ${source}`);
 
-    const sourceConfig = config.repositories.sources.find(s => s.name === source);
+    const sourceConfig = config.repositories.sources.find(
+      (s) => s.name === source
+    );
     if (!sourceConfig) {
       return res.status(404).json({
         status: 'error',
-        message: `Source '${source}' not found`
+        message: `Source '${source}' not found`,
       });
     }
 
     if (!sourceConfig.enabled) {
       return res.status(400).json({
         status: 'error',
-        message: `Source '${source}' is disabled`
+        message: `Source '${source}' is disabled`,
       });
     }
 
-    const result = await ingestorService.importFromSource(sourceConfig, forceUpdate);
+    const result = await ingestorService.importFromSource(
+      sourceConfig,
+      forceUpdate
+    );
 
     res.json({
       status: 'success',
       source: source,
       result: result,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error('Import failed:', error);
     res.status(500).json({
       status: 'error',
       message: error instanceof Error ? error.message : 'Import failed',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });
@@ -142,15 +146,14 @@ app.post('/api/import/all', async (req, res) => {
     res.json({
       status: 'success',
       results: results,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error('Full import failed:', error);
     res.status(500).json({
       status: 'error',
       message: error instanceof Error ? error.message : 'Full import failed',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });
@@ -163,20 +166,20 @@ app.get('/api/imports/history', async (req, res) => {
     const history = await dbService.getImportHistory({
       limit: parseInt(limit as string, 10),
       offset: parseInt(offset as string, 10),
-      source: source as string
+      source: source as string,
     });
 
     res.json({
       status: 'success',
       history: history,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error('Failed to get import history:', error);
     res.status(500).json({
       status: 'error',
-      message: error instanceof Error ? error.message : 'Failed to get import history'
+      message:
+        error instanceof Error ? error.message : 'Failed to get import history',
     });
   }
 });
@@ -189,14 +192,16 @@ app.get('/api/rules/stats', async (req, res) => {
     res.json({
       status: 'success',
       stats: stats,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error('Failed to get rule statistics:', error);
     res.status(500).json({
       status: 'error',
-      message: error instanceof Error ? error.message : 'Failed to get rule statistics'
+      message:
+        error instanceof Error
+          ? error.message
+          : 'Failed to get rule statistics',
     });
   }
 });
@@ -211,7 +216,7 @@ app.get('/api/rules/search', async (req, res) => {
       category,
       enabled,
       limit = 100,
-      offset = 0
+      offset = 0,
     } = req.query;
 
     const searchParams = {
@@ -219,9 +224,10 @@ app.get('/api/rules/search', async (req, res) => {
       source_type: source_type as string,
       level: level as string,
       category: category as string,
-      enabled: enabled === 'true' ? true : enabled === 'false' ? false : undefined,
+      enabled:
+        enabled === 'true' ? true : enabled === 'false' ? false : undefined,
       limit: parseInt(limit as string, 10),
-      offset: parseInt(offset as string, 10)
+      offset: parseInt(offset as string, 10),
     };
 
     const rules = await dbService.searchRules(searchParams);
@@ -233,16 +239,15 @@ app.get('/api/rules/search', async (req, res) => {
       pagination: {
         limit: searchParams.limit,
         offset: searchParams.offset,
-        hasMore: rules.total > (searchParams.offset + searchParams.limit)
+        hasMore: rules.total > searchParams.offset + searchParams.limit,
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error('Rule search failed:', error);
     res.status(500).json({
       status: 'error',
-      message: error instanceof Error ? error.message : 'Rule search failed'
+      message: error instanceof Error ? error.message : 'Rule search failed',
     });
   }
 });
@@ -256,7 +261,7 @@ app.put('/api/rules/:ruleId/toggle', async (req, res) => {
     if (typeof enabled !== 'boolean') {
       return res.status(400).json({
         status: 'error',
-        message: 'enabled field must be a boolean'
+        message: 'enabled field must be a boolean',
       });
     }
 
@@ -267,20 +272,19 @@ app.put('/api/rules/:ruleId/toggle', async (req, res) => {
         status: 'success',
         message: `Rule ${ruleId} ${enabled ? 'enabled' : 'disabled'}`,
         rule_id: ruleId,
-        enabled: enabled
+        enabled: enabled,
       });
     } else {
       res.status(404).json({
         status: 'error',
-        message: `Rule ${ruleId} not found`
+        message: `Rule ${ruleId} not found`,
       });
     }
-
   } catch (error) {
     logger.error('Failed to toggle rule:', error);
     res.status(500).json({
       status: 'error',
-      message: error instanceof Error ? error.message : 'Failed to toggle rule'
+      message: error instanceof Error ? error.message : 'Failed to toggle rule',
     });
   }
 });
@@ -293,7 +297,7 @@ app.put('/api/rules/bulk/toggle', async (req, res) => {
     if (!Array.isArray(rule_ids) || typeof enabled !== 'boolean') {
       return res.status(400).json({
         status: 'error',
-        message: 'rule_ids must be an array and enabled must be a boolean'
+        message: 'rule_ids must be an array and enabled must be a boolean',
       });
     }
 
@@ -304,14 +308,14 @@ app.put('/api/rules/bulk/toggle', async (req, res) => {
       message: `${results.updated} rules ${enabled ? 'enabled' : 'disabled'}`,
       updated: results.updated,
       failed: results.failed,
-      errors: results.errors
+      errors: results.errors,
     });
-
   } catch (error) {
     logger.error('Bulk rule toggle failed:', error);
     res.status(500).json({
       status: 'error',
-      message: error instanceof Error ? error.message : 'Bulk rule toggle failed'
+      message:
+        error instanceof Error ? error.message : 'Bulk rule toggle failed',
     });
   }
 });
@@ -327,20 +331,19 @@ app.delete('/api/rules/:ruleId', async (req, res) => {
       res.json({
         status: 'success',
         message: `Rule ${ruleId} deleted`,
-        rule_id: ruleId
+        rule_id: ruleId,
       });
     } else {
       res.status(404).json({
         status: 'error',
-        message: `Rule ${ruleId} not found`
+        message: `Rule ${ruleId} not found`,
       });
     }
-
   } catch (error) {
     logger.error('Failed to delete rule:', error);
     res.status(500).json({
       status: 'error',
-      message: error instanceof Error ? error.message : 'Failed to delete rule'
+      message: error instanceof Error ? error.message : 'Failed to delete rule',
     });
   }
 });
@@ -353,43 +356,45 @@ app.post('/api/convert/test', async (req, res) => {
     if (!rule_type || !rule_content) {
       return res.status(400).json({
         status: 'error',
-        message: 'rule_type and rule_content are required'
+        message: 'rule_type and rule_content are required',
       });
     }
 
-    const result = await converterService.testConversion(rule_type, rule_content);
+    const result = await converterService.testConversion(
+      rule_type,
+      rule_content
+    );
 
-    res.json({
+    return res.json({
       status: 'success',
       conversion_result: result,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error('Rule conversion test failed:', error);
-    res.status(500).json({
+    return res.status(500).json({
       status: 'error',
-      message: error instanceof Error ? error.message : 'Rule conversion test failed'
+      message:
+        error instanceof Error ? error.message : 'Rule conversion test failed',
     });
   }
 });
 
 // Get service metrics
-app.get('/api/metrics', async (req, res) => {
+app.get('/api/metrics', async (_req, res) => {
   try {
     const metrics = await ingestorService.getMetrics();
 
-    res.json({
+    return res.json({
       status: 'success',
       metrics: metrics,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error('Failed to get metrics:', error);
-    res.status(500).json({
+    return res.status(500).json({
       status: 'error',
-      message: error instanceof Error ? error.message : 'Failed to get metrics'
+      message: error instanceof Error ? error.message : 'Failed to get metrics',
     });
   }
 });
@@ -401,7 +406,7 @@ function setupScheduledImports() {
     return;
   }
 
-  const job = new CronJob(
+  new CronJob(
     config.scheduler.cronExpression,
     async () => {
       try {
@@ -409,7 +414,7 @@ function setupScheduledImports() {
         const results = await ingestorService.importFromAllSources(false);
         logger.info('Scheduled import completed:', {
           totalSources: results.length,
-          successfulSources: results.filter(r => r.success).length
+          successfulSources: results.filter((r) => r.success).length,
         });
       } catch (error) {
         logger.error('Scheduled import failed:', error);
@@ -420,7 +425,9 @@ function setupScheduledImports() {
     config.scheduler.timezone
   );
 
-  logger.info(`Scheduled imports configured: ${config.scheduler.cronExpression}`);
+  logger.info(
+    `Scheduled imports configured: ${config.scheduler.cronExpression}`
+  );
 }
 
 // Start the service
@@ -434,9 +441,10 @@ async function start() {
     app.listen(PORT, () => {
       logger.info(`Rule Ingestor service running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info('Features: Sigma, Elastic, OSSEC, Suricata, Splunk, Chronicle rule ingestion');
+      logger.info(
+        'Features: Sigma, Elastic, OSSEC, Suricata, Splunk, Chronicle rule ingestion'
+      );
     });
-
   } catch (error) {
     logger.error('Failed to start Rule Ingestor service:', error);
     process.exit(1);
@@ -446,12 +454,12 @@ async function start() {
 // Graceful shutdown
 async function shutdown() {
   logger.info('Shutting down Rule Ingestor service...');
-  
+
   try {
     if (dbService) {
       await dbService.close();
     }
-    
+
     logger.info('Shutdown complete');
     process.exit(0);
   } catch (error) {

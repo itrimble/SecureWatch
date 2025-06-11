@@ -43,7 +43,7 @@ export interface ArchiveJob {
 export class StorageManager {
   private readonly logger = Logger.getInstance();
   private readonly metrics = new MetricsCollector();
-  
+
   private primaryStorage: any = null;
   private archiveStorage: any = null;
   private isInitialized = false;
@@ -60,24 +60,25 @@ export class StorageManager {
 
     try {
       this.logger.info('Initializing Storage Manager...');
-      
+
       // Initialize primary storage
       await this.initializePrimaryStorage();
-      
+
       // Initialize archive storage
       await this.initializeArchiveStorage();
-      
+
       // Setup index templates and lifecycle policies
       await this.setupIndexManagement();
-      
+
       // Setup monitoring
       this.setupMonitoring();
-      
+
       this.isInitialized = true;
       this.logger.info('StorageManager initialized successfully');
-      
     } catch (error) {
-      this.logger.error('Failed to initialize StorageManager:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error('Failed to initialize StorageManager:', errorMessage);
       throw error;
     }
   }
@@ -92,25 +93,28 @@ export class StorageManager {
 
     try {
       this.logger.info(`Indexing data from: ${outputPath}`);
-      
+
       const indexName = this.generateIndexName();
-      
+
       // Create index if it doesn't exist
       await this.ensureIndexExists(indexName);
-      
+
       // Bulk index the data
       const bulkResult = await this.bulkIndexData(dataFrame, indexName);
-      
+
       // Update metrics
       this.metrics.incrementCounter('documents_indexed', bulkResult.indexed);
       if (bulkResult.errors > 0) {
         this.metrics.incrementCounter('indexing_errors', bulkResult.errors);
       }
-      
-      this.logger.info(`Successfully indexed ${bulkResult.indexed} documents to ${indexName}`);
-      
+
+      this.logger.info(
+        `Successfully indexed ${bulkResult.indexed} documents to ${indexName}`
+      );
     } catch (error) {
-      this.logger.error('Failed to index data:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error('Failed to index data:', errorMessage);
       throw error;
     }
   }
@@ -139,25 +143,26 @@ export class StorageManager {
     try {
       this.logger.info(`Starting archive job: ${jobId}`);
       job.status = 'running';
-      
+
       // Find indices older than specified days
       const indicesToArchive = await this.findOldIndices(olderThanDays);
-      
+
       for (const indexName of indicesToArchive) {
         await this.archiveIndex(indexName, job);
       }
-      
+
       job.status = 'completed';
       job.endTime = new Date();
-      
+
       this.logger.info(`Archive job completed: ${jobId}`);
       return job;
-      
     } catch (error) {
       job.status = 'failed';
       job.endTime = new Date();
-      
-      this.logger.error(`Archive job failed: ${jobId}`, error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Archive job failed: ${jobId}`, errorMessage);
       throw error;
     }
   }
@@ -172,44 +177,53 @@ export class StorageManager {
 
     try {
       this.logger.info('Applying data retention policies...');
-      
+
       const retentionPolicy = config.storage.retentionPolicy;
-      
+
       // Delete data older than retention period
       const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - parseInt(retentionPolicy.delete.replace('d', '')));
-      
+      cutoffDate.setDate(
+        cutoffDate.getDate() - parseInt(retentionPolicy.delete.replace('d', ''))
+      );
+
       const indicesToDelete = await this.findIndicesOlderThan(cutoffDate);
-      
+
       for (const indexName of indicesToDelete) {
         await this.deleteIndex(indexName);
         this.metrics.incrementCounter('indices_deleted');
       }
-      
+
       // Move data to warm storage
       const warmCutoffDate = new Date();
-      warmCutoffDate.setDate(warmCutoffDate.getDate() - parseInt(retentionPolicy.warm.replace('d', '')));
-      
+      warmCutoffDate.setDate(
+        warmCutoffDate.getDate() -
+          parseInt(retentionPolicy.warm.replace('d', ''))
+      );
+
       const indicesToWarm = await this.findIndicesOlderThan(warmCutoffDate);
-      
+
       for (const indexName of indicesToWarm) {
         await this.moveToWarmStorage(indexName);
       }
-      
+
       // Move data to cold storage
       const coldCutoffDate = new Date();
-      coldCutoffDate.setDate(coldCutoffDate.getDate() - parseInt(retentionPolicy.cold.replace('d', '')));
-      
+      coldCutoffDate.setDate(
+        coldCutoffDate.getDate() -
+          parseInt(retentionPolicy.cold.replace('d', ''))
+      );
+
       const indicesToCold = await this.findIndicesOlderThan(coldCutoffDate);
-      
+
       for (const indexName of indicesToCold) {
         await this.moveToColdStorage(indexName);
       }
-      
+
       this.logger.info('Data retention policies applied successfully');
-      
     } catch (error) {
-      this.logger.error('Failed to apply retention policies:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error('Failed to apply retention policies:', errorMessage);
       throw error;
     }
   }
@@ -224,24 +238,25 @@ export class StorageManager {
 
     try {
       this.logger.info('Starting index optimization...');
-      
+
       // Get all active indices
       const indices = await this.getActiveIndices();
-      
+
       for (const indexName of indices) {
         // Force merge indices for better performance
         await this.forcemergeIndex(indexName);
-        
+
         // Update index settings for performance
         await this.updateIndexSettings(indexName);
-        
+
         this.metrics.incrementCounter('indices_optimized');
       }
-      
+
       this.logger.info('Index optimization completed');
-      
     } catch (error) {
-      this.logger.error('Failed to optimize indices:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error('Failed to optimize indices:', errorMessage);
       throw error;
     }
   }
@@ -257,22 +272,23 @@ export class StorageManager {
     try {
       // Get cluster stats from primary storage
       const clusterStats = await this.getClusterStats();
-      
+
       // Get index stats
       const indexStats = await this.getIndexStats();
-      
+
       // Calculate storage efficiency
       const efficiency = this.calculateStorageEfficiency(indexStats);
-      
+
       return {
         cluster: clusterStats,
         indices: indexStats,
         efficiency,
         archiveJobs: Array.from(this.archiveJobs.values()),
       };
-      
     } catch (error) {
-      this.logger.error('Failed to get storage stats:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error('Failed to get storage stats:', errorMessage);
       throw error;
     }
   }
@@ -295,10 +311,14 @@ export class StorageManager {
         this.primaryStorage = await this.createS3Client();
         break;
       default:
-        throw new Error(`Unsupported primary storage: ${config.storage.primaryStorage}`);
+        throw new Error(
+          `Unsupported primary storage: ${config.storage.primaryStorage}`
+        );
     }
-    
-    this.logger.info(`Primary storage initialized: ${config.storage.primaryStorage}`);
+
+    this.logger.info(
+      `Primary storage initialized: ${config.storage.primaryStorage}`
+    );
   }
 
   /**
@@ -319,23 +339,30 @@ export class StorageManager {
         this.archiveStorage = await this.createAzureClient();
         break;
       default:
-        throw new Error(`Unsupported archive storage: ${config.storage.archiveStorage}`);
+        throw new Error(
+          `Unsupported archive storage: ${config.storage.archiveStorage}`
+        );
     }
-    
-    this.logger.info(`Archive storage initialized: ${config.storage.archiveStorage}`);
+
+    this.logger.info(
+      `Archive storage initialized: ${config.storage.archiveStorage}`
+    );
   }
 
   /**
    * Setup index templates and lifecycle policies
    */
   private async setupIndexManagement(): Promise<void> {
-    if (config.storage.primaryStorage === 'opensearch' || config.storage.primaryStorage === 'elasticsearch') {
+    if (
+      config.storage.primaryStorage === 'opensearch' ||
+      config.storage.primaryStorage === 'elasticsearch'
+    ) {
       // Create index template for log data
       await this.createIndexTemplate();
-      
+
       // Create index lifecycle policy
       await this.createLifecyclePolicy();
-      
+
       this.logger.info('Index management setup completed');
     }
   }
@@ -346,7 +373,9 @@ export class StorageManager {
   private async createOpenSearchClient(): Promise<any> {
     // Implementation would create actual OpenSearch client
     const client = {
-      index: async (params: any) => ({ body: { indexed: params.body.length, errors: 0 } }),
+      index: async (params: any) => ({
+        body: { indexed: params.body.length, errors: 0 },
+      }),
       indices: {
         create: async (params: any) => ({ acknowledged: true }),
         exists: async (params: any) => true,
@@ -359,12 +388,12 @@ export class StorageManager {
       cluster: {
         stats: async () => ({ nodes: { count: { total: 3 } } }),
       },
-      bulk: async (params: any) => ({ 
+      bulk: async (params: any) => ({
         items: params.body.map(() => ({ index: { status: 201 } })),
         errors: false,
       }),
     };
-    
+
     return client;
   }
 
@@ -440,7 +469,10 @@ export class StorageManager {
     this.metrics.registerCounter('indexing_errors');
     this.metrics.registerCounter('indices_deleted');
     this.metrics.registerCounter('indices_optimized');
-    this.metrics.registerGauge('active_archive_jobs', () => this.archiveJobs.size);
+    this.metrics.registerGauge(
+      'active_archive_jobs',
+      () => this.archiveJobs.size
+    );
   }
 
   // Placeholder implementations for storage operations
@@ -448,7 +480,10 @@ export class StorageManager {
     // Implementation would check if index exists and create if needed
   }
 
-  private async bulkIndexData(dataFrame: any, indexName: string): Promise<{ indexed: number; errors: number }> {
+  private async bulkIndexData(
+    dataFrame: any,
+    indexName: string
+  ): Promise<{ indexed: number; errors: number }> {
     // Implementation would bulk index data
     return { indexed: 1000, errors: 0 };
   }
@@ -463,7 +498,10 @@ export class StorageManager {
     return [];
   }
 
-  private async archiveIndex(indexName: string, job: ArchiveJob): Promise<void> {
+  private async archiveIndex(
+    indexName: string,
+    job: ArchiveJob
+  ): Promise<void> {
     // Implementation would archive index to cold storage
     job.recordsProcessed += 1000;
     job.bytesTransferred += 1024 * 1024;
@@ -522,16 +560,16 @@ export class StorageManager {
    */
   async shutdown(): Promise<void> {
     this.logger.info('Shutting down StorageManager...');
-    
+
     // Close connections
     if (this.primaryStorage && this.primaryStorage.close) {
       await this.primaryStorage.close();
     }
-    
+
     if (this.archiveStorage && this.archiveStorage.close) {
       await this.archiveStorage.close();
     }
-    
+
     this.isInitialized = false;
     this.logger.info('StorageManager shutdown completed');
   }

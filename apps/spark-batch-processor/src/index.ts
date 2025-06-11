@@ -19,45 +19,48 @@ let isShuttingDown = false;
 async function initialize(): Promise<void> {
   try {
     logger.info('Starting SecureWatch Spark Batch Processor...');
-    
+
     // Initialize batch processor
     batchProcessor = new SparkBatchProcessor();
     await batchProcessor.initialize();
-    
+
     // Setup Express middleware
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true }));
-    
+
     // Add request logging middleware
     app.use((req, res, next) => {
       const start = Date.now();
       res.on('finish', () => {
         const duration = Date.now() - start;
-        logger.info(`${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+        logger.info(
+          `${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`
+        );
         metrics.recordHistogram('http_request_duration_ms', duration);
         metrics.incrementCounter(`http_requests_${res.statusCode}`);
       });
       next();
     });
-    
+
     // Setup routes
     setupRoutes();
-    
+
     // Setup scheduled jobs
     setupScheduledJobs();
-    
+
     // Setup graceful shutdown
     setupGracefulShutdown();
-    
+
     // Start server
-    const port = process.env.PORT || 3000;
+    const port = process.env.PORT || 4011;
     app.listen(port, () => {
       logger.info(`Spark Batch Processor listening on port ${port}`);
       logger.info('Service ready to process batch jobs');
     });
-    
   } catch (error) {
-    logger.error('Failed to initialize Spark Batch Processor:', error);
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Failed to initialize Spark Batch Processor:', errorMessage);
     process.exit(1);
   }
 }
@@ -76,7 +79,7 @@ function setupRoutes(): void {
       version: process.env.npm_package_version || '1.0.0',
       environment: config.environment,
     };
-    
+
     res.json(health);
   });
 
@@ -87,7 +90,9 @@ function setupRoutes(): void {
       res.set('Content-Type', 'text/plain');
       res.send(prometheusMetrics);
     } catch (error) {
-      logger.error('Failed to get metrics:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Failed to get metrics:', errorMessage);
       res.status(500).json({ error: 'Failed to get metrics' });
     }
   });
@@ -97,7 +102,9 @@ function setupRoutes(): void {
     try {
       const options = {
         batchId: req.body.batchId,
-        startDate: req.body.startDate ? new Date(req.body.startDate) : undefined,
+        startDate: req.body.startDate
+          ? new Date(req.body.startDate)
+          : undefined,
         endDate: req.body.endDate ? new Date(req.body.endDate) : undefined,
         topics: req.body.topics,
         customQueries: req.body.customQueries,
@@ -105,9 +112,9 @@ function setupRoutes(): void {
         enableML: req.body.enableML,
         enableQualityChecks: req.body.enableQualityChecks,
       };
-      
+
       const job = await batchProcessor.processHistoricalData(options);
-      
+
       res.json({
         success: true,
         job: {
@@ -118,12 +125,16 @@ function setupRoutes(): void {
           metadata: job.metadata,
         },
       });
-      
     } catch (error) {
-      logger.error('Failed to start historical batch processing:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error(
+        'Failed to start historical batch processing:',
+        errorMessage
+      );
       res.status(500).json({
         success: false,
-        error: error.message,
+        error: errorMessage,
       });
     }
   });
@@ -132,17 +143,18 @@ function setupRoutes(): void {
   app.post('/api/batch/micro-batch/start', async (req, res) => {
     try {
       await batchProcessor.startMicroBatchProcessing();
-      
+
       res.json({
         success: true,
         message: 'Micro-batch processing started',
       });
-      
     } catch (error) {
-      logger.error('Failed to start micro-batch processing:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Failed to start micro-batch processing:', errorMessage);
       res.status(500).json({
         success: false,
-        error: error.message,
+        error: errorMessage,
       });
     }
   });
@@ -156,10 +168,12 @@ function setupRoutes(): void {
         jobs,
       });
     } catch (error) {
-      logger.error('Failed to get jobs:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Failed to get jobs:', errorMessage);
       res.status(500).json({
         success: false,
-        error: error.message,
+        error: errorMessage,
       });
     }
   });
@@ -168,24 +182,25 @@ function setupRoutes(): void {
   app.get('/api/batch/jobs/:jobId', (req, res) => {
     try {
       const job = batchProcessor.getJobStatus(req.params.jobId);
-      
+
       if (!job) {
         return res.status(404).json({
           success: false,
           error: 'Job not found',
         });
       }
-      
+
       res.json({
         success: true,
         job,
       });
-      
     } catch (error) {
-      logger.error('Failed to get job status:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Failed to get job status:', errorMessage);
       res.status(500).json({
         success: false,
-        error: error.message,
+        error: errorMessage,
       });
     }
   });
@@ -194,24 +209,25 @@ function setupRoutes(): void {
   app.delete('/api/batch/jobs/:jobId', async (req, res) => {
     try {
       const cancelled = await batchProcessor.cancelJob(req.params.jobId);
-      
+
       if (!cancelled) {
         return res.status(404).json({
           success: false,
           error: 'Job not found or cannot be cancelled',
         });
       }
-      
+
       res.json({
         success: true,
         message: 'Job cancelled successfully',
       });
-      
     } catch (error) {
-      logger.error('Failed to cancel job:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Failed to cancel job:', errorMessage);
       res.status(500).json({
         success: false,
-        error: error.message,
+        error: errorMessage,
       });
     }
   });
@@ -224,12 +240,13 @@ function setupRoutes(): void {
         success: true,
         message: 'ML model training started',
       });
-      
     } catch (error) {
-      logger.error('Failed to start ML training:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Failed to start ML training:', errorMessage);
       res.status(500).json({
         success: false,
-        error: error.message,
+        error: errorMessage,
       });
     }
   });
@@ -257,7 +274,7 @@ function setupRoutes(): void {
       environment: config.environment,
       logLevel: config.logLevel,
     };
-    
+
     res.json({
       success: true,
       config: sanitizedConfig,
@@ -265,15 +282,22 @@ function setupRoutes(): void {
   });
 
   // Error handling middleware
-  app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    logger.error('Unhandled error in request:', error);
-    
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      ...(config.environment === 'development' && { details: error.message }),
-    });
-  });
+  app.use(
+    (
+      error: Error,
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction
+    ) => {
+      logger.error('Unhandled error in request:', error);
+
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        ...(config.environment === 'development' && { details: error.message }),
+      });
+    }
+  );
 
   // 404 handler
   app.use((req, res) => {
@@ -291,17 +315,17 @@ function setupScheduledJobs(): void {
   // Schedule historical batch processing (daily at 2 AM)
   cron.schedule('0 2 * * *', async () => {
     if (isShuttingDown) return;
-    
+
     try {
       logger.info('Starting scheduled historical batch processing...');
-      
+
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       yesterday.setHours(0, 0, 0, 0);
-      
+
       const endOfYesterday = new Date(yesterday);
       endOfYesterday.setHours(23, 59, 59, 999);
-      
+
       await batchProcessor.processHistoricalData({
         batchId: `scheduled_${yesterday.toISOString().slice(0, 10)}`,
         startDate: yesterday,
@@ -309,39 +333,42 @@ function setupScheduledJobs(): void {
         enableML: true,
         enableQualityChecks: true,
       });
-      
+
       logger.info('Scheduled historical batch processing completed');
-      
     } catch (error) {
-      logger.error('Scheduled batch processing failed:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Scheduled batch processing failed:', errorMessage);
     }
   });
 
   // Schedule ML model retraining (weekly on Sunday at 3 AM)
   cron.schedule('0 3 * * 0', async () => {
     if (isShuttingDown) return;
-    
+
     try {
       logger.info('Starting scheduled ML model retraining...');
       // Implementation would retrain ML models
       logger.info('Scheduled ML model retraining completed');
-      
     } catch (error) {
-      logger.error('Scheduled ML retraining failed:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Scheduled ML retraining failed:', errorMessage);
     }
   });
 
   // Schedule storage optimization (daily at 1 AM)
   cron.schedule('0 1 * * *', async () => {
     if (isShuttingDown) return;
-    
+
     try {
       logger.info('Starting scheduled storage optimization...');
       // Implementation would optimize storage
       logger.info('Scheduled storage optimization completed');
-      
     } catch (error) {
-      logger.error('Scheduled storage optimization failed:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Scheduled storage optimization failed:', errorMessage);
     }
   });
 
@@ -357,28 +384,29 @@ function setupGracefulShutdown(): void {
       logger.warn(`Received ${signal} again, forcing exit`);
       process.exit(1);
     }
-    
+
     isShuttingDown = true;
     logger.info(`Received ${signal}, starting graceful shutdown...`);
-    
+
     try {
       // Stop accepting new requests
       logger.info('Stopping HTTP server...');
-      
+
       // Shutdown batch processor
       if (batchProcessor) {
         logger.info('Shutting down batch processor...');
         await batchProcessor.shutdown();
       }
-      
+
       // Shutdown metrics
       await metrics.shutdown();
-      
+
       logger.info('Graceful shutdown completed');
       process.exit(0);
-      
     } catch (error) {
-      logger.error('Error during shutdown:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error during shutdown:', errorMessage);
       process.exit(1);
     }
   };
@@ -386,13 +414,13 @@ function setupGracefulShutdown(): void {
   // Handle shutdown signals
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
-  
+
   // Handle uncaught exceptions
   process.on('uncaughtException', (error) => {
     logger.error('Uncaught exception:', error);
     shutdown('uncaughtException');
   });
-  
+
   process.on('unhandledRejection', (reason, promise) => {
     logger.error('Unhandled rejection at:', promise, 'reason:', reason);
     shutdown('unhandledRejection');

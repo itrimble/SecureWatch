@@ -1436,6 +1436,9 @@ importers:
         specifier: ^3.25.49
         version: 3.25.56
     devDependencies:
+      '@playwright/test':
+        specifier: ^1.49.0
+        version: 1.52.0
       '@testing-library/jest-dom':
         specifier: ^6.1.5
         version: 6.6.3
@@ -1475,6 +1478,9 @@ importers:
       jest-environment-jsdom:
         specifier: ^29.7.0
         version: 29.7.0
+      playwright:
+        specifier: ^1.49.0
+        version: 1.52.0
       postcss:
         specifier: ^8
         version: 8.5.4
@@ -1965,6 +1971,12 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
+      pg:
+        specifier: ^8.16.0
+        version: 8.16.0
+      redis:
+        specifier: ^4.7.0
+        version: 4.7.1
       zod:
         specifier: ^3.24.1
         version: 3.25.56
@@ -1975,6 +1987,9 @@ importers:
       '@types/node':
         specifier: ^20
         version: 20.19.0
+      '@types/pg':
+        specifier: ^8.15.2
+        version: 8.15.4
       tsup:
         specifier: ^8.3.5
         version: 8.5.0(jiti@2.4.2)(postcss@8.5.4)(tsx@4.19.4)(typescript@5.8.3)(yaml@2.8.0)

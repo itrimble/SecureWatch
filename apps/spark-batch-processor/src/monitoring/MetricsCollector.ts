@@ -50,10 +50,14 @@ export class MetricsCollector extends EventEmitter {
    */
   incrementCounter(name: string, amount = 1): void {
     if (this.isShutdown) return;
-    
+
     const current = this.counters.get(name) || 0;
     this.counters.set(name, current + amount);
-    this.emit('metricUpdated', { name, type: 'counter', value: current + amount });
+    this.emit('metricUpdated', {
+      name,
+      type: 'counter',
+      value: current + amount,
+    });
   }
 
   /**
@@ -61,7 +65,7 @@ export class MetricsCollector extends EventEmitter {
    */
   recordHistogram(name: string, value: number): void {
     if (this.isShutdown) return;
-    
+
     const values = this.histograms.get(name);
     if (values) {
       values.push(value);
@@ -101,7 +105,12 @@ export class MetricsCollector extends EventEmitter {
           timestamp,
         });
       } catch (error) {
-        this.logger.warn(`Failed to get gauge value for ${name}:`, error);
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.logger.warn(
+          `Failed to get gauge value for ${name}:`,
+          errorMessage
+        );
       }
     }
 
@@ -210,12 +219,15 @@ export class MetricsCollector extends EventEmitter {
     this.registerCounter('batch_jobs_failed');
     this.registerCounter('records_processed_total');
     this.registerCounter('ml_anomalies_detected_total');
-    
+
     // Gauge metrics
     this.registerGauge('active_batch_jobs', () => 0); // Will be overridden
-    this.registerGauge('memory_usage_bytes', () => process.memoryUsage().heapUsed);
+    this.registerGauge(
+      'memory_usage_bytes',
+      () => process.memoryUsage().heapUsed
+    );
     this.registerGauge('uptime_seconds', () => process.uptime());
-    
+
     // Histogram metrics
     this.registerHistogram('batch_processing_duration_seconds');
     this.registerHistogram('record_processing_rate_per_second');

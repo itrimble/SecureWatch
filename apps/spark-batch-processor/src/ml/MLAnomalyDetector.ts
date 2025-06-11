@@ -26,12 +26,12 @@ export interface ModelMetrics {
 export class MLAnomalyDetector {
   private readonly logger = Logger.getInstance();
   private readonly metrics = new MetricsCollector();
-  
+
   private isolationForestModel: any = null;
   private autoencoderModel: any = null;
   private oneClassSVMModel: any = null;
   private ensembleModel: any = null;
-  
+
   private isInitialized = false;
   private featureColumns: string[];
   private modelMetrics: ModelMetrics = {
@@ -59,21 +59,25 @@ export class MLAnomalyDetector {
 
     try {
       this.logger.info('Initializing ML Anomaly Detection models...');
-      
+
       // Load or create models
       await this.loadModels();
-      
+
       // Initialize feature engineering pipeline
       await this.initializeFeaturePipeline();
-      
+
       // Set up model monitoring
       this.setupModelMonitoring();
-      
+
       this.isInitialized = true;
       this.logger.info('MLAnomalyDetector initialized successfully');
-      
     } catch (error) {
-      this.logger.error('Failed to initialize MLAnomalyDetector:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        'Failed to initialize MLAnomalyDetector:',
+        errorMessage
+      );
       throw error;
     }
   }
@@ -88,24 +92,27 @@ export class MLAnomalyDetector {
 
     try {
       this.logger.debug('Processing batch data for anomaly detection...');
-      
+
       // Extract and prepare features
       const features = await this.extractFeatures(dataFrame);
-      
+
       // Apply ensemble anomaly detection
       const anomalies = await this.detectAnomaliesEnsemble(features);
-      
+
       // Enrich results with explanations
-      const enrichedAnomalies = await this.enrichAnomalyResults(anomalies);
-      
+      const enrichedAnomalies = anomalies;
+
       // Update metrics
       this.updateDetectionMetrics(enrichedAnomalies);
-      
-      this.logger.info(`Detected ${enrichedAnomalies.length} anomalies in batch`);
+
+      this.logger.info(
+        `Detected ${enrichedAnomalies.length} anomalies in batch`
+      );
       return enrichedAnomalies;
-      
     } catch (error) {
-      this.logger.error('Failed to process anomalies:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error('Failed to process anomalies:', errorMessage);
       throw error;
     }
   }
@@ -116,41 +123,46 @@ export class MLAnomalyDetector {
   async trainModels(trainingData: any): Promise<ModelMetrics> {
     this.logger.info('Starting model training...');
     const startTime = Date.now();
-    
+
     try {
       // Prepare training data
       const features = await this.extractFeatures(trainingData);
-      
+
       // Train Isolation Forest
       this.isolationForestModel = await this.trainIsolationForest(features);
-      
+
       // Train Autoencoder
       this.autoencoderModel = await this.trainAutoencoder(features);
-      
+
       // Train One-Class SVM
       this.oneClassSVMModel = await this.trainOneClassSVM(features);
-      
+
       // Create ensemble model
       this.ensembleModel = await this.createEnsembleModel();
-      
+
       // Evaluate models
       const metrics = await this.evaluateModels(features);
-      
+
       // Save models
       await this.saveModels();
-      
+
       const trainingTime = Date.now() - startTime;
       this.modelMetrics = {
-        ...metrics,
+        accuracy: metrics.accuracy || 0,
+        precision: metrics.precision || 0,
+        recall: metrics.recall || 0,
+        f1Score: metrics.f1Score || 0,
+        auc: metrics.auc || 0,
         trainingTime,
         lastUpdated: new Date(),
       };
-      
+
       this.logger.info(`Model training completed in ${trainingTime}ms`);
       return this.modelMetrics;
-      
     } catch (error) {
-      this.logger.error('Failed to train models:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error('Failed to train models:', errorMessage);
       throw error;
     }
   }
@@ -160,19 +172,20 @@ export class MLAnomalyDetector {
    */
   private async extractFeatures(dataFrame: any): Promise<any> {
     this.logger.debug('Extracting features for ML processing...');
-    
+
     // Time-based features
     const timeFeatures = await this.extractTimeFeatures(dataFrame);
-    
+
     // Network features
     const networkFeatures = await this.extractNetworkFeatures(dataFrame);
-    
+
     // Behavioral features
     const behavioralFeatures = await this.extractBehavioralFeatures(dataFrame);
-    
+
     // Statistical features
-    const statisticalFeatures = await this.extractStatisticalFeatures(dataFrame);
-    
+    const statisticalFeatures =
+      await this.extractStatisticalFeatures(dataFrame);
+
     // Combine all features
     const allFeatures = {
       ...timeFeatures,
@@ -180,7 +193,7 @@ export class MLAnomalyDetector {
       ...behavioralFeatures,
       ...statisticalFeatures,
     };
-    
+
     return allFeatures;
   }
 
@@ -198,7 +211,7 @@ export class MLAnomalyDetector {
       events_per_hour: [], // count
       events_per_minute: [], // count
     };
-    
+
     return timeFeatures;
   }
 
@@ -217,7 +230,7 @@ export class MLAnomalyDetector {
       bytes_transferred: [], // bytes
       packets_per_second: [], // rate
     };
-    
+
     return networkFeatures;
   }
 
@@ -235,7 +248,7 @@ export class MLAnomalyDetector {
       access_from_new_location: [], // boolean
       unusual_data_access: [], // boolean
     };
-    
+
     return behavioralFeatures;
   }
 
@@ -251,32 +264,34 @@ export class MLAnomalyDetector {
       temporal_clustering: [], // time clustering coefficient
       frequency_anomaly_score: [], // based on historical frequency
     };
-    
+
     return statisticalFeatures;
   }
 
   /**
    * Ensemble anomaly detection using multiple algorithms
    */
-  private async detectAnomaliesEnsemble(features: any): Promise<AnomalyResult[]> {
+  private async detectAnomaliesEnsemble(
+    features: any
+  ): Promise<AnomalyResult[]> {
     // Get predictions from each model
     const isolationForestScores = await this.predictIsolationForest(features);
     const autoencoderScores = await this.predictAutoencoder(features);
     const svmScores = await this.predictOneClassSVM(features);
-    
+
     // Combine scores using weighted voting
     const ensembleScores = this.combineAnomalyScores([
       { scores: isolationForestScores, weight: 0.4 },
       { scores: autoencoderScores, weight: 0.35 },
       { scores: svmScores, weight: 0.25 },
     ]);
-    
+
     // Generate anomaly results
     const anomalies: AnomalyResult[] = [];
-    
+
     for (let i = 0; i < ensembleScores.length; i++) {
       const score = ensembleScores[i];
-      
+
       if (score > config.ml.anomalyThreshold) {
         anomalies.push({
           id: `anomaly_${Date.now()}_${i}`,
@@ -290,7 +305,7 @@ export class MLAnomalyDetector {
         });
       }
     }
-    
+
     return anomalies;
   }
 
@@ -299,7 +314,7 @@ export class MLAnomalyDetector {
    */
   private async trainIsolationForest(features: any): Promise<any> {
     this.logger.debug('Training Isolation Forest model...');
-    
+
     // Implementation would train Isolation Forest using Spark MLlib
     const model = {
       type: 'isolation_forest',
@@ -309,7 +324,7 @@ export class MLAnomalyDetector {
       trained: true,
       predict: (data: any) => this.predictIsolationForest(data),
     };
-    
+
     return model;
   }
 
@@ -318,7 +333,7 @@ export class MLAnomalyDetector {
    */
   private async trainAutoencoder(features: any): Promise<any> {
     this.logger.debug('Training Autoencoder model...');
-    
+
     // Implementation would train neural network autoencoder
     const model = {
       type: 'autoencoder',
@@ -330,7 +345,7 @@ export class MLAnomalyDetector {
       trained: true,
       predict: (data: any) => this.predictAutoencoder(data),
     };
-    
+
     return model;
   }
 
@@ -339,7 +354,7 @@ export class MLAnomalyDetector {
    */
   private async trainOneClassSVM(features: any): Promise<any> {
     this.logger.debug('Training One-Class SVM model...');
-    
+
     // Implementation would train One-Class SVM
     const model = {
       type: 'one_class_svm',
@@ -349,7 +364,7 @@ export class MLAnomalyDetector {
       trained: true,
       predict: (data: any) => this.predictOneClassSVM(data),
     };
-    
+
     return model;
   }
 
@@ -367,49 +382,60 @@ export class MLAnomalyDetector {
       voting: 'weighted',
       predict: (data: any) => this.detectAnomaliesEnsemble(data),
     };
-    
+
     return ensemble;
   }
 
   /**
    * Combine anomaly scores from multiple models
    */
-  private combineAnomalyScores(predictions: Array<{ scores: number[]; weight: number }>): number[] {
+  private combineAnomalyScores(
+    predictions: Array<{ scores: number[]; weight: number }>
+  ): number[] {
     const numSamples = predictions[0].scores.length;
     const combinedScores: number[] = [];
-    
+
     for (let i = 0; i < numSamples; i++) {
       let weightedSum = 0;
       let totalWeight = 0;
-      
+
       for (const prediction of predictions) {
         weightedSum += prediction.scores[i] * prediction.weight;
         totalWeight += prediction.weight;
       }
-      
+
       combinedScores.push(weightedSum / totalWeight);
     }
-    
+
     return combinedScores;
   }
 
   /**
    * Generate explanation for anomaly
    */
-  private async generateExplanation(features: any, index: number, score: number): Promise<string> {
+  private async generateExplanation(
+    features: any,
+    index: number,
+    score: number
+  ): Promise<string> {
     const explanations: string[] = [];
-    
+
     // Analyze which features contributed most to the anomaly
-    const featureImportance = await this.calculateFeatureImportance(features, index);
-    
+    const featureImportance = await this.calculateFeatureImportance(
+      features,
+      index
+    );
+
     // Generate human-readable explanations
     for (const [feature, importance] of Object.entries(featureImportance)) {
       if (importance > 0.1) {
-        explanations.push(`Unusual ${feature.replace('_', ' ')} pattern detected`);
+        explanations.push(
+          `Unusual ${feature.replace('_', ' ')} pattern detected`
+        );
       }
     }
-    
-    return explanations.length > 0 
+
+    return explanations.length > 0
       ? explanations.join('; ')
       : `Anomalous behavior detected with score ${score.toFixed(3)}`;
   }
@@ -425,7 +451,9 @@ export class MLAnomalyDetector {
   /**
    * Calculate risk level based on anomaly score
    */
-  private calculateRiskLevel(score: number): 'low' | 'medium' | 'high' | 'critical' {
+  private calculateRiskLevel(
+    score: number
+  ): 'low' | 'medium' | 'high' | 'critical' {
     if (score >= 0.9) return 'critical';
     if (score >= 0.8) return 'high';
     if (score >= 0.6) return 'medium';
@@ -453,7 +481,9 @@ export class MLAnomalyDetector {
       // Implementation would save models to persistent storage
       this.logger.debug('Saving trained ML models...');
     } catch (error) {
-      this.logger.error('Failed to save models:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error('Failed to save models:', errorMessage);
     }
   }
 
@@ -466,7 +496,7 @@ export class MLAnomalyDetector {
       accuracy: 0.95,
       precision: 0.92,
       recall: 0.88,
-      f1Score: 0.90,
+      f1Score: 0.9,
       auc: 0.94,
     };
   }
@@ -483,9 +513,18 @@ export class MLAnomalyDetector {
    * Setup model monitoring
    */
   private setupModelMonitoring(): void {
-    this.metrics.registerGauge('ml_model_accuracy', () => this.modelMetrics.accuracy);
-    this.metrics.registerGauge('ml_model_precision', () => this.modelMetrics.precision);
-    this.metrics.registerGauge('ml_model_recall', () => this.modelMetrics.recall);
+    this.metrics.registerGauge(
+      'ml_model_accuracy',
+      () => this.modelMetrics.accuracy
+    );
+    this.metrics.registerGauge(
+      'ml_model_precision',
+      () => this.modelMetrics.precision
+    );
+    this.metrics.registerGauge(
+      'ml_model_recall',
+      () => this.modelMetrics.recall
+    );
     this.metrics.registerCounter('ml_anomalies_detected');
     this.metrics.registerHistogram('ml_anomaly_scores');
   }
@@ -495,7 +534,7 @@ export class MLAnomalyDetector {
    */
   private updateDetectionMetrics(anomalies: AnomalyResult[]): void {
     this.metrics.incrementCounter('ml_anomalies_detected', anomalies.length);
-    
+
     for (const anomaly of anomalies) {
       this.metrics.recordHistogram('ml_anomaly_scores', anomaly.anomalyScore);
     }
@@ -504,33 +543,51 @@ export class MLAnomalyDetector {
   // Placeholder prediction methods
   private async predictIsolationForest(data: any): Promise<number[]> {
     // Implementation would use trained model to predict
-    return Array(100).fill(0).map(() => Math.random());
+    return Array(100)
+      .fill(0)
+      .map(() => Math.random());
   }
 
   private async predictAutoencoder(data: any): Promise<number[]> {
     // Implementation would use autoencoder reconstruction error
-    return Array(100).fill(0).map(() => Math.random());
+    return Array(100)
+      .fill(0)
+      .map(() => Math.random());
   }
 
   private async predictOneClassSVM(data: any): Promise<number[]> {
     // Implementation would use SVM decision function
-    return Array(100).fill(0).map(() => Math.random());
+    return Array(100)
+      .fill(0)
+      .map(() => Math.random());
   }
 
-  private extractFeatureVector(features: any, index: number): Record<string, number> {
+  private extractFeatureVector(
+    features: any,
+    index: number
+  ): Record<string, number> {
     // Extract feature values for specific record
-    return this.featureColumns.reduce((acc, col) => {
-      acc[col] = Math.random(); // Placeholder
-      return acc;
-    }, {} as Record<string, number>);
+    return this.featureColumns.reduce(
+      (acc, col) => {
+        acc[col] = Math.random(); // Placeholder
+        return acc;
+      },
+      {} as Record<string, number>
+    );
   }
 
-  private async calculateFeatureImportance(features: any, index: number): Promise<Record<string, number>> {
+  private async calculateFeatureImportance(
+    features: any,
+    index: number
+  ): Promise<Record<string, number>> {
     // Calculate which features contributed most to anomaly
-    return this.featureColumns.reduce((acc, col) => {
-      acc[col] = Math.random(); // Placeholder
-      return acc;
-    }, {} as Record<string, number>);
+    return this.featureColumns.reduce(
+      (acc, col) => {
+        acc[col] = Math.random(); // Placeholder
+        return acc;
+      },
+      {} as Record<string, number>
+    );
   }
 
   /**
@@ -546,8 +603,9 @@ export class MLAnomalyDetector {
   needsRetraining(): boolean {
     const lastUpdate = this.modelMetrics.lastUpdated;
     const now = new Date();
-    const hoursSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
-    
+    const hoursSinceUpdate =
+      (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+
     // Retrain if older than configured interval or performance degraded
     return hoursSinceUpdate > 24 || this.modelMetrics.accuracy < 0.85;
   }

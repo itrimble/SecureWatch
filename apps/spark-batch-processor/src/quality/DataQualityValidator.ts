@@ -4,7 +4,13 @@ import { MetricsCollector } from '../monitoring/MetricsCollector';
 export interface DataQualityRule {
   name: string;
   description: string;
-  type: 'completeness' | 'accuracy' | 'consistency' | 'validity' | 'uniqueness' | 'freshness';
+  type:
+    | 'completeness'
+    | 'accuracy'
+    | 'consistency'
+    | 'validity'
+    | 'uniqueness'
+    | 'freshness';
   severity: 'low' | 'medium' | 'high' | 'critical';
   enabled: boolean;
   threshold: number;
@@ -60,18 +66,22 @@ export class DataQualityValidator {
 
     try {
       this.logger.info('Initializing Data Quality Validator...');
-      
+
       // Setup default quality rules
       this.setupDefaultRules();
-      
+
       // Setup metrics
       this.setupMetrics();
-      
+
       this.isInitialized = true;
       this.logger.info('DataQualityValidator initialized successfully');
-      
     } catch (error) {
-      this.logger.error('Failed to initialize DataQualityValidator:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        'Failed to initialize DataQualityValidator:',
+        errorMessage
+      );
       throw error;
     }
   }
@@ -79,43 +89,60 @@ export class DataQualityValidator {
   /**
    * Validate a batch of data against all enabled rules
    */
-  async validateBatch(dataFrame: any, batchId?: string): Promise<DataQualityReport> {
+  async validateBatch(
+    dataFrame: any,
+    batchId?: string
+  ): Promise<DataQualityReport> {
     if (!this.isInitialized) {
       throw new Error('DataQualityValidator not initialized');
     }
 
     const startTime = Date.now();
     const reportId = batchId || `batch_${Date.now()}`;
-    
+
     try {
-      this.logger.info(`Starting data quality validation for batch: ${reportId}`);
-      
+      this.logger.info(
+        `Starting data quality validation for batch: ${reportId}`
+      );
+
       const ruleResults: DataQualityResult[] = [];
-      const enabledRules = Array.from(this.rules.values()).filter(rule => rule.enabled);
-      
+      const enabledRules = Array.from(this.rules.values()).filter(
+        (rule) => rule.enabled
+      );
+
       // Execute all enabled rules
       for (const rule of enabledRules) {
         try {
           const result = await this.executeRule(rule, dataFrame);
           ruleResults.push(result);
-          
+
           // Update metrics
-          this.metrics.incrementCounter(`data_quality_rule_${rule.name}_executed`);
+          this.metrics.incrementCounter(
+            `data_quality_rule_${rule.name}_executed`
+          );
           if (!result.passed) {
-            this.metrics.incrementCounter(`data_quality_rule_${rule.name}_failed`);
+            this.metrics.incrementCounter(
+              `data_quality_rule_${rule.name}_failed`
+            );
           }
-          
         } catch (error) {
-          this.logger.error(`Failed to execute rule ${rule.name}:`, error);
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          this.logger.error(
+            `Failed to execute rule ${rule.name}:`,
+            errorMessage
+          );
           ruleResults.push({
             ruleName: rule.name,
             passed: false,
             score: 0,
-            errors: [{
-              type: 'execution_error',
-              message: `Rule execution failed: ${error.message}`,
-              severity: 'high',
-            }],
+            errors: [
+              {
+                type: 'execution_error',
+                message: `Rule execution failed: ${errorMessage}`,
+                severity: 'high',
+              },
+            ],
             warnings: [],
             recordsChecked: 0,
             recordsFailed: 0,
@@ -123,19 +150,22 @@ export class DataQualityValidator {
           });
         }
       }
-      
+
       // Calculate overall metrics
       const totalRecords = await this.getRecordCount(dataFrame);
-      const passedRecords = ruleResults.reduce((sum, result) => 
-        sum + (result.recordsChecked - result.recordsFailed), 0) / ruleResults.length;
+      const passedRecords =
+        ruleResults.reduce(
+          (sum, result) => sum + (result.recordsChecked - result.recordsFailed),
+          0
+        ) / ruleResults.length;
       const failedRecords = totalRecords - passedRecords;
       const overallScore = this.calculateOverallScore(ruleResults);
-      
+
       // Generate recommendations
       const recommendations = this.generateRecommendations(ruleResults);
-      
+
       const executionTime = Date.now() - startTime;
-      
+
       const report: DataQualityReport = {
         batchId: reportId,
         timestamp: new Date(),
@@ -147,17 +177,26 @@ export class DataQualityValidator {
         recommendations,
         executionTime,
       };
-      
+
       // Update metrics
-      this.metrics.recordHistogram('data_quality_check_duration_ms', executionTime);
+      this.metrics.recordHistogram(
+        'data_quality_check_duration_ms',
+        executionTime
+      );
       this.metrics.incrementCounter('data_quality_batches_validated');
-      
-      this.logger.info(`Data quality validation completed for batch ${reportId}: ${overallScore.toFixed(2)}% quality score`);
-      
+
+      this.logger.info(
+        `Data quality validation completed for batch ${reportId}: ${overallScore.toFixed(2)}% quality score`
+      );
+
       return report;
-      
     } catch (error) {
-      this.logger.error(`Data quality validation failed for batch ${reportId}:`, error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Data quality validation failed for batch ${reportId}:`,
+        errorMessage
+      );
       throw error;
     }
   }
@@ -195,7 +234,9 @@ export class DataQualityValidator {
     const rule = this.rules.get(ruleName);
     if (rule) {
       rule.enabled = enabled;
-      this.logger.info(`${enabled ? 'Enabled' : 'Disabled'} data quality rule: ${ruleName}`);
+      this.logger.info(
+        `${enabled ? 'Enabled' : 'Disabled'} data quality rule: ${ruleName}`
+      );
       return true;
     }
     return false;
@@ -222,7 +263,7 @@ export class DataQualityValidator {
       type: 'completeness',
       severity: 'high',
       enabled: true,
-      threshold: 0.90,
+      threshold: 0.9,
       validator: async (data: any) => this.validateSourceIpCompleteness(data),
     });
 
@@ -254,7 +295,7 @@ export class DataQualityValidator {
       type: 'consistency',
       severity: 'low',
       enabled: true,
-      threshold: 0.90,
+      threshold: 0.9,
       validator: async (data: any) => this.validateSeverityConsistency(data),
     });
 
@@ -286,23 +327,30 @@ export class DataQualityValidator {
   /**
    * Execute a single rule against the data
    */
-  private async executeRule(rule: DataQualityRule, dataFrame: any): Promise<DataQualityResult> {
+  private async executeRule(
+    rule: DataQualityRule,
+    dataFrame: any
+  ): Promise<DataQualityResult> {
     const startTime = Date.now();
-    
+
     try {
       const result = await rule.validator(dataFrame);
       result.executionTime = Date.now() - startTime;
       return result;
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       return {
         ruleName: rule.name,
         passed: false,
         score: 0,
-        errors: [{
-          type: 'validation_error',
-          message: `Validation failed: ${error.message}`,
-          severity: rule.severity,
-        }],
+        errors: [
+          {
+            type: 'validation_error',
+            message: `Validation failed: ${errorMessage}`,
+            severity: rule.severity,
+          },
+        ],
         warnings: [],
         recordsChecked: 0,
         recordsFailed: 0,
@@ -314,22 +362,29 @@ export class DataQualityValidator {
   /**
    * Validate timestamp completeness
    */
-  private async validateTimestampCompleteness(dataFrame: any): Promise<DataQualityResult> {
+  private async validateTimestampCompleteness(
+    dataFrame: any
+  ): Promise<DataQualityResult> {
     // Implementation would check for null/empty timestamps
     const recordsChecked = 1000; // Placeholder
     const recordsWithValidTimestamp = 980; // Placeholder
     const recordsFailed = recordsChecked - recordsWithValidTimestamp;
     const score = recordsWithValidTimestamp / recordsChecked;
-    
+
     return {
       ruleName: 'timestamp_completeness',
       passed: score >= 0.95,
       score,
-      errors: recordsFailed > 0 ? [{
-        type: 'missing_timestamp',
-        message: `${recordsFailed} records missing valid timestamps`,
-        severity: 'critical',
-      }] : [],
+      errors:
+        recordsFailed > 0
+          ? [
+              {
+                type: 'missing_timestamp',
+                message: `${recordsFailed} records missing valid timestamps`,
+                severity: 'critical',
+              },
+            ]
+          : [],
       warnings: [],
       recordsChecked,
       recordsFailed,
@@ -340,21 +395,28 @@ export class DataQualityValidator {
   /**
    * Validate source IP completeness
    */
-  private async validateSourceIpCompleteness(dataFrame: any): Promise<DataQualityResult> {
+  private async validateSourceIpCompleteness(
+    dataFrame: any
+  ): Promise<DataQualityResult> {
     const recordsChecked = 1000;
     const recordsWithSourceIp = 920;
     const recordsFailed = recordsChecked - recordsWithSourceIp;
     const score = recordsWithSourceIp / recordsChecked;
-    
+
     return {
       ruleName: 'source_ip_completeness',
-      passed: score >= 0.90,
+      passed: score >= 0.9,
       score,
-      errors: recordsFailed > 0 ? [{
-        type: 'missing_source_ip',
-        message: `${recordsFailed} records missing source IP`,
-        severity: 'high',
-      }] : [],
+      errors:
+        recordsFailed > 0
+          ? [
+              {
+                type: 'missing_source_ip',
+                message: `${recordsFailed} records missing source IP`,
+                severity: 'high',
+              },
+            ]
+          : [],
       warnings: [],
       recordsChecked,
       recordsFailed,
@@ -365,21 +427,28 @@ export class DataQualityValidator {
   /**
    * Validate IP address format
    */
-  private async validateIpAddressFormat(dataFrame: any): Promise<DataQualityResult> {
+  private async validateIpAddressFormat(
+    dataFrame: any
+  ): Promise<DataQualityResult> {
     const recordsChecked = 1000;
     const recordsWithValidIp = 975;
     const recordsFailed = recordsChecked - recordsWithValidIp;
     const score = recordsWithValidIp / recordsChecked;
-    
+
     return {
       ruleName: 'ip_address_validity',
       passed: score >= 0.95,
       score,
-      errors: recordsFailed > 0 ? [{
-        type: 'invalid_ip_format',
-        message: `${recordsFailed} records with invalid IP format`,
-        severity: 'medium',
-      }] : [],
+      errors:
+        recordsFailed > 0
+          ? [
+              {
+                type: 'invalid_ip_format',
+                message: `${recordsFailed} records with invalid IP format`,
+                severity: 'medium',
+              },
+            ]
+          : [],
       warnings: [],
       recordsChecked,
       recordsFailed,
@@ -395,16 +464,21 @@ export class DataQualityValidator {
     const recordsWithValidPort = 990;
     const recordsFailed = recordsChecked - recordsWithValidPort;
     const score = recordsWithValidPort / recordsChecked;
-    
+
     return {
       ruleName: 'port_range_validity',
       passed: score >= 0.98,
       score,
-      errors: recordsFailed > 0 ? [{
-        type: 'invalid_port_range',
-        message: `${recordsFailed} records with invalid port numbers`,
-        severity: 'medium',
-      }] : [],
+      errors:
+        recordsFailed > 0
+          ? [
+              {
+                type: 'invalid_port_range',
+                message: `${recordsFailed} records with invalid port numbers`,
+                severity: 'medium',
+              },
+            ]
+          : [],
       warnings: [],
       recordsChecked,
       recordsFailed,
@@ -415,21 +489,28 @@ export class DataQualityValidator {
   /**
    * Validate severity consistency
    */
-  private async validateSeverityConsistency(dataFrame: any): Promise<DataQualityResult> {
+  private async validateSeverityConsistency(
+    dataFrame: any
+  ): Promise<DataQualityResult> {
     const recordsChecked = 1000;
     const recordsWithConsistentSeverity = 950;
     const recordsFailed = recordsChecked - recordsWithConsistentSeverity;
     const score = recordsWithConsistentSeverity / recordsChecked;
-    
+
     return {
       ruleName: 'severity_consistency',
-      passed: score >= 0.90,
+      passed: score >= 0.9,
       score,
-      errors: recordsFailed > 0 ? [{
-        type: 'inconsistent_severity',
-        message: `${recordsFailed} records with inconsistent severity`,
-        severity: 'low',
-      }] : [],
+      errors:
+        recordsFailed > 0
+          ? [
+              {
+                type: 'inconsistent_severity',
+                message: `${recordsFailed} records with inconsistent severity`,
+                severity: 'low',
+              },
+            ]
+          : [],
       warnings: [],
       recordsChecked,
       recordsFailed,
@@ -440,22 +521,30 @@ export class DataQualityValidator {
   /**
    * Validate data freshness
    */
-  private async validateDataFreshness(dataFrame: any): Promise<DataQualityResult> {
+  private async validateDataFreshness(
+    dataFrame: any
+  ): Promise<DataQualityResult> {
     const recordsChecked = 1000;
     const recordsWithFreshData = 900;
     const recordsFailed = recordsChecked - recordsWithFreshData;
     const score = recordsWithFreshData / recordsChecked;
-    
+
     return {
       ruleName: 'data_freshness',
       passed: score >= 0.85,
       score,
-      errors: recordsFailed > 0 ? [{
-        type: 'stale_data',
-        message: `${recordsFailed} records older than expected`,
-        severity: 'medium',
-      }] : [],
-      warnings: recordsFailed > 50 ? [`High number of stale records detected`] : [],
+      errors:
+        recordsFailed > 0
+          ? [
+              {
+                type: 'stale_data',
+                message: `${recordsFailed} records older than expected`,
+                severity: 'medium',
+              },
+            ]
+          : [],
+      warnings:
+        recordsFailed > 50 ? [`High number of stale records detected`] : [],
       recordsChecked,
       recordsFailed,
       executionTime: 0,
@@ -465,21 +554,28 @@ export class DataQualityValidator {
   /**
    * Validate event ID uniqueness
    */
-  private async validateEventIdUniqueness(dataFrame: any): Promise<DataQualityResult> {
+  private async validateEventIdUniqueness(
+    dataFrame: any
+  ): Promise<DataQualityResult> {
     const recordsChecked = 1000;
     const duplicateRecords = 5;
     const recordsFailed = duplicateRecords;
     const score = (recordsChecked - duplicateRecords) / recordsChecked;
-    
+
     return {
       ruleName: 'event_id_uniqueness',
       passed: score >= 0.99,
       score,
-      errors: recordsFailed > 0 ? [{
-        type: 'duplicate_event_id',
-        message: `${recordsFailed} duplicate event IDs found`,
-        severity: 'high',
-      }] : [],
+      errors:
+        recordsFailed > 0
+          ? [
+              {
+                type: 'duplicate_event_id',
+                message: `${recordsFailed} duplicate event IDs found`,
+                severity: 'high',
+              },
+            ]
+          : [],
       warnings: [],
       recordsChecked,
       recordsFailed,
@@ -492,18 +588,18 @@ export class DataQualityValidator {
    */
   private calculateOverallScore(results: DataQualityResult[]): number {
     if (results.length === 0) return 0;
-    
+
     // Weighted average based on rule severity
     let weightedSum = 0;
     let totalWeight = 0;
-    
+
     for (const result of results) {
       const rule = this.rules.get(result.ruleName);
       const weight = this.getSeverityWeight(rule?.severity || 'medium');
       weightedSum += result.score * weight;
       totalWeight += weight;
     }
-    
+
     return totalWeight > 0 ? (weightedSum / totalWeight) * 100 : 0;
   }
 
@@ -512,10 +608,10 @@ export class DataQualityValidator {
    */
   private getSeverityWeight(severity: string): number {
     const weights = {
-      'low': 1,
-      'medium': 2,
-      'high': 3,
-      'critical': 4,
+      low: 1,
+      medium: 2,
+      high: 3,
+      critical: 4,
     };
     return weights[severity as keyof typeof weights] || 2;
   }
@@ -525,32 +621,42 @@ export class DataQualityValidator {
    */
   private generateRecommendations(results: DataQualityResult[]): string[] {
     const recommendations: string[] = [];
-    
+
     for (const result of results) {
       if (!result.passed) {
         const rule = this.rules.get(result.ruleName);
         if (rule) {
           switch (rule.type) {
             case 'completeness':
-              recommendations.push(`Improve data collection to reduce missing ${rule.name.replace('_', ' ')}`);
+              recommendations.push(
+                `Improve data collection to reduce missing ${rule.name.replace('_', ' ')}`
+              );
               break;
             case 'validity':
-              recommendations.push(`Add validation rules for ${rule.name.replace('_', ' ')} at source`);
+              recommendations.push(
+                `Add validation rules for ${rule.name.replace('_', ' ')} at source`
+              );
               break;
             case 'consistency':
-              recommendations.push(`Standardize ${rule.name.replace('_', ' ')} across data sources`);
+              recommendations.push(
+                `Standardize ${rule.name.replace('_', ' ')} across data sources`
+              );
               break;
             case 'freshness':
-              recommendations.push(`Reduce data ingestion latency to improve freshness`);
+              recommendations.push(
+                `Reduce data ingestion latency to improve freshness`
+              );
               break;
             case 'uniqueness':
-              recommendations.push(`Implement deduplication for ${rule.name.replace('_', ' ')}`);
+              recommendations.push(
+                `Implement deduplication for ${rule.name.replace('_', ' ')}`
+              );
               break;
           }
         }
       }
     }
-    
+
     return recommendations;
   }
 
