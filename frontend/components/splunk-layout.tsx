@@ -18,7 +18,7 @@ export function SplunkLayout({
   sidebar,
 }: SplunkLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Splunk Header (Top Bar + App Context Bar) */}
       <SplunkHeader />
 
@@ -26,7 +26,7 @@ export function SplunkLayout({
       <div className="flex flex-1 min-h-0">
         {/* Optional Sidebar (for settings pages, etc) */}
         {showSidebar && sidebar && (
-          <div className="w-80 bg-gray-800 border-r border-gray-700 flex-shrink-0">
+          <div className="w-80 bg-muted border-r border-border flex-shrink-0">
             {sidebar}
           </div>
         )}

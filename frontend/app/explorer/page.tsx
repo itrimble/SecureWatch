@@ -291,10 +291,10 @@ const mockChartData = [
 ];
 
 const severityChartData = [
-  { name: 'Information', value: 65, color: '#22c55e' },
-  { name: 'Warning', value: 25, color: '#eab308' },
-  { name: 'Error', value: 8, color: '#f97316' },
-  { name: 'Critical', value: 2, color: '#ef4444' },
+  { name: 'Information', value: 65, color: 'hsl(var(--chart-1))' },
+  { name: 'Warning', value: 25, color: 'hsl(var(--chart-2))' },
+  { name: 'Error', value: 8, color: 'hsl(var(--chart-3))' },
+  { name: 'Critical', value: 2, color: 'hsl(var(--chart-4))' },
 ];
 
 export default function ExplorerPage() {
@@ -676,7 +676,7 @@ export default function ExplorerPage() {
                               setSelectedTimeRange('custom');
                             }
                           }}
-                          className="rounded-md border border-gray-600 z-50"
+                          className="rounded-md border border-border z-50"
                         />
                       </div>
                     </div>
@@ -917,15 +917,16 @@ export default function ExplorerPage() {
                             <YAxis />
                             <Tooltip
                               contentStyle={{
-                                backgroundColor: '#374151',
-                                border: '1px solid #4b5563',
+                                backgroundColor: 'hsl(var(--background))',
+                                border: '1px solid hsl(var(--border))',
                                 borderRadius: '6px',
+                                color: 'hsl(var(--foreground))',
                               }}
                             />
                             <Line
                               type="monotone"
                               dataKey="events"
-                              stroke="#3b82f6"
+                              stroke="hsl(var(--primary))"
                               strokeWidth={2}
                             />
                           </LineChart>
@@ -957,9 +958,10 @@ export default function ExplorerPage() {
                             </Pie>
                             <Tooltip
                               contentStyle={{
-                                backgroundColor: '#374151',
-                                border: '1px solid #4b5563',
+                                backgroundColor: 'hsl(var(--background))',
+                                border: '1px solid hsl(var(--border))',
                                 borderRadius: '6px',
+                                color: 'hsl(var(--foreground))',
                               }}
                             />
                             <Legend />
