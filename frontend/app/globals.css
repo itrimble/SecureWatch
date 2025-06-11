@@ -139,7 +139,7 @@
     --secondary: 210 20% 96%;               /* #f4f5f6 - Very light gray */
     --secondary-foreground: 210 11% 15%;    /* #212527 - Dark gray text */
     --muted: 210 20% 96%;                   /* #f4f5f6 - Very light gray */
-    --muted-foreground: 215 14% 34%;        /* #525c65 - Medium gray text */
+    --muted-foreground: 215 14% 25%;        /* #3d454c - Darker gray text for better contrast */
     --accent: 210 40% 91%;                  /* #e1e5e9 - Light gray accent */
     --accent-foreground: 210 11% 15%;       /* #212527 - Dark gray text */
     

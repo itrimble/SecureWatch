@@ -122,13 +122,13 @@ export function FieldSidebar({
     const isExpanded = expandedFields.has(field.name);
 
     return (
-      <div className="border-b border-gray-700 last:border-b-0">
-        <div className="flex items-center justify-between p-2 hover:bg-gray-700 group">
+      <div className="border-b border-border last:border-b-0">
+        <div className="flex items-center justify-between p-2 hover:bg-accent group">
           <div className="flex items-center space-x-2 flex-1 min-w-0">
             <Button
               variant="ghost"
               size="sm"
-              className="h-4 w-4 p-0 text-gray-400 hover:text-gray-200"
+              className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground"
               onClick={() => toggleFieldExpansion(field.name)}
             >
               {isExpanded ? (
@@ -141,10 +141,10 @@ export function FieldSidebar({
             {getFieldIcon(field.type)}
 
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-200 truncate">
+              <div className="text-sm font-medium text-foreground truncate">
                 {field.name}
               </div>
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-muted-foreground">
                 {field.coverage.toFixed(0)}% ({field.distinctValues} values)
               </div>
             </div>
@@ -154,7 +154,7 @@ export function FieldSidebar({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 text-gray-400 hover:text-blue-400"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
               onClick={() =>
                 handleFieldAction(field, field.isSelected ? 'remove' : 'add')
               }
@@ -170,7 +170,7 @@ export function FieldSidebar({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 text-gray-400 hover:text-green-400"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
               onClick={() => handleFieldAction(field, 'stats')}
               title="Show statistics"
             >
@@ -182,29 +182,33 @@ export function FieldSidebar({
         {isExpanded && (
           <div className="px-4 pb-3 space-y-2">
             {field.description && (
-              <p className="text-xs text-gray-400">{field.description}</p>
+              <p className="text-xs text-muted-foreground">
+                {field.description}
+              </p>
             )}
 
             <div className="space-y-1">
-              <h5 className="text-xs font-medium text-gray-300">Top Values</h5>
+              <h5 className="text-xs font-medium text-foreground">
+                Top Values
+              </h5>
               {field.topValues.map((value, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between text-xs hover:bg-gray-700 p-1 rounded cursor-pointer"
+                  className="flex items-center justify-between text-xs hover:bg-accent p-1 rounded cursor-pointer"
                   onClick={() => onFieldValueFilter(field.name, value.value)}
                 >
                   <div className="flex items-center space-x-2 flex-1 min-w-0">
-                    <span className="text-blue-400 truncate font-mono">
+                    <span className="text-primary truncate font-mono">
                       {value.value}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-2 text-gray-400">
+                  <div className="flex items-center space-x-2 text-muted-foreground">
                     <span>{value.count}</span>
                     <span>({value.percentage.toFixed(1)}%)</span>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-4 w-4 p-0 hover:text-blue-400"
+                      className="h-4 w-4 p-0 hover:text-primary"
                       onClick={(e) => {
                         e.stopPropagation();
                         onFieldValueFilter(field.name, value.value);
@@ -223,25 +227,30 @@ export function FieldSidebar({
   };
 
   return (
-    <div className={cn('w-full h-full bg-gray-800 flex flex-col', className)}>
+    <div
+      className={cn(
+        'w-full h-full bg-card border-r border-border flex flex-col',
+        className
+      )}
+    >
       {/* Header */}
-      <div className="p-4 border-b border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-100 mb-3">Fields</h3>
+      <div className="p-4 border-b border-border">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Fields</h3>
 
         {/* Search Fields */}
         <div className="relative">
-          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground w-3 h-3" />
           <Input
             type="text"
             placeholder="Filter fields..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-7 h-8 text-xs bg-gray-700 border-gray-600 text-gray-100"
+            className="pl-7 h-8 text-xs bg-background border-border text-foreground"
           />
         </div>
 
         {/* Field Count Summary */}
-        <div className="mt-2 text-xs text-gray-400">
+        <div className="mt-2 text-xs text-muted-foreground">
           {selectedFieldsList.length} selected, {interestingFieldsList.length}{' '}
           interesting, {allFieldsList.length} total
         </div>
@@ -256,14 +265,14 @@ export function FieldSidebar({
               <CollapsibleTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="w-full justify-between h-8 text-xs font-medium text-gray-200"
+                  className="w-full justify-between h-8 text-xs font-medium text-foreground"
                 >
                   <div className="flex items-center space-x-2">
                     <Eye className="w-3 h-3" />
                     <span>Selected Fields</span>
                     <Badge
                       variant="secondary"
-                      className="bg-blue-600 text-white text-xs"
+                      className="bg-primary text-primary-foreground text-xs"
                     >
                       {selectedFieldsList.length}
                     </Badge>
@@ -272,7 +281,7 @@ export function FieldSidebar({
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="bg-gray-750 rounded border border-gray-600 mt-1">
+                <div className="bg-muted rounded border border-border mt-1">
                   {selectedFieldsList.map((field) => (
                     <FieldComponent key={field.name} field={field} />
                   ))}
@@ -287,14 +296,14 @@ export function FieldSidebar({
               <CollapsibleTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="w-full justify-between h-8 text-xs font-medium text-gray-200"
+                  className="w-full justify-between h-8 text-xs font-medium text-foreground"
                 >
                   <div className="flex items-center space-x-2">
                     <TrendingUp className="w-3 h-3" />
                     <span>Interesting Fields</span>
                     <Badge
                       variant="secondary"
-                      className="bg-orange-600 text-white text-xs"
+                      className="bg-primary text-primary-foreground text-xs"
                     >
                       {interestingFieldsList.length}
                     </Badge>
@@ -303,7 +312,7 @@ export function FieldSidebar({
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="bg-gray-750 rounded border border-gray-600 mt-1">
+                <div className="bg-muted rounded border border-border mt-1">
                   {interestingFieldsList.map((field) => (
                     <FieldComponent key={field.name} field={field} />
                   ))}
@@ -317,14 +326,14 @@ export function FieldSidebar({
             <CollapsibleTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-full justify-between h-8 text-xs font-medium text-gray-200"
+                className="w-full justify-between h-8 text-xs font-medium text-foreground"
               >
                 <div className="flex items-center space-x-2">
                   <Database className="w-3 h-3" />
                   <span>All Fields</span>
                   <Badge
                     variant="secondary"
-                    className="bg-gray-600 text-white text-xs"
+                    className="bg-secondary text-secondary-foreground text-xs"
                   >
                     {allFieldsList.length}
                   </Badge>
@@ -344,18 +353,14 @@ export function FieldSidebar({
       </ScrollArea>
 
       {/* Footer Actions */}
-      <div className="p-3 border-t border-gray-700">
+      <div className="p-3 border-t border-border">
         <div className="space-y-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full text-xs bg-gray-700 border-gray-600 hover:bg-gray-600"
-          >
+          <Button variant="outline" size="sm" className="w-full text-xs">
             <Plus className="w-3 h-3 mr-2" />
             Extract New Field
           </Button>
 
-          <div className="text-xs text-gray-400 text-center">
+          <div className="text-xs text-muted-foreground text-center">
             {searchResults.length} events
           </div>
         </div>

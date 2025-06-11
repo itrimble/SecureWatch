@@ -337,118 +337,6 @@ export default function ExplorerPage() {
     };
   }, []);
 
-  useEffect(() => {
-    // Initialize custom time range on client side to avoid hydration mismatch
-    setCustomTimeRange({ start: new Date(), end: new Date() });
-  }, []);
-
-  useEffect(() => {
-    const query = searchParams.get('query');
-    if (query) {
-      setKQLQuery(query);
-      handleSearch(query);
-    } else {
-      // Load recent logs on initial page load
-      loadRecentLogs();
-    }
-  }, [searchParams, handleSearch, loadRecentLogs]);
-
-  const handleSearch = useCallback(async (query?: string) => {
-    const searchQuery = query || kqlQuery;
-    if (!searchQuery.trim()) {
-      // If no query, load recent logs
-      await loadRecentLogs();
-      return;
-    }
-
-    setIsSearching(true);
-    setSearchStatus('running');
-    setSearchStats((prev) => ({ ...prev, searchProgress: 0 }));
-
-    // Simulate search progress with proper cleanup tracking
-    let progressInterval: NodeJS.Timeout | undefined;
-    const startProgressSimulation = () => {
-      progressInterval = setInterval(() => {
-        setSearchStats((prev) => {
-          const newProgress = Math.min(prev.searchProgress + 10, 90);
-          return { ...prev, searchProgress: newProgress };
-        });
-      }, 200);
-    };
-
-    startProgressSimulation();
-
-    try {
-      // Call the real Search API with KQL query
-      const response = await fetch('/api/v1/search/execute', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Organization-ID': 'c47e1c4e-4f23-4c6a-9c4a-f8b5d6c2e1a3',
-        },
-        body: JSON.stringify({
-          query: searchQuery,
-          limit: 1000,
-          organizationId: 'c47e1c4e-4f23-4c6a-9c4a-f8b5d6c2e1a3',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Search failed: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-
-      // Transform the search results to match our UI format
-      const transformedResults =
-        data.rows?.map((row: any, index: number) => ({
-          timestamp: row.timestamp || new Date().toISOString(),
-          eventId: row.event_id || 'N/A',
-          computerName: row.hostname || row.source_identifier || 'Unknown',
-          userName: row.user_name || row.auth_user || 'System',
-          sourceIP: row.source_ip || row.destination_ip || 'N/A',
-          severity: row.log_level || row.severity || 'Information',
-          message: row.message || 'No message available',
-          source: row.source_type || 'unknown',
-        })) || [];
-
-      setSearchResults(transformedResults);
-
-      // Add to history if not already there
-      if (!queryHistory.includes(searchQuery)) {
-        setQueryHistory((prev) => [searchQuery, ...prev.slice(0, 9)]);
-      }
-
-      setSearchStatus('completed');
-      setSearchStats((prev) => ({
-        ...prev,
-        searchProgress: 100,
-        executionTime: data.metadata?.executionTime || 245,
-        totalEvents: transformedResults.length,
-        scannedEvents:
-          data.metadata?.scannedRows ||
-          data.metadata?.totalRows ||
-          transformedResults.length,
-      }));
-    } catch (error) {
-      console.error('Search error:', error);
-      if (isMountedRef.current) {
-        setSearchStatus('error');
-        // Fall back to loading recent logs on error
-        await loadRecentLogs();
-      }
-    } finally {
-      if (progressInterval) {
-        clearInterval(progressInterval);
-      }
-      if (isMountedRef.current) {
-        setIsSearching(false);
-      }
-    }
-  }, [kqlQuery, loadRecentLogs, queryHistory, isMountedRef]);
-
   const loadRecentLogs = useCallback(async () => {
     try {
       // Load recent logs from the backend API
@@ -478,6 +366,121 @@ export default function ExplorerPage() {
       // Keep mock data as final fallback
     }
   }, []);
+
+  const handleSearch = useCallback(
+    async (query?: string) => {
+      const searchQuery = query || kqlQuery;
+      if (!searchQuery.trim()) {
+        // If no query, load recent logs
+        await loadRecentLogs();
+        return;
+      }
+
+      setIsSearching(true);
+      setSearchStatus('running');
+      setSearchStats((prev) => ({ ...prev, searchProgress: 0 }));
+
+      // Simulate search progress with proper cleanup tracking
+      let progressInterval: NodeJS.Timeout | undefined;
+      const startProgressSimulation = () => {
+        progressInterval = setInterval(() => {
+          setSearchStats((prev) => {
+            const newProgress = Math.min(prev.searchProgress + 10, 90);
+            return { ...prev, searchProgress: newProgress };
+          });
+        }, 200);
+      };
+
+      startProgressSimulation();
+
+      try {
+        // Call the real Search API with KQL query
+        const response = await fetch('/api/v1/search/execute', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Organization-ID': 'c47e1c4e-4f23-4c6a-9c4a-f8b5d6c2e1a3',
+          },
+          body: JSON.stringify({
+            query: searchQuery,
+            limit: 1000,
+            organizationId: 'c47e1c4e-4f23-4c6a-9c4a-f8b5d6c2e1a3',
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Search failed: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const data = await response.json();
+
+        // Transform the search results to match our UI format
+        const transformedResults =
+          data.rows?.map((row: any, index: number) => ({
+            timestamp: row.timestamp || new Date().toISOString(),
+            eventId: row.event_id || 'N/A',
+            computerName: row.hostname || row.source_identifier || 'Unknown',
+            userName: row.user_name || row.auth_user || 'System',
+            sourceIP: row.source_ip || row.destination_ip || 'N/A',
+            severity: row.log_level || row.severity || 'Information',
+            message: row.message || 'No message available',
+            source: row.source_type || 'unknown',
+          })) || [];
+
+        setSearchResults(transformedResults);
+
+        // Add to history if not already there
+        if (!queryHistory.includes(searchQuery)) {
+          setQueryHistory((prev) => [searchQuery, ...prev.slice(0, 9)]);
+        }
+
+        setSearchStatus('completed');
+        setSearchStats((prev) => ({
+          ...prev,
+          searchProgress: 100,
+          executionTime: data.metadata?.executionTime || 245,
+          totalEvents: transformedResults.length,
+          scannedEvents:
+            data.metadata?.scannedRows ||
+            data.metadata?.totalRows ||
+            transformedResults.length,
+        }));
+      } catch (error) {
+        console.error('Search error:', error);
+        if (isMountedRef.current) {
+          setSearchStatus('error');
+          // Fall back to loading recent logs on error
+          await loadRecentLogs();
+        }
+      } finally {
+        if (progressInterval) {
+          clearInterval(progressInterval);
+        }
+        if (isMountedRef.current) {
+          setIsSearching(false);
+        }
+      }
+    },
+    [kqlQuery, loadRecentLogs, queryHistory, isMountedRef]
+  );
+
+  useEffect(() => {
+    // Initialize custom time range on client side to avoid hydration mismatch
+    setCustomTimeRange({ start: new Date(), end: new Date() });
+  }, []);
+
+  useEffect(() => {
+    const query = searchParams.get('query');
+    if (query) {
+      setKQLQuery(query);
+      handleSearch(query);
+    } else {
+      // Load recent logs on initial page load
+      loadRecentLogs();
+    }
+  }, [searchParams, handleSearch, loadRecentLogs]);
 
   const handleStopSearch = () => {
     setIsSearching(false);
@@ -523,7 +526,19 @@ export default function ExplorerPage() {
 
   const getTimeRangeLabel = () => {
     const preset = timeRangePresets.find((p) => p.value === selectedTimeRange);
-    return preset ? preset.label : 'Custom range';
+    if (!preset) return 'Custom range';
+
+    // Use shorter labels for header button
+    const shortLabels: Record<string, string> = {
+      '15m': '15 mins',
+      '1h': '1 hour',
+      '4h': '4 hours',
+      '24h': '24 hours',
+      '7d': '7 days',
+      '30d': '30 days',
+    };
+
+    return shortLabels[preset.value] || preset.label;
   };
 
   const getStatusIcon = () => {
@@ -605,18 +620,82 @@ export default function ExplorerPage() {
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Add to Dashboard
               </Button>
+
+              {/* Time Range Picker moved to header */}
+              <Popover
+                open={isCustomTimeOpen}
+                onOpenChange={setIsCustomTimeOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <CalendarIcon className="w-4 h-4 mr-2" />
+                    {getTimeRangeLabel()}
+                    <ChevronDown className="w-4 h-4 ml-2" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 z-50">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Quick Ranges</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {timeRangePresets.map((preset) => (
+                          <Button
+                            key={preset.value}
+                            variant={
+                              selectedTimeRange === preset.value
+                                ? 'default'
+                                : 'outline'
+                            }
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTimeRange(preset.value);
+                              setIsCustomTimeOpen(false);
+                            }}
+                          >
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    <Separator />
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Custom Range</h4>
+                      <div className="space-y-2">
+                        <Calendar
+                          mode="range"
+                          selected={{
+                            from: customTimeRange.start || undefined,
+                            to: customTimeRange.end || undefined,
+                          }}
+                          onSelect={(range) => {
+                            if (range?.from && range?.to) {
+                              setCustomTimeRange({
+                                start: range.from,
+                                end: range.to,
+                              });
+                              setSelectedTimeRange('custom');
+                            }
+                          }}
+                          className="rounded-md border border-gray-600 z-50"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
           {/* KQL Search Bar */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-3">
+            {/* Search Input Row */}
+            <div className="flex items-start space-x-3">
               <div className="flex-1 relative">
                 <Textarea
                   placeholder="Enter your KQL query... (e.g., EventID:4625 | where TimeGenerated > ago(1h))"
                   value={kqlQuery}
                   onChange={(e) => setKQLQuery(e.target.value)}
-                  className="min-h-[120px] bg-muted border-border text-foreground font-mono resize-y"
+                  className="min-h-[80px] bg-muted border-border text-foreground font-mono resize-y pr-12"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                       e.preventDefault();
@@ -632,7 +711,7 @@ export default function ExplorerPage() {
                           <History className="w-4 h-4" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-80">
+                      <PopoverContent className="w-80 z-50">
                         <div className="space-y-2">
                           <h4 className="font-medium text-sm">Query History</h4>
                           {queryHistory.map((query, index) => (
@@ -650,96 +729,32 @@ export default function ExplorerPage() {
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Time Range Picker */}
+            {/* Search Control Row */}
+            <div className="flex items-center justify-end">
+              {/* Search Control Buttons */}
               <div className="flex items-center space-x-2">
-                <Popover
-                  open={isCustomTimeOpen}
-                  onOpenChange={setIsCustomTimeOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-40">
-                      <CalendarIcon className="w-4 h-4 mr-2" />
-                      {getTimeRangeLabel()}
-                      <ChevronDown className="w-4 h-4 ml-2" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80">
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium text-sm mb-2">
-                          Quick Ranges
-                        </h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          {timeRangePresets.map((preset) => (
-                            <Button
-                              key={preset.value}
-                              variant={
-                                selectedTimeRange === preset.value
-                                  ? 'default'
-                                  : 'outline'
-                              }
-                              size="sm"
-                              onClick={() => {
-                                setSelectedTimeRange(preset.value);
-                                setIsCustomTimeOpen(false);
-                              }}
-                            >
-                              {preset.label}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                      <Separator />
-                      <div>
-                        <h4 className="font-medium text-sm mb-2">
-                          Custom Range
-                        </h4>
-                        <div className="space-y-2">
-                          <Calendar
-                            mode="range"
-                            selected={{
-                              from: customTimeRange.start || undefined,
-                              to: customTimeRange.end || undefined,
-                            }}
-                            onSelect={(range) => {
-                              if (range?.from && range?.to) {
-                                setCustomTimeRange({
-                                  start: range.from,
-                                  end: range.to,
-                                });
-                                setSelectedTimeRange('custom');
-                              }
-                            }}
-                            className="rounded-md border border-gray-600"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-
-                {/* Search Control Buttons */}
-                <div className="flex items-center space-x-1">
-                  {isSearching ? (
-                    <Button
-                      onClick={handleStopSearch}
-                      variant="destructive"
-                      size="sm"
-                    >
-                      <Square className="w-4 h-4 mr-2" />
-                      Stop
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => handleSearch()}
-                      disabled={!kqlQuery.trim()}
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Search
-                    </Button>
-                  )}
-                </div>
+                {isSearching ? (
+                  <Button
+                    onClick={handleStopSearch}
+                    variant="destructive"
+                    size="default"
+                  >
+                    <Square className="w-4 h-4 mr-2" />
+                    Stop
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => handleSearch()}
+                    disabled={!kqlQuery.trim()}
+                    size="default"
+                    className="px-6"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Search
+                  </Button>
+                )}
               </div>
             </div>
 
