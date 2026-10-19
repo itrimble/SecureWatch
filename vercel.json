@@ -4,5 +4,8 @@
   "outputDirectory": "frontend/.next",
   "framework": "nextjs",
   "devCommand": "pnpm run dev",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD ."
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD .",
+  "git": {
+    "deploymentEnabled": false
+  }
 }
